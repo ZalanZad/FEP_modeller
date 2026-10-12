@@ -1,9 +1,10 @@
 """Bora bid model – reconciliation against the old engine (SPEC v2 §3 saved values, §8 deliberate fixes).
 
 For each headline and bid: saved value (meeting file, reproduced by the old-engine shadows) → each §8 fix applied one at
-a time in the shadows (data/old_engine/old_rtb.py, old_htm.py) → new-structure residual → the recalculated workbook at
-key-assumption set 3 "Overbuild built". CN values: set 2 with In_Overbuild_Built = 1 in a private LibreOffice copy.
-Then set 3 → base (overbuild not built) per bid. Writes out/reconciliation.md.
+a time in the shadows (data/old_engine/old_rtb.py, old_htm.py) → each user decision (SPEC §0 items 1, 4, 5, 12) as its own
+"user decision" step → new-structure residual → the recalculated workbook at key-assumption set "Overbuild built".
+CN values: that set with the input switch In_CN_Turbine = 1 in a private LibreOffice copy. Then set "Overbuild built" →
+Base (overbuild not built) per bid. Writes out/reconciliation.md and checks the written tables against the workbook.
 
     python3 projects/bora_bidding/reconcile.py
 
