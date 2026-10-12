@@ -27,6 +27,23 @@ v2 (12-Oct-2026) replaces v1. It adds the logic recovered from the old engine (`
 6. **Dashboard clean-up.** The "Source" column goes. The securities section gets a summary: cash posted, guarantees,
    carrying cost to the exit, and total. The cost-to-COD section gets a summary: development, construction, financing, all-in, per MW.
 
+### v2.2 changes (user review, 12-Oct-2026) – override v2.1 where they differ
+7. **One zero-bid column.** The zero bid is the same project for both bids, so it gets one column, computed on Calc_1.
+8. **Returns at a glance, at the top of the Dashboard**, right under the header. Columns: Zero bid | BORA 1 | BORA 2 | Δ B1 | Δ B2.
+   Rows: points; FEP RtB profit and IRR; COD IRR and NPV; HTM IRR and NPV; total commitment (item 10).
+   It replaces the separate zero-bid block. Each figure appears once on the Dashboard: no repeats further down.
+9. **Drop the PB-at-2.0× block**, with its input and Calc rows.
+10. **Commitment overview** (one logical block per bid, replacing the separate securities and cost-to-COD summaries):
+    - securities (cash posted + guarantees outstanding);
+    - devex, land and signing/DD;
+    - construction capex incl. connection fees and municipal;
+    - financing (IDC + fees);
+    - penalty if the overbuild is not built (selected regime, with the full call as a memo);
+    - total.
+    Line detail stays below it, without duplicate rows.
+11. **Deposits as one input block.** Every security and fee input (rate or amount, basis, posting date, release, form) sits together
+    in one "Deposits and fees" block on Inputs, in the order of the timeline. No new mechanics.
+
 ## 1. Decision
 The IC is asked to approve the tender commitments for two 100 MVA capacity bids at the Szombathely OVIT node,
 **BORA 1** and **BORA 2** (2 × 100 MVA, each within the 100 MVA per group per node cap). For each bid the IC needs to see:

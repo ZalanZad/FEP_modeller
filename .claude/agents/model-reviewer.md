@@ -17,6 +17,7 @@ Give your view on:
 2. **Plausibility.** Which numbers look too high, too low or inconsistent with each other for this asset and market
    (IRRs, MOICs, € m, per-MW costs, points, dates, signs)? Which moves look the wrong way?
 3. **Noise.** Columns or rows that mean nothing, repeat each other or would make a partner ask "why is this here?".
+   Two columns that always hold the same numbers, or a figure shown twice, are noise. Never call them "right".
 4. **Gaps.** What an IC would expect to see that is missing.
 
 Output: at most 12 short bullets, most important first. For each, give the observation and the hypothesis to verify
