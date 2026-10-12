@@ -129,7 +129,8 @@ def compute(strategy='S2', route='HTM-EU', *, fx=None, built_overbuild=True, bes
             deemed_exit_basis='htm_case', fep_share=None, dsra=True, sweep=True, pb_hold_months=0, bid_netting=True,
             direct_fee_basis='per_mw', direct_fee_share=1.0, pb_forfeit=False, overrides=None, detail=False,
             bid_release=False, pb_release_date=None, devex=None, guarantee_fee_days=False, claims='line',
-            buyout_keur=0.0, ppa_from_cod=False, cod_waterfall='full'):
+            buyout_keur=0.0, ppa_from_cod=False, cod_waterfall='full',
+            turbine_eu=None, bess_capex=None, ppa_price=None, ppa_tenor=None, community=None):
     """Recompute one strategy × route of the old engine. Defaults reproduce the workbook.
 
     fx               HUF/EUR for the Deposits schedule (Inputs E11 = 365). Devex and the deemed-exit interface stay
@@ -159,6 +160,13 @@ def compute(strategy='S2', route='HTM-EU', *, fx=None, built_overbuild=True, bes
     buyout_keur      HTM only: developer buy-out (DSA + 30 %) paid by FEP in the RtB-sale year (fix 10).
     ppa_from_cod     True: PPA for its tenor from COD (COD-year stub on PPA, 2041 part-year), then merchant (fix 10).
     cod_waterfall    'full' (old: developer floored at -DSA) | 'capped' (MIN steps, no floor; fix 6).
+
+    User-decision toggles (12-Oct-2026; None = meeting file):
+    turbine_eu       EU turbine supply k€/MW (Inputs E162, 950 -> 600); the CN routes keep 500.
+    bess_capex       BESS capex k€/MW (Inputs E168, 200 -> 240).
+    ppa_price        PPA strike in the first operating year, €/MWh (Inputs E191, 91.6 -> 90).
+    ppa_tenor        PPA tenor, years (Inputs E193, 10 -> 30: the whole life, no merchant tail; use with ppa_from_cod).
+    community        community contribution €/MWh (Inputs E234; BORA 2: 2.0 -> 2.01); also moves the COD price effect.
     """
     case, turb, kind = ROUTES[route]
     S = DATA['strategies'][strategy]
@@ -177,6 +185,10 @@ def compute(strategy='S2', route='HTM-EU', *, fx=None, built_overbuild=True, bes
         I[228] = 1.0 if deemed_exit else 0.0
     for k, v in (overrides or {}).items():
         I[int(str(k).lstrip('E'))] = v
+    for row, v, only_eu in ((162, turbine_eu, True), (168, bess_capex, False), (191, ppa_price, False),
+                            (193, ppa_tenor, False), (234, community, False)):
+        if v is not None and (turb == 'EU' or not only_eu):
+            I[row] = v
     T = {k: v['value'] for k, v in DATA['tender_and_calc'].items()}
     cod_sale = kind == 'COD'
 

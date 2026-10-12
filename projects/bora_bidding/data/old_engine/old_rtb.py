@@ -44,6 +44,10 @@ Toggles added for the new-model reconciliation (SPEC v2 §8; defaults = old engi
                       negative distributable, no developer floor; fix 6)
   margin_revenue      'merchant' (old case 1) | 'ppa_from_cod' (buyer margin on the PPA for its tenor from COD, then
                       merchant: the new model's single revenue line; fix 10)
+  g_over              None  {general-input key: value} patched into G for this run (user decisions: turbine_eu_keur_per_mw,
+                      bess_capex_keur_per_mw, ppa_price, ppa_tenor); they only reach the RtB route through the price effect
+  strat_over          None  {strategy: {strategy-input key: value}} patched into J['strategies'] for this run
+                      (user decision: BORA 2 community_eur_per_mwh 2.0 -> 2.01; also scores ÖSZ-2)
   grid                'monthly' (old MOIC grid) | 'quarterly' (new timeline: flows at quarter ends from 30-Sep-2026,
                       XIRR / NPV on those dates, price effect per quarter as the new Calc rows; fix 11)
 """
@@ -380,10 +384,27 @@ DEFAULTS = dict(
     interest_method='line', same_year_stub_fix=False, pause=True, sale_date=None, cod=None, net_mva=None, rtb_premium=None,
     tender_mw=None, dev_floor=True, guarantee_fee=True, signing_dd=True, tax=True, osz4_basis_installed=None, pass_through=None,
     n_bids=None, pb_release_date=None, pb_carry_tax=False, guarantee_fee_days=False, atrisk_floor='line', waterfall='full', margin_revenue='merchant', grid='monthly',
+    g_over=None, strat_over=None,
 )
 
 
 def compute(strategy: str, **kw) -> dict:
+    """Old RtB engine for one strategy; `g_over` / `strat_over` patch the module inputs for this call only."""
+    g_over, strat_over = kw.pop('g_over', None), kw.pop('strat_over', None)
+    saved_g = {k: G[k] for k in (g_over or {})}
+    saved_s = {s_: {k: J['strategies'][s_][k] for k in v} for s_, v in (strat_over or {}).items()}
+    G.update(g_over or {})
+    for s_, v in (strat_over or {}).items():
+        J['strategies'][s_].update(v)
+    try:
+        return _compute(strategy, **kw)
+    finally:
+        G.update(saved_g)
+        for s_, v in saved_s.items():
+            J['strategies'][s_].update(v)
+
+
+def _compute(strategy: str, **kw) -> dict:
     o = dict(DEFAULTS)
     unknown = set(kw) - set(o)
     if unknown:
