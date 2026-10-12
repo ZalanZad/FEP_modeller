@@ -81,6 +81,8 @@ v2 (12-Oct-2026) replaces v1. It adds the logic recovered from the old engine (`
        - BESS capex only;
     7. approval requested and next steps (bid deadline 30-Oct-2026).
     The email is the same storyline in ≈ 250–350 words, EN and HU.
+20. **100 MVA group cap: not raised.** The user removed it from the IC material (12-Oct-2026). Do not add it back as a risk
+    in the deck, the emails or the reviews; the model's capacity test stays as it is.
 12. **Inputs (user):** BESS capex 240 k€/MW; BORA 2 community contribution 2.01 €/MWh (scores ÖSZ-2 points, 68.25 total).
 
 ## 1. Decision
