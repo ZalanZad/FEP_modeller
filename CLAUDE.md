@@ -26,7 +26,7 @@ Working language: English (code, workbooks, decks, docs). Chat replies to the us
 ## Workflow
 1. **Plan (main session, Fable):** write `projects/<name>/SPEC.md` before anything is built. It covers the decision,
    scenarios, model architecture (sheets, rows, timeline), inputs with sources, outputs and the deck storyline.
-2. **Build (Opus):** `model-builder` builds the workbook and `deck-builder` builds the deck, both strictly to SPEC.md.
+2. **Build (Opus):** `model-builder` builds the workbook, `deck-builder` the deck and `ic-writer` the emails and deck text, all strictly to SPEC.md (writing rules: `docs/WRITING_STANDARDS.md`).
 3. **Check (always):** `model-auditor` runs the lint, the LibreOffice recalc and an independent Python
    recomputation of the headline outputs, then ties the deck out to the workbook. A failed check is a bug to fix,
    not one to hide.
