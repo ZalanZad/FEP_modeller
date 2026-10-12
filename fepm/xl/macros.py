@@ -32,14 +32,24 @@ def _calls(run) -> list[tuple[str, str]]:
     return out
 
 
+SOLVER_MODULES = ("Solver", "GoalSeek")     # embedded only when the workbook defines Solver_Topics
+
+
 def package(xlsx, xlsm, run=("Scenarios", "RunAllScenarios"), vba_dir: Path = VBA_DIR) -> Path:
-    """Embed every vba_dir/*.bas, run the macros in order, recalc and save as .xlsm.
+    """Embed vba_dir/*.bas, run the macros in order, recalc and save as .xlsm.
+
+    Solver.bas and GoalSeek.bas are embedded only if the workbook has the `Solver_Topics` name (Inputs
+    "Macro control", written when the model has a COPY/PASTE topic or a goal seek); Scenarios.RunSolvers
+    calls them late-bound, so it runs with or without them.
 
     `run`: one ("Module", "Sub") / "Module.Sub", a list of them (e.g. ["BoraImpact.RunCommitmentImpact",
     "Scenarios.RunAllScenarios"]), or None."""
     calls = _calls(run)
     with Office(xlsx) as lo:
-        lo.add_vba_modules(modules(vba_dir))
+        mods = modules(vba_dir)
+        if not lo.doc.NamedRanges.hasByName("Solver_Topics"):
+            mods = {k: v for k, v in mods.items() if k not in SOLVER_MODULES}
+        lo.add_vba_modules(mods)
         for module, sub in calls:
             lo.run_macro(module, sub)   # LibreOffice swallows VBA runtime errors: the checks are the safety net
         lo.calculate()

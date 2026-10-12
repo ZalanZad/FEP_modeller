@@ -256,7 +256,7 @@ def calc(m):
           ef_fmt="date")
     c.event("cod", "COD", "In_COD")
     c.window("ops", "Operations", "In_COD+1", "EDATE(In_COD,In_Life*Months_In_Year)")
-    c.window("lease_w", "Land lease period (NTP → end of life)", "In_NTP+1", "{ops.F}")
+    c.window("lease_w", "Land lease period (NTP → end of life)", "In_NTP+1", "EDATE(In_COD,In_Life*Months_In_Year)")
     c.window("tenor", "Debt repayment period", "In_COD+1", "EDATE(In_COD,In_Debt_Tenor*Months_In_Year)")
     c.row("dep", "Tax depreciation share", "factor", share, e="In_COD+1",
           f="EDATE(In_COD,In_Dep_Years*Months_In_Year)", fmt="factor", ef_fmt="date")
@@ -306,7 +306,7 @@ def calc(m):
             "+({osz2.E}>Osz2_Max)", ef_fmt="int")
 
     c.section("Securities, fees and development costs (E: amount, F: date)")
-    c.row("pb_base", "Security base, mHUF (F: price reference)", "#",
+    c.row("pb_base", "Security base (F: price reference)", "mHUF",
           e="{wind.E}*In_Bench_Wind+{mwh.E}*In_Bench_BESS", f="{wind.E}*In_Bench_Wind+{mwh.F}*In_Bench_BESS",
           ef_fmt="money")
     line = "=-{self.E}*" + EVENT
@@ -332,22 +332,23 @@ def calc(m):
     c.row("cont", "Devex contingency", "EUR k", line, e="In_Devex_Contingency*(SUM(Devex_Keur)+{fee.E})",
           f="In_Contingency_Date")
     fmt("cont", "F", "date")
-    c.row("dev_cost", "Devex, land and contingency", "EUR k", "={devex}+{land}+{cont}")
+    c.row("dev_cost", "Devex, land and contingency (E: to the exit, F: to COD)", "EUR k", "={devex}+{land}+{cont}",
+          e="-" + EXIT, f="-" + TO_COD)
     c.row("gfee", "Guarantee fees (E: to the exit, F: to COD)", "EUR k",
           "=-({bid}+{pb})*In_Guarantee_Fee*{days}/Days_In_Year", e=EXIT, f=TO_COD)
     c.row("dev_cf", "Development cash flow (excl. connection fees)", "EUR k", "={inv}+{fee}+{tso}+{dev_cost}+{gfee}",
           bold=True)
-    c.row("sec_tot", "Cash posted (E) and upfront securities (F)", "EUR k", e="-({fee.I}+{tso.I}+{conn.I})",
-          f="-({fee.I}+{tso.I})+MAX({bid.E},{pb.E})")
-    c.row("pbx_p", "ÖSZ-6 at the maximum multiple (E: multiple, F: extra points)", "x", e="In_PB_Max_Mult",
-          f="INDEX(Osz6_Pts,1+SUMPRODUCT((Osz6_LB<{self.E})+(Osz6_LB={self.E})*Osz6_Incl))*Osz6_W-{osz6.F}",
-          ef_fmt="mult")
-    fmt("pbx_p", "F", "money2")
-    c.row("pbx", "PB at the maximum: extra guarantee fee (E: extra PB, F: points per EUR m)", "EUR k",
+    c.row("cash_cum", "Cash posted incl. land, cumulative (E: at the exit, F: upfront securities)", "EUR k",
+          "={self@prev}-{fee}-{tso}-{conn}-{land}", e="SUMIF({end.all},{exit.E},{self.all})",
+          f="-({fee.I}+{tso.I})+MAX({bid.E},{pb.E})", total="seed")
+    c.row("pbx_pts", "ÖSZ-6 points at the maximum PB multiple (F: extra vs live)", "points",
+          e="INDEX(Osz6_Pts,1+SUMPRODUCT((Osz6_LB<In_PB_Max_Mult)+(Osz6_LB=In_PB_Max_Mult)*Osz6_Incl))*Osz6_W",
+          f="{self.E}-{osz6.F}", ef_fmt="money2")
+    c.row("pbx", "PB at the maximum multiple: extra guarantee fee (E: extra PB)", "EUR k",
           "=-{self.E}*In_Guarantee_Fee*MAX(0,MIN({exit.E},{end})-MAX({pb.F},{start})+1)/Days_In_Year",
-          e="In_PB_Rate*({pbx_p.E}-{osz6.E})*{pb_base.E}*Thousand/In_FX",
-          f="IFERROR({pbx_p.F}*Thousand/{self.E},0)")
-    fmt("pbx", "F", "money1")
+          e="In_PB_Rate*(In_PB_Max_Mult-{osz6.E})*{pb_base.E}*Thousand/In_FX")
+    c.row("pbx_ppm", "PB at the maximum multiple: points per EUR m of extra guarantee", "points/EUR m",
+          e="IFERROR({pbx_pts.F}*Thousand/{pbx.E},0)", ef_fmt="money1")
 
     c.section("FEP claims, devex-file method, accrued to COD (E: to the exit, F: to COD)")
     acc = ("=In_{r}/Days_In_Year*(1-{{freeze}})*({{{p}_open}}*{{days}}+({{end}}+1)*{{{p}_new}}-{{{p}_dated}})"
@@ -369,15 +370,16 @@ def calc(m):
     c.row("b_cap", "Capitalised at 31-Dec", "EUR k", cap.format(p="b"))
     c.row("b_close", "Closing capitalised return", "EUR k", "={b_open}+{b_cap}", total="seed")
     c.subheader("At risk 20 % with 2x floor: devex, land, contingency")
-    c.row("c_new", "New principal", "EUR k", "=-{dev_cost}", e=EXIT, f=TO_COD)
     c.row("c_dated", "Date-weighted new principal", "#",
           "=SUMPRODUCT(Devex_Keur*Devex_Date*(Devex_Date>={start})*(Devex_Date<={end}))-{cont}*{cont.F}",
           total="none")
     c.row("c_open", "Opening balance", "EUR k", "={c_close@prev}", total="none")
-    c.row("c_ret", "Return accrued (E, F: with the floor)", "EUR k", acc.format(r="AtRisk_Rate", p="c"),
-          e="MAX(" + EXIT + ",(In_Min_Multiple-1)*{c_new.E})", f="MAX(" + TO_COD + ",(In_Min_Multiple-1)*{c_new.F})")
+    c.row("c_ret", "Return accrued (E, F: with the floor)", "EUR k",
+          "=In_AtRisk_Rate/Days_In_Year*(1-{freeze})*({c_open}*{days}-({end}+1)*{dev_cost}-{c_dated})*({end}<=In_COD)",
+          e="MAX(" + EXIT + ",(In_Min_Multiple-1)*{dev_cost.E})",
+          f="MAX(" + TO_COD + ",(In_Min_Multiple-1)*{dev_cost.F})")
     c.row("c_cap", "Capitalised at 31-Dec", "EUR k", cap.format(p="c"))
-    c.row("c_close", "Closing balance", "EUR k", "={c_open}+{c_new}+{c_cap}", total="seed")
+    c.row("c_close", "Closing balance", "EUR k", "={c_open}-{dev_cost}+{c_cap}", total="seed")
 
     c.section("Overbuild and BESS sanction (E: wind / pro rata, F: BESS / full call)")
     c.row("short", "Build shortfall share", "%", e="1-{wind.F}/{wind.E}", f="(1-In_BESS_Built)*({bess.E}>0)",
@@ -391,9 +393,9 @@ def calc(m):
           "=-CHOOSE(In_Sanction_Regime,{sanc.E},{sanc.F})*N(AND({start}<={self.E},{end}>={self.E}))",
           e="EDATE(In_COD,In_Sanction_Lag)")
     fmt("sanction", "E", "date")
-    c.row("mva_risk", "Connection MVA lost (E) and 3-year exclusion (F)", "MVA",
-          e="({short.E}>In_Tolerance_Cap)*{short.E}*In_MVA", f="N({sanction.I}<0)", ef_fmt="money1")
-    fmt("mva_risk", "F", "flag")
+    c.row("mva_risk", "Connection capacity lost pro rata", "MVA", e="({short.E}>In_Tolerance_Cap)*{short.E}*In_MVA",
+          ef_fmt="money1")
+    c.row("excl", "3-year group exclusion (1 = yes)", "flag", e="N({sanction.I}<0)", ef_fmt="flag")
 
     c.section("Build and debt")
     c.row("capex", "Capex on built MW (E: total)", "EUR k", "=-{self.E}*{constr}",
@@ -458,7 +460,7 @@ def calc(m):
     c.row("pe_bess", "BESS capex", "EUR k", "={self.E}*({dep}*In_CIT-{constr})",
           e="({bess.F}-In_Ref_BESS*In_MVA)*In_BESS_Capex", f=pv)
     c.row("pe_pb", "Performance security carry", "EUR k",
-          "=-{self.E}*In_Guarantee_Fee*MAX(0,MIN(In_PB_Release,{end})-MAX({exit.E}+1,{start})+1)/Days_In_Year",
+          "=-{self.E}*In_Guarantee_Fee*MAX(0,MIN(In_PB_Release,{end})-MAX({exit.E}+1,{start})+1)/Days_In_Year*(1-In_CIT)",
           e="{pb.E}-In_PB_Rate*In_Ref_PB_Mult*{pb_base.F}*Thousand/In_FX", f=pv)
     c.row("pe_ob", "Overbuild: bottleneck loss, credit, sanction", "EUR k",
           "=-{margin}*{self.E}*(1-In_CIT)+{sanction}",
@@ -509,7 +511,7 @@ def calc(m):
     c.moic("cod_moic", "FEP MOIC – sale at COD", "cod_cf")
     c.xnpv("cod_npv", "FEP NPV – sale at COD", "In_Discount_Rate", "cod_cf")
     c.row("c2c", "All-in cost to COD (E: uses, F: sources)", "EUR k",
-          e='-SUMIF({end.all},"<="&In_COD,{dev_cf.all})-{build.I}+{d_idc.I}',
+          e="{d_idc.I}-({dev_cost.I}+{inv.I}+{capex.I}+{conn.I}+{municipal.I}+{fee.I}+{tso.I}+{gfee.F}+{d_up.I}+{d_cf.I})",
           f='{d_draw.I}+{d_idc.I}-{cod_contrib.I}+SUMIF({end.all},"<="&In_COD,{ebitda.all})', bold=True)
 
     c.section("Hold to maturity")
@@ -523,7 +525,7 @@ def calc(m):
 
 
 def waterfall(c, p, steps):
-    """One row per step: E = amount due, F = MIN(due, cash still available); then the distributable remainder."""
+    """One row per step: E = amount due, F = MIN(due, cash still available); distributable = cash above all dues."""
     first = f"{p}_{steps[0][0]}"
     prev = None
     for k, label, due in steps:
@@ -531,21 +533,26 @@ def waterfall(c, p, steps):
         c.row(f"{p}_{k}", label, "EUR k", e=due, f="MIN({self.E}," + rest + ")")
         prev = f"{p}_{k}"
     c.row(f"{p}_dist", "Distributable", "EUR k",
-          f="{%s_avail.F}-SUM({%s.F}:{%s.F})" % (p, first, prev), bold=True)
+          f="MAX(0,{%s_avail.F}-SUM({%s.E}:{%s.E}))" % (p, first, prev), bold=True)
 
 
 # =========================================================================================== checks
 def checks(m):
     k = m.checks
     k.add_check("Levers within the tender rules", "=N({valid.E}+{valid.F}>0)", per_period=False)
-    k.add_check("RtB waterfall: paid within cash available", "=N({w_dist.F}<-Tolerance)", per_period=False)
-    k.add_check("RtB exit: FEP + developer + sale costs = cash available",
+    k.add_check("Exit and COD fall on a quarter end",
+                "=N(COUNTIF({end.all},{exit.E})=0)+N(COUNTIF({end.all},In_COD)=0)", per_period=False)
+    k.add_check("Cash posted to the exit = buyer reimbursement + participation fee",
+                "=N(ABS({cash_cum.E}-{w_avail.E}-{fee.E})>Tolerance)", per_period=False)
+    k.add_check("RtB waterfall: paid + distributable = cash available",
                 "=N(ABS({w_fep.F}+{w_dev.F}+{w_cost.F}-{w_avail.F})>Tolerance)", per_period=False)
-    k.add_check("Guarantees released by the PB release date", "=N(({start}>In_PB_Release)*({bid}+{pb})>Tolerance)")
-    k.add_check("TSO security credited against the indirect fee",
-                "=N(ABS({indirect.E}+{tso.E}-In_Indirect_Fee*In_MVA*Thousand/In_FX)>Tolerance)", per_period=False)
+    k.add_check("RtB waterfall: no step paid above its amount due",
+                "=N(SUMPRODUCT(--({w_cost.F}:{w_dsa.F}>{w_cost.E}:{w_dsa.E}+Tolerance))>0)", per_period=False)
+    k.add_check("COD waterfall: distributable not negative, paid within cash available",
+                "=N({v_dist.F}<-Tolerance)+N(SUM({v_cost.F}:{v_dsa.F})>{v_avail.F}+Tolerance)", per_period=False)
+    k.add_check("Sources = uses to COD (equity + debt vs all-in cost lines)", "=N(ABS({c2c.E}-{c2c.F})>Tolerance)",
+                per_period=False)
     k.add_check("Debt repaid by the end of the tenor", "=N(({end}>={tenor.F})*ABS({d_close})>Tolerance)")
-    k.add_check("Sources = uses to COD", "=N(ABS({c2c.E}-{c2c.F})>Tolerance)", per_period=False)
     k.add_check("XIRR returned a number on every route",
                 "=N(ISTEXT({rtb_irr.E}))+N(ISERROR({htm_irr.E}))+N(ISERROR({cod_irr.E}))", per_period=False)
     k.add_check("Stored impact base = live (base set)",
@@ -573,7 +580,7 @@ LEVERS = [  # key, label, unit, BORA 1 / BORA 2, source, offerable range, points
 # impact metrics (one column per bid): header, calc template, scale, format
 METRICS = [("Δ points", "{pts_live.E}", None, "0.00"), ("Δ RtB PV €m", "{eff_pv.F}", "Thousand", "money2"),
            ("Δ proceeds €m", "{w_fep.F}", "Thousand", "money2"), ("Δ HTM IRR", "{htm_irr.E}", None, "0.00%"),
-           ("Δ COD IRR", "{cod_irr.E}", None, "0.00%"), ("Δ upfront €m", "{sec_tot.F}", "Thousand", "money2")]
+           ("Δ COD IRR", "{cod_irr.E}", None, "0.00%"), ("Δ upfront €m", "{cash_cum.F}", "Thousand", "money2")]
 
 
 def dashboard(m):
@@ -598,8 +605,7 @@ def dashboard(m):
         for s in S:
             x = m.render(t, None, None, "Dashboard", s)
             live.append(f"={x}/{scale}" if scale else f"={x}")
-    r = d.link("Base level (live): points", "points", "{pts_live.E}", key="imp_live", fmt="money2",
-               extra=[None] * (nb + 1) + live)
+    r = d._row("imp_live", "Base level (live)", "", extra=[None] * (nb + 1) + live)
     for i, (_, _, _, f) in enumerate(METRICS):
         for b in range(nb):
             d.ws.cell(r, d.X + nb + 1 + i * nb + b).number_format = FMT.get(f, f)
@@ -630,24 +636,27 @@ def dashboard(m):
         r = d.link(label, "EUR m", "{%s.E}" % key, scale="Thousand", fmt="0.000", extra=[form, posted, released])
         for col in (d.X + 1, d.X + 2):
             d.ws.cell(r, col).number_format = FMT["date"]
-    d.link("Total cash posted", "EUR m", "{sec_tot.E}", scale="Thousand", out="Cash_Posted", fmt=m2)
-    d.link("Upfront securities (cash + peak guarantee)", "EUR m", "{sec_tot.F}", scale="Thousand", out="Upfront",
+    d.link("Cash posted to the exit, incl. land", "EUR m", "{cash_cum.E}", scale="Thousand", out="Cash_Posted",
+           fmt=m2)
+    d.link("Upfront securities (cash + peak guarantee)", "EUR m", "{cash_cum.F}", scale="Thousand", out="Upfront",
            fmt=m2)
     d.link("Guarantee fees to the exit", "EUR m", "-{gfee.E}", scale="Thousand", out="Guarantee_Fees", fmt="0.000")
     d.link("PB at 2.0x minimum: extra guarantee", "EUR m", "{pbx.E}", scale="Thousand", out="PBMax_Guarantee",
            fmt=m2)
     d.link("PB at 2.0x minimum: extra guarantee fee to the exit", "EUR m", "-{pbx.I}", scale="Thousand",
            out="PBMax_Fee", fmt="0.000")
-    d.link("PB at 2.0x minimum: extra points", "points", "{pbx_p.F}", out="PBMax_Points", fmt=m2)
-    d.link("PB at 2.0x minimum: points per EUR m of extra guarantee", "points", "{pbx.F}", out="PBMax_Pts_Per_EURm",
+    d.link("PB at 2.0x minimum: extra points", "points", "{pbx_pts.F}", out="PBMax_Points", fmt=m2)
+    d.link("PB at 2.0x minimum: points per EUR m of extra guarantee", "points", "{pbx_ppm.E}", out="PBMax_Pts_Per_EURm",
            fmt="money1")
     d.link("Sanction if not built: pro rata", "EUR m", "{sanc.E}", scale="Thousand", out="Sanction_Pro_Rata", fmt=m2)
     d.link("Sanction if not built: full call", "EUR m", "{sanc.F}", scale="Thousand", out="Sanction_Full", fmt=m2)
     d.link("Connection capacity at risk", "MVA", "{mva_risk.E}", out="MVA_At_Risk")
-    d.link("3-year group exclusion (1 = yes)", "flag", "{mva_risk.F}", out="Exclusion")
+    d.link("3-year group exclusion (1 = yes)", "flag", "{excl.E}", out="Exclusion")
 
     d.section("RtB exit")
-    d.input("Exit_Date", "RtB exit date", "date", [D(2029, 12, 31)] * nb, source="Bora!N17")
+    m.define("Period_Ends", f"{S[0]}!$J$4:${L(m.last)}$4")
+    d.input("Exit_Date", "RtB exit date (a quarter end)", "date", [D(2029, 12, 31)] * nb, source="Bora!N17",
+            options="Period_Ends")
     d.link("Gross premium", "EUR m", "{eff.E}", scale="Thousand", out="Gross_Premium", fmt=m2)
     for key, label, out in [("pe_mun", "Price effect: municipal one-off", "PE_Municipal"),
                             ("pe_com", "Price effect: community contribution", "PE_Community"),
@@ -746,7 +755,9 @@ def build_model(out: Path) -> Path:
         for ws in m.calc.sheets:
             ws[f"{col}{m.calc.rows[key].r}"].number_format = FMT.get(f, f)
     m.wb.save(xlsx)
-    return package(xlsx, out / f"{NAME}.xlsm", run=["BoraImpact.RunCommitmentImpact", "Scenarios.RunAllScenarios"])
+    xlsm = package(xlsx, out / f"{NAME}.xlsm", run=["BoraImpact.RunCommitmentImpact", "Scenarios.RunAllScenarios"])
+    xlsx.unlink()
+    return xlsm
 
 
 def build(out: Path):

@@ -392,6 +392,12 @@ class Inputs:
         return self.m.define(name, f"Inputs!$F${self.r - 1}")
 
     def finish(self):
+        if self.m.solver_topics or self.m.goal_topics:      # only models with a circularity or a goal seek
+            self._macro_control()
+        _end(self.ws, self.r + 1, 16)
+
+    def _macro_control(self):
+        """Topic lists read by Solver.bas / GoalSeek.bas; their presence also makes package() embed those modules."""
         self.section("Macro control")
         for name, topics, note in [("Solver_Topics", self.m.solver_topics, "COPY/PASTE topics for Solver.bas"),
                                    ("GoalSeek_Topics", self.m.goal_topics, "Topics for GoalSeek.bas")]:
@@ -399,7 +405,6 @@ class Inputs:
             apply(self.ws.cell(self.r, 6, ",".join(topics) or None), "input", "text")
             self.m.define(name, f"Inputs!$F${self.r}")
             self.r += 1
-        _end(self.ws, self.r + 1, 16)
 
 
 # =========================================================================================

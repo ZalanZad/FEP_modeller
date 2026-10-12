@@ -21,8 +21,20 @@ Public Sub RunAllScenarios()
 End Sub
 
 Public Sub RunSolvers()
+    ' Solver.bas and GoalSeek.bas are only embedded in models with topics (named cell Solver_Topics),
+    ' so they are called late-bound and only when that name exists.
     Application.Calculate
-    Solver.SolveAll
-    GoalSeek.SolveAll
+    If HasName("Solver_Topics") Then
+        Application.Run "Solver.SolveAll"
+        Application.Run "GoalSeek.SolveAll"
+    End If
     Application.Calculate
 End Sub
+
+Private Function HasName(ByVal n As String) As Boolean
+    Dim r As Range
+    On Error Resume Next
+    Set r = Range(n)
+    HasName = Not (r Is Nothing)
+    On Error GoTo 0
+End Function
