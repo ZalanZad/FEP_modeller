@@ -36,6 +36,7 @@ Working language: English (code, workbooks, decks, docs). Chat replies to the us
 - `fepm/xl` workbook builder (styles, timeline, row writer), `fepm/ppt` deck builder,
   `fepm/audit` lint + recalc + tie-out.
 - `vba/` macro source (.bas). `templates/` the IC deck template and the macro-enabled workbook template.
-- `reference/` example models and decks that define the house standard (Project Rock, Project Alpha, Bora v4).
-  Read-only.
+- `reference/` example models and decks that define the house standard (Project Rock, Project Alpha, Bora v4),
+  plus the source documents (tender call + FAQ, Bora devex, overbuild). Read-only.
+- `docs/domain/` the rules extracted from the source documents, each with citations. Read these instead of the raw PDFs/xlsx.
 - `projects/<name>/` SPEC.md, inputs, build script, outputs (`out/`).
