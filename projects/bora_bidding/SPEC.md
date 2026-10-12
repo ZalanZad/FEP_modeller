@@ -157,7 +157,7 @@ per-line floor while it binds on every line (it does at the base dates; state th
   - municipal one-off: Δk€/MW × MVA at COD, plus the depreciation shield (20 years × CIT);
   - community: Δ€/MWh × generation × (1 − CIT);
   - BESS capex: (BESS MW − ref BESS MW) × capex/MW × construction share, plus the shield;
-  - PB carry: (PB − PB at the ref multiple and ref MWh) × guarantee fee, from exit to `In_PB_Release` (fix 4);
+  - PB carry: (PB − PB at the ref multiple and ref MWh) × guarantee fee × (1 − CIT), from exit to `In_PB_Release` (fix 4);
   - overbuild:
     - if built, the bottleneck loss vs ref (generation × (loss − ref loss)/(1 − loss) × net margin × (1 − CIT));
     - if not built, the sanction at the sanction date. The reference assumes no sanction.
@@ -169,9 +169,9 @@ per-line floor while it binds on every line (it does at the base dates; state th
   - Paid in this order:
     1. sale costs;
     2. recoverable principal;
-    3. 12 % return;
+    3. 12 % return (incl. the participation fee's 12 %);
     4. land principal;
-    5. at-risk return (+ the fee's 12 %);
+    5. at-risk return;
     6. 6 % guarantee return;
     7. DSA = MIN(cap, 2.5 k€/MW/yr × YEARFRAC(signing, exit, 0)) × committed wind MW;
     8. distributable = remainder, FEP 70 % / developer 30 % (fix 6: no negative distributable, no developer floor).

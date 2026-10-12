@@ -32,6 +32,19 @@ Toggles for the reconciliation bridge (keyword overrides of compute()); defaults
   tax                 True  9 % CIT at sale with the participation exemption on the JV share (MOIC row 174)
   osz4_basis_installed None  None = strategy input (Bora row 10, all 0 = BESS ratio on net MVA); True = GYIK 20 rule
   pass_through        1.0   share of the promise PV passed into the RtB price (Tender E30)
+Toggles added for the new-model reconciliation (SPEC v2 §8; defaults = old engine):
+  pb_release_date     None  a date overrides COD + pb_hold_months_after_cod as the end of the PB carry (fix 4: 31-Mar-2033)
+  n_bids              None  None = Inputs E82 (2 bids' participation fees charged to each bid); 1 = one fee per bid (fix 7)
+  guarantee_fee_days  False True = guarantee fee on exact days outstanding, [posting, release), act/365 (fix 8)
+  interest_method     'daily' = the new model's per-class accrual: simple act/365 within each calendar year on actual
+                      days (leap years at /365), capitalised at 31-Dec, freeze excluded (fix 9)
+  atrisk_floor        'line' (old: 2x per devex line) | 'portfolio' (MAX(accrued 20 %, 1 x principal), fix 9)
+  waterfall           'full' (old: every claim deducted in full) | 'capped' (each step MIN(due, cash left), no
+                      negative distributable, no developer floor; fix 6)
+  margin_revenue      'merchant' (old case 1) | 'ppa_from_cod' (buyer margin on the PPA for its tenor from COD, then
+                      merchant: the new model's single revenue line; fix 10)
+  grid                'monthly' (old MOIC grid) | 'quarterly' (new timeline: flows at quarter ends from 30-Sep-2026,
+                      XIRR / NPV on those dates, price effect per quarter as the new Calc rows; fix 11)
 """
 from __future__ import annotations
 
@@ -102,13 +115,26 @@ def fep_factor(r: float, pay: dt.date, end: dt.date, fix_same_year=False) -> flo
     return (1 + r * a / 365) * (1 + r) ** (end.year - pay.year - 1) * (1 + r * b / 365)
 
 
-def two_segment(r, pay, sale, pause_start, pause_end, pause=True, fix=False):
+def daily_factor(r: float, pay: dt.date, end: dt.date) -> float:
+    """New-model convention: simple act/365 within each calendar year on the actual days (pay and end both counted,
+    366 days in a leap year), capitalised on 31-Dec. 1 if pay > end."""
+    if pay > end:
+        return 1.0
+    f = 1.0
+    for y in range(pay.year, end.year + 1):
+        a, b = max(pay, dt.date(y, 1, 1)), min(end, dt.date(y, 12, 31))
+        f *= 1 + r * ((b - a).days + 1) / 365
+    return f
+
+
+def two_segment(r, pay, sale, pause_start, pause_end, pause=True, fix=False, daily=False):
     """Deposits X = Z x AB / Devex_FEP N x P: accrual pay -> MIN(sale, pause start), then MAX(pay, pause end) -> sale."""
+    fac = (lambda r_, a, b, _f: daily_factor(r_, a, b)) if daily else fep_factor
     if not pause:
-        return fep_factor(r, pay, sale, fix)
-    z = fep_factor(r, pay, min(sale, pause_start), fix)
+        return fac(r, pay, sale, fix)
+    z = fac(r, pay, min(sale, pause_start), fix)
     start2 = max(pay, pause_end)
-    ab = 1.0 if sale < start2 else fep_factor(r, start2, sale, fix)
+    ab = 1.0 if sale < start2 else fac(r, start2, sale, fix)
     return z * ab
 
 
@@ -196,6 +222,14 @@ def tender_points(s, net_mva, osz4_basis_installed=None):
 
 
 # ----------------------------------------------------------------------------------------------- HTM generation (for the price effect)
+def ppa_share_from_cod(y, cod, tenor):
+    """Share of year y's operating months inside [COD, COD + tenor years): PPA from COD (new model)."""
+    end = edate(cod, int(tenor) * 12)
+    op_m = [(dt.date(y, m, 1) > cod) and dt.date(y, m, 1) <= edate(cod, 360) for m in range(1, 13)]
+    ppa_m = [op and dt.date(y, m, 1) < end for op, m in zip(op_m, range(1, 13))]
+    return sum(ppa_m) / sum(op_m) if sum(op_m) else 0.0
+
+
 def htm_years(o, ph, cod, ntp):
     """HTM rows 5, 7, 9, 10, 38, 45, 47, 48, 55, 90 for 2026..2061 (columns H:AQ)."""
     y0 = o['investment_date'].year
@@ -223,6 +257,8 @@ def htm_years(o, ph, cod, ntp):
         price = cap if (G['price_source'] == 1 and cap is not None) else est
         ppa = G['ppa_price'] * (1 + G['ppa_esc']) ** (y - cod.year)
         ppa_share = (1 - G['merchant_share']) if 1 <= idx <= G['ppa_tenor'] else 0
+        if o.get('margin_revenue') == 'ppa_from_cod':
+            ppa_share = ppa_share_from_cod(y, cod, G['ppa_tenor'])
         esc = (1 + G['opex_escalation']) ** (y - cod.year) if op > 0 else 0
         rows.append(dict(year=y, op=op, idx=idx, cons=cons, gen=gen, price=price, ppa=ppa, ppa_share=ppa_share, esc=esc))
     cod_year_op = sum(r['op'] for r in rows if r['idx'] == 0)
@@ -245,7 +281,7 @@ def price_effect(s, o, ph, ref, E18, E29, E20, E23, cod, ntp, sale):
     """Tender section 4 (rows 176-222): PV at the RtB sale date of the buyer's extra promise cash flows vs S1."""
     tax = G['cit'] + G['robin_hood_switch'] * G['robin_hood_rate']                   # Tender E180
     r_b = G['buyer_discount_rate']                                                     # E176
-    pb_release = edate(cod, int(o['pb_hold_months_after_cod']))                        # E179
+    pb_release = D(o['pb_release_date']) if o['pb_release_date'] else edate(cod, int(o['pb_hold_months_after_cod']))  # E179
     d_mun = (ph['municipal'] - ref['municipal']) * E18                                 # E190
     d_bess = (E20 - ref['bess']) * G['bess_capex_keur_per_mw']                         # E191
     pb_live = G['perf_bond_rate'] * ph['uplift'] * (E29 * G['bench_wind_mhuf_per_mw'] + E23 * G['bench_bess_mhuf_per_mwh'])     # E192 = Deposits H10
@@ -282,12 +318,66 @@ def price_effect(s, o, ph, ref, E18, E29, E20, E23, cod, ntp, sale):
     return dict(items=items, sum_pv=total, adjustment=o['pass_through'] * total, d_pb_keur=d_pb, flows=flows)
 
 
+def quarters(start=dt.date(2026, 7, 1), n=141):
+    """New-model timeline: (start, end) of each quarter from 01-Jul-2026 (141 periods to 30-Sep-2061)."""
+    return [(edate(start, 3 * k), eomonth(start, 3 * k + 2)) for k in range(n)]
+
+
+def price_effect_quarterly(o, ph, ref, E18, E29, E20, cod, ntp, sale):
+    """Price effect on the new quarterly timeline (Calc rows pe_mun..pe_ob): flows at quarter ends, discounted to the exit
+    at the buyer rate; generation degrades by operating year from COD; PPA for its tenor from COD, then Aurora."""
+    tax, r_b = G['cit'], G['buyer_discount_rate']
+    pb_release = D(o['pb_release_date']) if o['pb_release_date'] else edate(cod, int(o['pb_hold_months_after_cod']))
+    aur = J['aurora_wind_capture']
+    real = dict(zip(aur['years'], aur[['low_real', 'central_real', 'high_real'][int(G['aurora_scenario']) - 1]]))
+    life_end, dep_end = edate(cod, 12 * int(G['operating_life'])), edate(cod, 12 * int(G['tax_depreciation_years']))
+    c0, dep0 = ntp + dt.timedelta(days=1), cod + dt.timedelta(days=1)
+    share = lambda s_, e_, a, b: max(0, ((min(b, e_) - max(a, s_)).days + 1)) / ((b - a).days + 1)  # noqa: E731
+    loss_ref = ref['overbuild'] / (1 + ref['overbuild']) * G['bottleneck_loss_rate']
+    loss = ph['clip']
+    d_mun = (ph['municipal'] - ref['municipal']) * E18
+    d_com = ph['community'] - ref['community']
+    d_bess = (E20 - ref['bess']) * G['bess_capex_keur_per_mw']
+    pb = G['perf_bond_rate'] * ph['uplift'] * (E29 * G['bench_wind_mhuf_per_mw'] + ph['mwh'] * G['bench_bess_mhuf_per_mwh'])
+    pb_ref = G['perf_bond_rate'] * ref['uplift'] * (E29 * G['bench_wind_mhuf_per_mw'] + ref['bess'] * ref['hours'] * G['bench_bess_mhuf_per_mwh'])
+    d_pb = (pb - pb_ref) * 1000 / o['fx']
+    e_ob = (loss - loss_ref) / (1 - loss)
+    items = {k: 0.0 for k in ('municipal', 'community', 'bess', 'security', 'eu_turbine', 'overbuild')}
+    for s_, e_ in quarters():
+        days = (e_ - s_).days + 1
+        df = 1 / (1 + r_b) ** (max(0, (e_ - sale).days) / 365)
+        constr = share(s_, e_, c0, cod)
+        dep = share(s_, e_, dep0, dep_end)
+        ops = max(0, (min(life_end, e_) - max(dep0, s_)).days + 1) / days
+        cod_f = 1 if s_ <= cod <= e_ else 0
+        opyr = math.ceil(yearfrac_30360(cod, e_) - 1e-12) if e_ > cod else 0
+        y = e_.year
+        cap = real.get(min(y, max(real)), 0.0) * (1 + G['aurora_inflation']) ** (y - G['aurora_base_year'])
+        price = G['ppa_price'] * (1 + G['ppa_esc']) ** (y - cod.year) if opyr <= G['ppa_tenor'] else cap
+        esc = (1 + G['opex_escalation']) ** (y - cod.year)
+        gen = (ph['gross'] * G['p50_hours'] * (1 - G['curtailment']) * (1 - loss)
+               * (1 - G['degradation']) ** (opyr - 1) * ops * days / 365) if ops else 0.0          # MWh
+        rev = gen * price / 1000
+        var = -(G['balancing_eur_mwh'] + G['grid_eur_mwh']) * gen * esc / 1000
+        margin = (rev * (1 - G['mekh_fee_pct'] * (1 + G['opex_contingency']) - G['hipa_pct'])
+                  + var * (1 + G['opex_contingency']) - ph['community'] * gen / 1000)
+        pb_days = max(0, (min(pb_release, e_) - max(sale + dt.timedelta(days=1), s_)).days + 1)
+        f = {'municipal': d_mun * (dep * tax - cod_f), 'community': -d_com * gen * (1 - tax) / 1000,
+             'bess': d_bess * (dep * tax - constr), 'security': -d_pb * G['guarantee_rate'] * pb_days / 365,
+             'eu_turbine': 0.0, 'overbuild': -margin * e_ob * (1 - tax)}
+        for k, v in f.items():
+            items[k] += v * df
+    total = sum(items.values())
+    return dict(items=items, sum_pv=total, adjustment=o['pass_through'] * total, d_pb_keur=d_pb, flows=[])
+
+
 # ----------------------------------------------------------------------------------------------- main engine
 DEFAULTS = dict(
     fx=None, fx_devex=370.0, devex_source='engine_pasted_20260925', premium_basis='net', direct_fee_basis='per_mw',
     indirect_fee_basis='net', bid_netting=None, bid_release_date=None, pb_date=None, pb_hold_months_after_cod=None,
     interest_method='line', same_year_stub_fix=False, pause=True, sale_date=None, cod=None, net_mva=None, rtb_premium=None,
     tender_mw=None, dev_floor=True, guarantee_fee=True, signing_dd=True, tax=True, osz4_basis_installed=None, pass_through=None,
+    n_bids=None, pb_release_date=None, guarantee_fee_days=False, atrisk_floor='line', waterfall='full', margin_revenue='merchant', grid='monthly',
 )
 
 
@@ -344,7 +434,7 @@ def compute(strategy: str, **kw) -> dict:
                           cash=float(s['cash_1_guarantee_0']) if cash is None else cash,
                           rec=float(s['recovered_by_buyer_pct']) if rec is None else rec,
                           share=float(s['recoverable_loan_share']) if share is None else share))
-    fee = G['participation_fee_mhuf_per_bid'] * G['n_bids']
+    fee = G['participation_fee_mhuf_per_bid'] * (o['n_bids'] or G['n_bids'])
     add('fee', fee, D(G['bid_date']), 'Fee')
     base_bid = E16 * (1 if E18 == 0 else E29 / E18) * G['bench_wind_mhuf_per_mw'] + E22 * G['bench_bess_mhuf_per_mwh']   # Inputs E91
     bid = G['bid_bond_rate'] * base_bid                                                                                  # H8
@@ -386,7 +476,8 @@ def compute(strategy: str, **kw) -> dict:
         after = ln['month'] > m_sale                                                                # N
         ln['incl'] = ln['keur'] * (G['include_after_sale'] if after else 1)                         # O
         ln['rate'] = G['r_recoverable'] if ln['cash'] == 1 else G['r_guarantee_interest']           # W
-        ln['factor'] = two_segment(ln['rate'], ln['date'], sale, p_start, p_end, o['pause'], o['same_year_stub_fix'])  # X
+        ln['factor'] = two_segment(ln['rate'], ln['date'], sale, p_start, p_end, o['pause'], o['same_year_stub_fix'],
+                                   o['interest_method'] == 'daily')                                  # X
         ln['interest'] = ln['incl'] * (ln['factor'] - 1)                                            # Y
     Y22 = sum(l['interest'] for l in lines if l['cash'] == 0)                                       # 6 % guarantees
     Y23 = sum(l['interest'] for l in lines if l['cash'] == 1 and l['type'] != 'Fee')                # 12 % cash
@@ -412,11 +503,14 @@ def compute(strategy: str, **kw) -> dict:
     for x in dl:
         x['M'] = x['H'] + x['K'] * (G['devex_basis_switch'] == 1)
         x['month'] = gm(x['date'])
-        x['S'] = max(two_segment(G['r_at_risk'], x['date'], sale, p_start, p_end, o['pause'], o['same_year_stub_fix']),
-                     G['min_multiple_at_risk'])
+        x['S_raw'] = two_segment(G['r_at_risk'], x['date'], sale, p_start, p_end, o['pause'], o['same_year_stub_fix'],
+                                 o['interest_method'] == 'daily')
+        x['S'] = max(x['S_raw'], G['min_multiple_at_risk']) if o['atrisk_floor'] == 'line' else x['S_raw']
     G18 = sum(x['H'] for x in dl if 0 <= x['month'] < NM)
     G20 = sum(x['K'] for x in dl if 0 <= x['month'] < NM) if G['devex_basis_switch'] == 1 else 0
     G131 = sum(x['M'] * (x['S'] - 1) for x in dl if x['month'] <= m_sale and 0 <= x['month'] < NM)
+    if o['atrisk_floor'] == 'portfolio':
+        G131 = max(G131, (G['min_multiple_at_risk'] - 1) * sum(x['M'] for x in dl if x['month'] <= m_sale and 0 <= x['month'] < NM))
 
     # ---- DSA (MOIC rows 22-25)
     dsa_start = D(G['dsa_start'])
@@ -471,10 +565,19 @@ def compute(strategy: str, **kw) -> dict:
     G117 = sum((1 - fep_sh) * rec_m[m] for m in range(NM))
     G124 = sum(fep_sh * unrec_m[m] for m in range(NM))
     G125 = sum(fep_sh * (dev_m[m] + land_m[m]) for m in range(NM))
+    if o['guarantee_fee_days']:                                                       # fix 8: [posting, release), act/365
+        gfee = [0.0] * NM
+        for l in lines:
+            if l['cash'] == 0 and l['incl'] and l['date'] <= sale:
+                for m in range(NM):
+                    a, b = max(l['date'], eomonth(inv, m - 1) + dt.timedelta(days=1)), min(sale, mdates[m])
+                    if b >= a:
+                        gfee[m] += l['incl'] * g_rate * ((b - a).days + 1) / 365
     G79 = sum(gfee) if o['guarantee_fee'] else 0.0
 
     # ---- price effect and premium (Tender §4; MOIC G143)
-    pe = price_effect(strategy, o, ph, ref, E18, E29, E20, E23, cod, ntp, sale)
+    pe = (price_effect_quarterly(o, ph, ref, E18, E29, E20, cod, ntp, sale) if o['grid'] == 'quarterly'
+          else price_effect(strategy, o, ph, ref, E18, E29, E20, E23, cod, ntp, sale))
     premium = o['rtb_premium'] if o['rtb_premium'] is not None else G['rtb_premium_keur_per_mw']
     gross_premium = premium * E150 + G['bess_value_keur_per_mw'] * E20                              # Tender E220
     G143 = gross_premium + pe['adjustment']
@@ -494,7 +597,18 @@ def compute(strategy: str, **kw) -> dict:
     G151 = -G25
     G152 = G145 + G146 + G147 + G148 + G149 + G150 + G151
     dev_share = 1 - (G['fep_share'] if G['jv_live'] == 1 else 1)
-    G154 = max(G151, G152 * dev_share) if o['dev_floor'] else G152 * dev_share
+    if o['waterfall'] == 'capped':                                                    # fix 6: MIN(due, cash left)
+        left = max(0.0, G145)
+        paid = []
+        for due in (-G146, G110 + G117, rec_int, -G148, atrisk_ret, guar_int, -G151):
+            p_ = min(due, left)
+            paid.append(p_)
+            left -= p_
+        G146, G147, G148, G149, G150, G151 = (-paid[0], -(paid[1] + paid[2]), -paid[3], -paid[4], -paid[5], -paid[6])
+        G152 = left
+        G154 = G152 * dev_share
+    else:
+        G154 = max(G151, G152 * dev_share) if o['dev_floor'] else G152 * dev_share
     G153 = G152 - G154
 
     # ---- FEP monthly cash flows (MOIC block 10) and returns (block 11)
@@ -516,10 +630,15 @@ def compute(strategy: str, **kw) -> dict:
     G172 = sum(pre); G174 = sum(taxm); G182 = sum(post)
     G171 = infl_sale
     moic = (G171 + G174) / -G164 if G164 else float('nan')
-    irr = xirr(post, mdates)
+    cf, cfd = post, mdates
+    if o['grid'] == 'quarterly':                                     # month m (0 = Jul-2026) -> quarter m // 3, dated at its end
+        qd = [e for _, e in quarters()][:(NM + 2) // 3]
+        cf = [sum(post[m] for m in range(NM) if m // 3 == q) for q in range(len(qd))]
+        cfd = qd
+    irr = xirr(cf, cfd)
     dr = G['discount_rate']
-    npv = sum(c / (1 + dr) ** ((d - mdates[0]).days / 365) for c, d in zip(post, mdates))
-    pv_eq = -sum(c / (1 + dr) ** ((d - mdates[0]).days / 365) for c, d in zip(post, mdates) if c < 0)
+    npv = sum(c / (1 + dr) ** ((d - cfd[0]).days / 365) for c, d in zip(cf, cfd))
+    pv_eq = -sum(c / (1 + dr) ** ((d - cfd[0]).days / 365) for c, d in zip(cf, cfd) if c < 0)
     cpost, peak, econ, prev = 0.0, 0.0, 0.0, 0.0
     for m in range(NM):
         charge = 0.0 if m == 0 else min(prev, 0) * ((1 + G['coc_econ_profit']) ** (1 / 12) - 1)
@@ -543,7 +662,8 @@ def compute(strategy: str, **kw) -> dict:
         'price_effect_items': pe['items'], 'effective_price': G143,
         'effective_price_per_basis_mw': (gross_premium + pe['adjustment']) / E150 if E150 else 0,
         'wf': {'49 premium proceeds (effective)': G143, '50 buyer reimbursement': G144, '51 total proceeds': G145,
-               '52 sale costs': G146, '53 recoverable loans - principal': -(G110 + G117), '54 recoverable loans - 12% interest': -rec_int,
+               '52 sale costs': G146, '53 recoverable loans - principal': -(G110 + G117),
+               '54 recoverable loans - 12% interest': G147 + (G110 + G117),
                '55 unrecoverable loans - principal (land)': G148, '56 at-risk return MAX(20%,2x) + fee 12%': G149,
                '57 guarantee interest 6%': G150, '58 DSA': G151, '59 distributable': G152, '60 to FEP': G153, '61 to developer': G154},
         'fep_pre_tax_profit': G172, 'fep_tax_at_sale': G174, 'fep_post_tax_profit': G182, 'fep_irr': irr, 'fep_moic': moic,
@@ -555,7 +675,10 @@ def compute(strategy: str, **kw) -> dict:
                    'dsa_keur_per_mw': dsa_mw, 'guarantee_fee_G79': G79, 'monthly_rec_interest_G111': rint, 'monthly_guar_interest_G82': gint_total,
                    'monthly_atrisk_topup_G130': topup, 'G124_unrec_cash': G124, 'G125_devex_land': G125, 'contingency': cont,
                    'pb_gross_mhuf': pb_gross, 'bid_bond_mhuf': bid, 'd_pb_keur': pe['d_pb_keur'],
-                   'post_tax_monthly': post, 'month_dates': [d.isoformat() for d in mdates]},
+                   'post_tax_monthly': post, 'month_dates': [d.isoformat() for d in mdates],
+                   'devex_monthly': dev_m, 'land_monthly': land_m, 'devex_lines': dl, 'fee_keur': fee_keur,
+                   'cash_flows': cf, 'cash_flow_dates': [d.isoformat() for d in cfd]},
+        'developer_total': -G151 + G154,
     }
     return res
 

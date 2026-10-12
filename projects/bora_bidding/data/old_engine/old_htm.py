@@ -127,7 +127,9 @@ def _E(row):
 # ----------------------------------------------------------------------------------------------- engine
 def compute(strategy='S2', route='HTM-EU', *, fx=None, built_overbuild=True, bess_built=True, deemed_exit=None,
             deemed_exit_basis='htm_case', fep_share=None, dsra=True, sweep=True, pb_hold_months=0, bid_netting=True,
-            direct_fee_basis='per_mw', direct_fee_share=1.0, pb_forfeit=False, overrides=None, detail=False):
+            direct_fee_basis='per_mw', direct_fee_share=1.0, pb_forfeit=False, overrides=None, detail=False,
+            bid_release=False, pb_release_date=None, devex=None, guarantee_fee_days=False, claims='line',
+            buyout_keur=0.0, ppa_from_cod=False, cod_waterfall='full'):
     """Recompute one strategy × route of the old engine. Defaults reproduce the workbook.
 
     fx               HUF/EUR for the Deposits schedule (Inputs E11 = 365). Devex and the deemed-exit interface stay
@@ -145,6 +147,18 @@ def compute(strategy='S2', route='HTM-EU', *, fx=None, built_overbuild=True, bes
     pb_forfeit       True: proportional performance-security call at COD when built < committed by > 10 % (wind
                      and BESS tested separately; tender rules §2.3) – not in the old engine.
     overrides        {'E214': 1.0, ...} replaces Inputs E-values (row numbers of the Inputs sheet).
+
+    Toggles added for the new-model reconciliation (SPEC v2 §8; defaults = old engine):
+    bid_release      True: the bid guarantee is released when the PB is posted (fix 3; use with bid_netting=False).
+    pb_release_date  date the guarantees outstanding after the RtB-sale date end on (HTM; fix 4: 31-Mar-2033);
+                     overrides pb_hold_months.
+    devex            {'dv': [...], 'land': [...], 'g280': float}: monthly devex / land vectors (MOIC rows 18 / 20) and the
+                     at-risk claim to COD (MOIC G280) recomputed by old_rtb.py under the same fixes (fix 5, 7, 9).
+    guarantee_fee_days True: fee on exact days outstanding [posting, release), act/365, by calendar year (fix 8).
+    claims           'line' (old Deposits AF) | 'daily': COD claims on the new per-class accrual (fix 9).
+    buyout_keur      HTM only: developer buy-out (DSA + 30 %) paid by FEP in the RtB-sale year (fix 10).
+    ppa_from_cod     True: PPA for its tenor from COD (COD-year stub on PPA, 2041 part-year), then merchant (fix 10).
+    cod_waterfall    'full' (old: developer floored at -DSA) | 'capped' (MIN steps, no floor; fix 6).
     """
     case, turb, kind = ROUTES[route]
     S = DATA['strategies'][strategy]
@@ -213,13 +227,15 @@ def compute(strategy='S2', route='HTM-EU', *, fx=None, built_overbuild=True, bes
     line('bid_refund', -I[76] * ((I[16] - E18) * I[75] * (E29 / E18)) * I[110], 0, award, I[118], I[257], 'Refund')
     H10 = I[77] * I[90] * E92
     line('pb', H10, -H8 * I[107] * (1 if bid_netting else 0), award + dt.timedelta(days=int(I[102])), I[119], I[258], 'Security')
+    if bid_release:
+        line('bid_release', -H8, 0, award + dt.timedelta(days=int(I[102])), I[118], I[257], 'Refund')
     H11 = I[83] * E18
     line('tso', H11, 0, todate(I[97]), I[120], I[259], 'Security')
     H12 = I[84] * E18 if direct_fee_basis == 'per_mw' else 508.345804 * direct_fee_share
     line('direct', H12, 0, todate(I[99]), I[121], I[260], 'Connection fee')
     assert I[78] == 0, 'supplementary security (Deposits rows 13–17) is 0 in this procedure – not shadowed'
     line('indirect', I[85] * E18, -H11, todate(I[99]), I[126], I[265], 'Connection fee')
-    tso = lines[4]
+    tso = next(l for l in lines if l['key'] == 'tso')
 
     # --- guarantee fees (MOIC rows 72–79 → HTM row 23) ---------------------------------------------------------
     rate = I[113]
@@ -234,6 +250,8 @@ def compute(strategy='S2', route='HTM-EU', *, fx=None, built_overbuild=True, bes
         bal = 0.0 if m == E57 else bal + issued
     G_sale = sum(l['O'] * (1 - l['P']) for l in lines if l['L'] <= E57)    # −MOIC!G75
     g_end = edate(cod, int(pb_hold_months)) if (kind == 'HTM' and pb_hold_months) else cod
+    if kind == 'HTM' and pb_release_date:
+        g_end = todate(pb_release_date)
 
     # --- annual grid ---------------------------------------------------------------------------------------------
     E15 = I[226]
@@ -252,8 +270,8 @@ def compute(strategy='S2', route='HTM-EU', *, fx=None, built_overbuild=True, bes
     # 1. development phase (rows 16–24) – devex interface from MOIC rows 18 + 20
     itf = DATA['interface']
     mdates = [todate(d) for d in itf['MOIC!H5:BP5 (month-end dates)']]
-    dv = itf['MOIC!H18:BP18 devex (k€)']
-    land = itf['MOIC!H20:BP20 land paid by FEP (k€)']
+    dv = itf['MOIC!H18:BP18 devex (k€)'] if devex is None else devex['dv']
+    land = itf['MOIC!H20:BP20 land paid by FEP (k€)'] if devex is None else devex['land']
     r16 = [-sum(dv[k] + land[k] for k in range(len(mdates)) if mdates[k].year == y) * E15 for y in yr]
     r17 = [-(I[24] + I[25]) * E15 if y == inv.year else 0.0 for y in yr]
     r18 = [-sum(l['P'] * l['M'] for l in lines if l['K'].year == y and l['R'] != 'Connection fee') * E15 for y in yr]
@@ -270,6 +288,11 @@ def compute(strategy='S2', route='HTM-EU', *, fx=None, built_overbuild=True, bes
     r21 = [-E21 * dsrc['G182'] if y == sale.year else 0.0 for y in yr]
     r22 = [-E21 * (dsrc['G154'] - dsrc['G151']) if y == sale.year else 0.0 for y in yr]
     r23 = [-(gfee_month.get(y, 0.0) + rate * G_sale * days_between(y, sale, g_end) / 365) * E15 for y in yr]
+    if guarantee_fee_days:                                           # [posting, release), release = day after g_end
+        r23 = [-sum(l['O'] * rate * days_between(y, l['K'] - dt.timedelta(days=1), g_end) / 365
+                    for l in lines if l['P'] == 0 and l['K'] <= g_end) * E15 for y in yr]
+    if kind == 'HTM' and buyout_keur:
+        r22 = [r22[i] - (buyout_keur if y == sale.year else 0.0) for i, y in enumerate(yr)]
     r24 = [sum(v) for v in zip(r16, r17, r18, r19, r20, r21, r22, r23)]
 
     # 2. capex (rows 27–30)
@@ -312,6 +335,10 @@ def compute(strategy='S2', route='HTM-EU', *, fx=None, built_overbuild=True, bes
     r45 = [r42[i] if (I[186] == 1 and r42[i] is not None) else r44[i] for i in range(N)]
     r47 = [I[191] * (1 + I[192]) ** (y - ycod) for y in yr]
     r48 = [(1 - I[190]) if 1 <= r9[i] <= I[193] else 0.0 for i in range(N)]
+    if ppa_from_cod:
+        ppa_end = edate(cod, int(I[193]) * 12)
+        r48 = [(sum(1 for mth in range(1, 13) if cod < dt.date(y, mth, 1) < ppa_end) / (r10[i] * 12)) if r10[i] > 0 else 0.0
+               for i, y in enumerate(yr)]
 
     # 5. revenue, opex, EBITDA (rows 52–70)
     esc = I[209]
@@ -465,6 +492,10 @@ def compute(strategy='S2', route='HTM-EU', *, fx=None, built_overbuild=True, bes
     costs['All-in cost per installed MW (Bora row 89)'] = costs['All-in cost to COD (Bora row 87)'] / mw
 
     out = {'strategy': strategy, 'route': route, 'installed_mw': mw, 'committed_mw': E29, 'bess_mw': bess,
+           'annual': {'years': yr, 'fep_cf': r129, 'dev': r24, 'capex': r27, 'conn': r28, 'municipal': r29, 'draw': r77,
+                      'fees': r85, 'idc': r78, 'interest': r81, 'principal': r83, 'sweep': r87, 'dsra': r89,
+                      'revenue': r54, 'opex': r69, 'ebitda': r70, 'tax': r100, 'decom': r107, 'gen_gwh': r38,
+                      'dep': r92, 'gfee': r23},
            'grid_bottleneck_loss': clip, 'cost_to_cod': costs, 'pb_forfeit': forfeit}
 
     # 17. sale at COD (rows 333–380)
@@ -499,6 +530,12 @@ def compute(strategy='S2', route='HTM-EU', *, fx=None, built_overbuild=True, bes
         def acc(w, k, end):
             if k > end:
                 return 1.0
+            if claims == 'daily':
+                f = 1.0
+                for yy in range(k.year, end.year + 1):
+                    a, b = max(k, dt.date(yy, 1, 1)), min(end, dt.date(yy, 12, 31))
+                    f *= 1 + w * ((b - a).days + 1) / 365
+                return f
             return ((1 + w * ((dt.date(k.year, 12, 31) - k).days + 1) / 365) * (1 + w) ** (end.year - k.year - 1)
                     * (1 + w * ((end - dt.date(end.year, 1, 1)).days + 1) / 365))
         AF = []
@@ -508,11 +545,19 @@ def compute(strategy='S2', route='HTM-EU', *, fx=None, built_overbuild=True, bes
             aa = max(l['K'], pause_e)
             ad = 1.0 if cod < aa else acc(w, aa, cod)
             AF.append(l['O'] * (ac * ad - 1))
-        G367 = -(sum(AF) + itf['MOIC!G280 devex/land return to the COD sale (k€)'])
+        G367 = -(sum(AF) + (itf['MOIC!G280 devex/land return to the COD sale (k€)'] if devex is None else devex['g280']))
         G375 = I[38] * min(I[37], I[36] * yearfrac30360(todate(I[70]), max(todate(I[70]), cod))) * mw
         G368 = -G375 * (1 - I[227])
         G369 = G365 + G366 + G367 + G368
         G371 = max(G368, G369 * I[34])
+        if cod_waterfall == 'capped':                                   # MIN(due, cash left) per step, no floor
+            left = max(0.0, G340 + G341 + G344)
+            paid = []
+            for due in (-G342, -G366, -G367, -G368):
+                paid.append(min(due, left))
+                left -= paid[-1]
+            G366, G367, G368, G369 = -paid[1], -paid[2], -paid[3], left
+            G371 = G369 * I[34]
         G370 = G369 - G371
         G372 = -G366 - G367 + G370
         r359 = [r335[i] + r336[i] + r337[i] + r338[i] + r339[i] for i in range(N)]
