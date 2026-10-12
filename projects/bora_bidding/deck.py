@@ -39,8 +39,8 @@ def eur3(v):
     return f"{v:.3f}"
 
 
-def date(v):
-    return f"{v:%d-%b-%Y}"
+def date(v):                     # non-breaking hyphens: a date never wraps across two lines
+    return f"{v:%d-%b-%Y}".replace("-", "\u2011")
 
 
 def pct(v):
@@ -118,7 +118,7 @@ def build_deck(xlsm: Path, out: Path) -> Path:
             "connection right. Building it removes both.",
             p=pair("Out_Commitment_Penalty_1", "Out_Commitment_Penalty_2", eur, "{a}m / €{b}"),
             v=pair("Out_MVA_At_Risk_1", "Out_MVA_At_Risk_2", n1)))],
-        left=CARD_L, top=TOP, width=CARD_W, height=4.6)
+        left=CARD_L, top=TOP, width=CARD_W, height=3.2)
     s.footnote(f("Post-tax, FEP share, EU turbine, base key-assumption set (overbuild not built, BESS built, "
                  "pro-rata sanction); RtB exit {x}. Zero bid = all commitments at their zero level.",
                  x=b("Dashboard!E60", date)))
@@ -166,7 +166,7 @@ def build_deck(xlsm: Path, out: Path) -> Path:
     ]
     s.table(["Commitment (B1 / B2)", "Offered", "Points", "Δ RtB profit € m", "Δ COD IRR pp", "Δ HTM IRR pp",
              "Δ securities € m", "Logic"], rows, key_rows={6}, top=TOP, height=0.59 + 7 * 0.66,
-            col_widths=[3.25, 1.75, 1.3, 1.3, 1.2, 1.2, 1.3, 3.7], align="LRRRRRRL", unit_col=None)
+            col_widths=[3.2, 2.0, 1.25, 1.3, 1.2, 1.2, 1.3, 3.55], align="LRRRRRRL", unit_col=None)
     s.footnote(f("Δ = zero bid plus that commitment alone, minus the zero bid (macro RunCommitmentImpact). "
                  "Zero levels: municipal 0, community 0, overbuild 0%, BESS 0%, PB 1.0x, yes/no items 0. "
                  "ÖSZ-6 band: 5 points at {y} (Kiírás X.4 bf, Annex 4). Brownfield (ÖSZ-7) is not offered. "
@@ -209,7 +209,7 @@ def build_deck(xlsm: Path, out: Path) -> Path:
                      "The buyer reimburses €{r}m at the exit.",
                      t=b("Dashboard!E53", eur), td=b("Dashboard!I53", date), c1=b("Dashboard!E54", eur),
                      c2=b("Dashboard!E55", eur), cd=b("Dashboard!I54", date), r=b("Out_WF_Principal_1", eur)))],
-        left=CARD_L, top=TOP, width=CARD_W, height=4.0)
+        left=CARD_L, top=TOP, width=CARD_W, height=2.6)
     s.footnote(f("RtB price {p} k€/MVA × {m} MVA. Receipts = recoverable principal, land and claims, plus {s} of "
                  "the distributable. Per-MW figures use installed wind of {w} MW. The participation fee "
                  "(€{fee}m per bid, cash) is not recovered.",
@@ -250,7 +250,7 @@ def build_deck(xlsm: Path, out: Path) -> Path:
         ("Sale at COD: ", f("FEP proceeds of €{p}m on a €{c}m price, a {m} MOIC.",
                             p=pair("Out_COD_Proceeds_1", "Out_COD_Proceeds_2", eur, "{a}m / €{b}"),
                             c=b("Out_COD_Price_1", eur), m=pair("Out_COD_MOIC_1", "Out_COD_MOIC_2", fmt_mult)))],
-        left=CARD_L, top=TOP, width=CARD_W, height=2.6)
+        left=CARD_L, top=TOP, width=CARD_W, height=1.75)
     s.footnote(f("NPV at {r}. COD {cod}; COD price {p} k€/MW on {mw} MW built; PPA {ppa} €/MWh; gearing {g}. "
                  "HTM includes the buy-out of the developer at the RtB exit date. The zero bid's total is shown "
                  "without a breakdown.",
@@ -301,7 +301,7 @@ def build_deck(xlsm: Path, out: Path) -> Path:
     # ---- 7 Approval requested and next steps -----------------------------------------------------------------
     s = d.content("Next steps", f("Approval requested: submit BORA 1 and BORA 2 by {d}", d=b("In_Bid_Date", date)),
                   f("Submission ties up a €{a}m bid security; on award, the PB of €{p}m replaces it.",
-                    a=pair(*dash("E51"), eur, m2), p=pair(*dash("E52"), eur, m2)))
+                    a=pair(*dash("E51"), eur, m2), p=pair(*dash("E52"), eur, m2)), title_lines=2)
     s.card(None, [
         ("Approve the commitments on slide 3: ", f("{p} points, EU turbine.",
                                                    p=pair("Out_Points_1", "Out_Points_2", pts))),
@@ -315,6 +315,6 @@ def build_deck(xlsm: Path, out: Path) -> Path:
            "to build the overbuild and how to price the PB call.",
            p=pair(*dash("E52"), eur, m2), pd=b("Dashboard!I52", date), t=b("Dashboard!E53", eur),
            td=b("Dashboard!I53", date)))],
-        left=4.92, top=1.95, width=11.0, height=3.4)
+        left=4.92, top=TOP, width=15.0, height=1.9)
     s.footnote("Dates from the tender timetable in the model inputs.")
     return d.save(out / "Bora_Bid_IC.pptx")

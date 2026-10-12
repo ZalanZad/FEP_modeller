@@ -225,7 +225,9 @@ class Deck:
         if subtitle:
             date_p = [p for p in box.text_frame.paragraphs if p.runs][2]._p  # noqa: SLF001
             sub = copy.deepcopy(date_p)
+            sub.find(qn("a:pPr")).find(qn("a:lnSpc")).find(qn("a:spcPts")).set("val", "3600")
             r = sub.findall(qn("a:r"))[0]
+            r.find(qn("a:rPr")).set("sz", "2800")
             r.find(qn("a:t")).text = subtitle.split("\n")[0]
             for line in subtitle.split("\n")[1:]:
                 etree.SubElement(sub, qn("a:br"))
