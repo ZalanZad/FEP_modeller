@@ -367,7 +367,7 @@ def calc(m):
     fmt("sanction", "E", "date")
     c.row("mva_risk", "Connection capacity lost pro rata", "MVA", e="({short.E}>In_Tolerance_Cap)*{short.E}*In_MVA",
           ef_fmt="money1")
-    c.row("excl", "3-year group exclusion (1 = yes)", "flag", e="N({sanction.I}<0)", ef_fmt="flag")
+    c.row("excl", "3-year group exclusion possible (if the PB loss counts as a call)", "flag", e="N({sanction.I}<0)", ef_fmt="flag")
 
     c.section("Build and debt")
     c.row("tur", "Turbine supply, live route", "EUR k/MW", e="IF(In_CN_Turbine=1,In_Turbine_CN,In_Turbine)")
@@ -636,7 +636,7 @@ def dashboard(m):
         for col in (d.X + 1, d.X + 2):
             d.ws.cell(r, col).number_format = FMT["date"]
     d.link("Connection capacity at risk", "MVA", "{mva_risk.E}", out="MVA_At_Risk")
-    d.link("3-year group exclusion (1 = yes)", "flag", "{excl.E}", out="Exclusion")
+    d.link("3-year group exclusion possible (if the PB loss counts as a call)", "flag", "{excl.E}", out="Exclusion")
 
     d.section("RtB exit")
     m.define("Period_Ends", f"{S[0]}!$J$4:${L(m.last)}$4")

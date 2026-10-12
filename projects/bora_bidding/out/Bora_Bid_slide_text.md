@@ -38,7 +38,7 @@ Card – Approval requested and timetable:
   <sub>Cells: `In_Award_Date`, `Dashboard!I52`, `Dashboard!I53` (date); `Dashboard!E52`, `Dashboard!F52`, `Dashboard!E53` (€ m 1 dp)</sub>
 - Before submission: legal confirmation that the two bids sit within the 100 MVA group cap per node.
 
-Footnote: Post-tax, FEP share, EU turbine, base case (overbuild not built, BESS built, pro-rata PB call); RtB exit 31-Dec-2029. Zero bid = every commitment at its zero level. Source: Bora_Bid_Model_recalc.xlsx, 12-Oct-2026.  
+Footnote: Post-tax, FEP share, EU turbine, base case (overbuild not built, BESS built, PB lost pro rata to the shortfall); RtB exit 31-Dec-2029. Zero bid = every commitment at its zero level. Source: Bora_Bid_Model_recalc.xlsx, 12-Oct-2026.  
   <sub>Cells: `Dashboard!E60`, `Dashboard!E6` (date)</sub>
 
 ## Slide 3 – Why these commitments
@@ -55,13 +55,13 @@ Table (values B1 / B2; Δ vs the zero bid):
 |---|---|---:|---:|---:|---:|---:|---|---|
 | Municipal one-off (ÖSZ-1) | 50 / 50 k€/MW | 20 / 20 | 0.0 / 0.0 | −1.2 / −1.2 | −0.4 / −0.4 | 0.0 / 0.0 | Paid at COD, after the RtB exit: no FEP cash on the RtB route. | `Dashboard!E12`, `Dashboard!F12` (0 dp); `Dashboard!I12`, `Dashboard!J12` (points (2 dp if fractional)); `Dashboard!K12`, `Dashboard!L12`, `Dashboard!Q12`, `Dashboard!R12` (Δ € m 1 dp); `Dashboard!M12`, `Dashboard!N12`, `Dashboard!O12`, `Dashboard!P12` (pp 1 dp) |
 | Community contribution (ÖSZ-2) | 3.00 / 2.01 €/MWh | 15 / 0.75 | 0.0 / 0.0 | −2.6 / −1.7 | −0.6 / −0.4 | 0.0 / 0.0 | Operating cost after COD. At the band floor, BORA 2 earns 0.75 points. | `Dashboard!E13`, `Dashboard!F13` (2 dp); `Dashboard!I13`, `Dashboard!J13` (points (2 dp if fractional)); `Dashboard!K13`, `Dashboard!L13`, `Dashboard!Q13`, `Dashboard!R13` (Δ € m 1 dp); `Dashboard!M13`, `Dashboard!N13`, `Dashboard!O13`, `Dashboard!P13` (pp 1 dp) |
-| Overbuild (ÖSZ-3) | 51% / 40% | 10 / 9 | (0.5) / (0.4) | −1.1 / −0.9 | −0.2 / −0.2 | +1.4 / +1.1 | Not built: the cost is the larger PB and its pro-rata call. | `Dashboard!E14`, `Dashboard!F14` (% 0 dp); `Dashboard!I14`, `Dashboard!J14` (points (2 dp if fractional)); `Dashboard!K14`, `Dashboard!L14`, `Dashboard!Q14`, `Dashboard!R14` (Δ € m 1 dp); `Dashboard!M14`, `Dashboard!N14`, `Dashboard!O14`, `Dashboard!P14` (pp 1 dp) |
+| Overbuild (ÖSZ-3) | 51% / 40% | 10 / 9 | (0.5) / (0.4) | −1.1 / −0.9 | −0.2 / −0.2 | +1.4 / +1.1 | Not built: the cost is the larger PB, lost pro rata to the shortfall. | `Dashboard!E14`, `Dashboard!F14` (% 0 dp); `Dashboard!I14`, `Dashboard!J14` (points (2 dp if fractional)); `Dashboard!K14`, `Dashboard!L14`, `Dashboard!Q14`, `Dashboard!R14` (Δ € m 1 dp); `Dashboard!M14`, `Dashboard!N14`, `Dashboard!O14`, `Dashboard!P14` (pp 1 dp) |
 | BESS power (ÖSZ-4), 4 h | 51% / 40% of MVA | 15 / 13.50 | (0.4) / (0.3) | −6.5 / −5.1 | −1.2 / −1.0 | +2.8 / +2.2 | Sized with the overbuild and built; valued at cost, with no BESS revenue. | `Dashboard!E16` (0 dp); `Dashboard!E15`, `Dashboard!F15` (% 0 dp); `Dashboard!I15`, `Dashboard!J15` (points (2 dp if fractional)); `Dashboard!K15`, `Dashboard!L15`, `Dashboard!Q15`, `Dashboard!R15` (Δ € m 1 dp); `Dashboard!M15`, `Dashboard!N15`, `Dashboard!O15`, `Dashboard!P15` (pp 1 dp) |
 | PB multiple (ÖSZ-6) | 1.0x / 1.0x | 0 / 0 | 0.0 | 0.0 | 0.0 | 0.0 | Not raised: 2.0x adds 5 points for one more PB of €7.0m / €6.1m of guarantee. | `Dashboard!E17`, `Dashboard!F17` (x 1 dp); `Dashboard!I17`, `Dashboard!J17` (points (2 dp if fractional)); `Dashboard!K17:L17`, `Dashboard!M17:N17`, `Dashboard!O17:P17`, `Dashboard!Q17:R17` (all zero, 1 dp); `Dashboard!E52`, `Dashboard!F52` (€ m 1 dp) |
 | Partial award (ÖSZ-5), shared connection (ÖSZ-8), EU turbines / transformers (ÖSZ-9) | yes | 5 / 5 / 12 / 3 each bid | 0.0 | 0.0 | 0.0 | 0.0 | No cash or return impact. EU sourcing is in the base cost (turbine 600 k€/MW). | `Dashboard!I18`, `Dashboard!I20`, `Dashboard!I21`, `Dashboard!I22` (points (2 dp if fractional)); `Dashboard!K18:L22`, `Dashboard!M18:N22`, `Dashboard!O18:P22`, `Dashboard!Q18:R22` (all zero, 1 dp); `Dashboard!V18` (0 dp) |
 | Full bid vs zero bid [key row] | | 85 / 68.25 | (0.8) / (0.7) | −11.7 / −9.1 | −2.4 / −1.9 | – | The rows do not add to the total because the commitments interact. | `Out_Points_1`, `Out_Points_2` (points (2 dp if fractional)); `Dashboard!I26`, `Dashboard!J26` (Δ € m 1 dp); `Dashboard!I28`, `Dashboard!J28`, `Dashboard!I30`, `Dashboard!J30` (pp 1 dp) |
 
-Footnote: Δ = zero bid plus that commitment alone, minus the zero bid. Zero levels: municipal 0, community 0, overbuild 0%, BESS 0%, PB 1.0x, yes/no items no. Δ deposits and guarantees = extra security posted, not a call. ÖSZ-6: 5 points at 2.0x (Kiírás X.4 bf, Annex 4). Brownfield (ÖSZ-7) is not offered. Source: Bora_Bid_Model_recalc.xlsx, 12-Oct-2026.  
+Footnote: Δ = zero bid plus that commitment alone, minus the zero bid. Zero levels: municipal 0, community 0, overbuild 0%, BESS 0%, PB 1.0x, yes/no items no. Δ deposits and guarantees = extra security posted, not a PB loss. ÖSZ-6: 5 points at 2.0x (Kiírás X.4 bf, Annex 4). Brownfield (ÖSZ-7) is not offered. Source: Bora_Bid_Model_recalc.xlsx, 12-Oct-2026.  
   <sub>Cells: `Dashboard!E6` (date)</sub>
 
 ## Slide 4 – Securities and cash to the RtB exit
@@ -118,7 +118,7 @@ Table:
 | Devex, land, signing and DD | € m | – | 3.5 | 3.5 | – | – | `Out_Commitment_Devex_1`, `Out_Commitment_Devex_2` (€ m 1 dp) |
 | Construction capex incl. connection fees, municipal and pre-COD lease | € m | – | 150.9 | 148.3 | – | – | `Out_Commitment_Construction_1`, `Out_Commitment_Construction_2` (€ m 1 dp) |
 | Financing: IDC, debt fees, guarantee fees | € m | – | 8.5 | 8.2 | – | – | `Out_Commitment_Financing_1`, `Out_Commitment_Financing_2` (€ m 1 dp) |
-| Memo, not in the commitment: PB call, overbuild not built | € m | – | 1.4 | 1.1 | – | – | `Out_Commitment_Penalty_1`, `Out_Commitment_Penalty_2` (€ m 1 dp) |
+| Memo, not in the commitment: PB lost pro rata, overbuild not built | € m | – | 1.4 | 1.1 | – | – | `Out_Commitment_Penalty_1`, `Out_Commitment_Penalty_2` (€ m 1 dp) |
 
 Card:
 - Sale at COD: FEP proceeds of €124.4m / €127.2m on a €245.0m price, a 1.78x / 1.85x MOIC.  
@@ -132,24 +132,24 @@ Footnote: NPV at 8.0%. COD 30-Sep-2031, 100 MW built; PPA 90 €/MWh; gearing 60
 ## Slide 6 – Risks and mitigants
 
 - Section: Risks and mitigants
-- Action title: The main risk is the unbuilt overbuild: a PB call, a 3-year group exclusion and 33.8 / 28.6 MVA of connection right lost  
-  <sub>Cells: `Out_MVA_At_Risk_1`, `Out_MVA_At_Risk_2` (1 dp)</sub>
-- Subtitle: The base COD and HTM returns include the pro-rata call; the lost MVA and any deduction from the RtB price are not in the returns.
+- Action title: The main risk is the unbuilt overbuild: the PB is lost pro rata (€1.4m / €1.1m) with 33.8 / 28.6 MVA of connection right; a full call is unresolved  
+  <sub>Cells: `Out_Commitment_Penalty_1`, `Out_Commitment_Penalty_2` (€ m 1 dp); `Out_MVA_At_Risk_1`, `Out_MVA_At_Risk_2` (1 dp)</sub>
+- Subtitle: The base COD and HTM returns include the pro-rata PB loss; the lost MVA, any RtB price deduction and a possible group exclusion are not in the returns.
 
 Table:
 
 | Risk | Exposure (B1 / B2) | Mitigant | Cells (format) |
 |---|---|---|---|
-| PB call on the unbuilt overbuild: pro rata (Kiírás XII.12) or full (XIII.17, GYIK Q72) | Pro rata €1.4m / €1.1m (base). Full call €7.0m / €6.1m: COD IRR 35.8% / 38.7%, HTM IRR 9.1% / 9.5% | PB at the 1.0x minimum. Part of the call may be deducted from the RtB price. | `Out_Commitment_Penalty_1`, `Out_Commitment_Penalty_2`, `Out_Sanction_Full_1`, `Out_Sanction_Full_2` (€ m 1 dp); `Dashboard!J107`, `Dashboard!J108`, `Dashboard!J109`, `Dashboard!J110` (% 1 dp); `Dashboard!E17` (x 1 dp) |
-| 3-year group exclusion (Kiírás VII.2 n, GYIK Q71) | Any PB call triggers it, the base pro-rata call included, for both bids. The call falls after COD, so it is likely to hit the group then holding the SPV. | Allocate it in the RtB SPA. | |
-| Connection right lost pro rata (Kiírás XII.12, GYIK Q28) | 33.8 / 28.6 MVA; not reflected in generation or price. | The buyer can build the overbuild (card). | `Out_MVA_At_Risk_1`, `Out_MVA_At_Risk_2` (1 dp) |
-| 100 MVA group cap per node (Kiírás V.7, GYIK Q52) | Both bids are invalid if FEP, A.RES and the SPVs count as one company group. | Legal confirmation before submission. | |
-| ÖSZ-4 scored on installed wind (GYIK Q20) | Points fall to 80.50 / 63.75; returns unchanged. | Ranking risk only; the commitment is the same. | `Dashboard!M103`, `Dashboard!M104` (points (2 dp if fractional)) |
-| BESS valued at cost only | −6.5 / −5.1 pp of COD IRR, with no BESS revenue or sale value. | Conservative: any BESS revenue is upside. | `Dashboard!M15`, `Dashboard!N15` (pp 1 dp) |
+| Overbuild not built: PB lost pro rata to the shortfall above 10% (Kiírás XII.12; GYIK Q28/30/44) – base | €1.4m / €1.1m, the PB on the extra MW. | PB at the 1.0x minimum. Part of the loss may be deducted from the RtB price. | `Out_Commitment_Penalty_1`, `Out_Commitment_Penalty_2` (€ m 1 dp); `Dashboard!E17` (x 1 dp) |
+| Full PB call if the points-commitment rule (Kiírás XIII.17; GYIK Q72) also applies to the overbuild – unresolved | €7.0m / €6.1m: COD IRR 35.8% / 38.7%, HTM IRR 9.1% / 9.5%. | Downside case, not the base. PB at the minimum limits it. | `Out_Sanction_Full_1`, `Out_Sanction_Full_2` (€ m 1 dp); `Dashboard!J107`, `Dashboard!J108`, `Dashboard!J109`, `Dashboard!J110` (% 1 dp) |
+| 3-year group exclusion (Kiírás VII.2 n; GYIK Q71) | Possible if the PB is called; unclear whether a pro-rata loss counts as a call. A call after COD would likely hit the group then holding the SPV. | Allocate it in the RtB SPA. | |
+| Connection right lost pro rata (GYIK Q28/30) | 33.8 / 28.6 MVA, in the pro-rata reading only (GYIK Q72: a full call keeps the right). Not reflected in generation or price. | The buyer can build the overbuild (card). | `Out_MVA_At_Risk_1`, `Out_MVA_At_Risk_2` (1 dp) |
+| 100 MVA group cap per node (Kiírás V.7; GYIK Q52) | Both bids are invalid if FEP, A.RES and the SPVs count as one company group. | Legal confirmation before submission. | |
+| ÖSZ-4 scored on installed wind (GYIK Q20); BESS valued at cost only | Points 80.50 / 63.75, returns unchanged. BESS costs −6.5 / −5.1 pp of COD IRR with no BESS revenue. | Ranking risk only. Any BESS revenue is upside. | `Dashboard!M103`, `Dashboard!M104` (points (2 dp if fractional)); `Dashboard!M15`, `Dashboard!N15` (pp 1 dp) |
 
 Card – Why the base does not build the overbuild:
 - The grid connection stays at 100 MVA. Building the overbuild lifts the all-in cost to COD from €164.2m / €161.2m to €217.9m / €203.3m. In that case COD IRR is 54.4% / 53.8% and HTM IRR is 11.5% / 11.6%. The build decision passes to the buyer at RtB.  
   <sub>Cells: `In_MVA` (0 dp); `Out_Cost_To_COD_1`, `Out_Cost_To_COD_2`, `Dashboard!I113`, `Dashboard!I114` (€ m 1 dp); `Dashboard!I107`, `Dashboard!I108`, `Dashboard!I109`, `Dashboard!I110` (% 1 dp)</sub>
 
-Footnote: PB call tested 6 months after COD. Pro rata = shortfall share × the wind PB (GYIK Q28/Q30). Full-call and overbuild-built figures are alternative cases. Source: Bora_Bid_Model_recalc.xlsx, 12-Oct-2026.  
+Footnote: Shortfall tested 6 months after COD. Pro rata = shortfall share × the wind PB (GYIK Q28/30). The full-call and overbuild-built figures are alternative cases. Source: Bora_Bid_Model_recalc.xlsx, 12-Oct-2026.  
   <sub>Cells: `Dashboard!E6` (date)</sub>
