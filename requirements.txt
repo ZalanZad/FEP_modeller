@@ -1,0 +1,5 @@
+openpyxl==3.1.5
+python-pptx==1.0.2
+oletools>=0.60
+pytest>=8
+# System: LibreOffice 24.2+ with the Python UNO bridge (Debian/Ubuntu: libreoffice-calc python3-uno)

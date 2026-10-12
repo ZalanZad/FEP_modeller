@@ -1,0 +1,6 @@
+projects/*/out/
+__pycache__/
+*.pyc
+.pytest_cache/
+.~lock.*
+~$*
