@@ -18,7 +18,7 @@ HERE = Path(__file__).resolve().parent
 OLD = HERE / "data" / "old_engine"
 NAME = "Bora_Bid_Model"
 D = dt.date
-SETS = ["Base", "Overbuild built", "Full PB call", "Freeze off", "Low premium", "ÖSZ-4 on wind", "Spare"]
+SETS = ["Base", "Overbuild built", "Full PB call", "Freeze off", "Low premium", "ÖSZ-4 on wind"]
 EXIT = 'SUMIF({end.all},"<="&{exit.E},{self.all})'          # amount to the RtB exit
 TO_COD = 'SUMIF({end.all},"<="&In_COD,{self.all})'          # amount to COD
 EVENT = "N(AND({start}<={self.F},{end}>={self.F}))"           # line paid on its date in F
@@ -433,13 +433,22 @@ def calc(m):
     c.row("w_fep", "FEP receipts at the exit", "EUR k", f="SUM({w_prin.F}:{w_r6.F})+In_FEP_Share*{w_dist.F}",
           bold=True)
     c.row("w_dev", "Developer: DSA and share", "EUR k", f="{w_dsa.F}+(1-In_FEP_Share)*{w_dist.F}")
+    c.subheader("Exit split, devex-file view (E: FEP claims + 70 %, F: A.RES DSA + 30 %)")
+    c.row("split", "Split of the price", "EUR k", e="{w_r12.F}+{w_r20.F}+{w_r6.F}+In_FEP_Share*{w_dist.F}",
+          f="{w_dev.F}")
+    c.row("split_tot", "Split total", "EUR k", e="{split.E}+{split.F}", bold=True)
+    c.row("split_mw", "Split per committed wind MW (E: FEP, F: A.RES)", "EUR k/MW", e="{split.E}/{wind.E}",
+          f="{split.F}/{wind.E}", ef_fmt="money1")
+    c.row("split_tot_mw", "Split total per committed wind MW", "EUR k/MW", e="{split_tot.E}/{wind.E}",
+          ef_fmt="money1")
     c.subheader("FEP returns – RtB route")
     c.row("rtb_pre", "FEP pre-tax cash flow (E: tax at the exit)", "EUR k",
           "=({dev_cf}+{conn})*({end}<={exit.E})+{w_fep.F}*{exit}",
           e="-In_CIT*MAX(0,{self.I}-In_FEP_Share*{w_dist.F})")
     c.row("rtb_cf", "FEP cash flow – RtB route", "EUR k", "={rtb_pre}+{rtb_pre.E}*{exit}", bold=True)
     c.xirr("rtb_irr", "FEP IRR – RtB route", "rtb_cf", iferror=True)
-    c.moic("rtb_moic", "FEP MOIC – RtB route", "rtb_cf")
+    c.row("rtb_moic", "FEP MOIC – RtB route (receipts after tax ÷ outlays)", "x",
+          e="({w_fep.F}+{rtb_pre.E})/({w_fep.F}-{rtb_pre.I})", ef_fmt="mult", bold=True)
     c.xnpv("rtb_npv", "FEP NPV – RtB route", "In_Discount_Rate", "rtb_cf")
 
     c.section("Sale at COD")
@@ -460,7 +469,8 @@ def calc(m):
     c.row("v_fep", "FEP proceeds at COD", "EUR k", f="{v_fund.F}+{v_claims.F}+In_FEP_Share*{v_dist.F}", bold=True)
     c.row("cod_cf", "FEP cash flow – sale at COD", "EUR k", "={cod_contrib}+{v_fep.F}*{cod}", bold=True)
     c.xirr("cod_irr", "FEP IRR – sale at COD", "cod_cf")
-    c.moic("cod_moic", "FEP MOIC – sale at COD", "cod_cf")
+    c.row("cod_moic", "FEP MOIC – sale at COD (proceeds ÷ contributions)", "x", e="{v_fep.F}/-{cod_contrib.I}",
+          ef_fmt="mult", bold=True)
     c.xnpv("cod_npv", "FEP NPV – sale at COD", "In_Discount_Rate", "cod_cf")
     c.subheader("Commitment overview")
     c.row("ov_sec", "Securities: cash posted and guarantee outstanding", "EUR k", e="{pb.E}-{fee.I}-{tso.I}")
@@ -567,11 +577,12 @@ def dashboard(m):
         f = "pct" if unit == "%" else m2
         r = d.link(label, unit, t, scale=scale, fmt=f, out=out, bold=out == "Commitment_Total")
         rows.append(r)
-        for k in range(nb + 1):
+        for k in range(1 if out == "Points" else nb + 1):       # no Δ for points (trivial vs a zero bid)
             apply(d.ws.cell(r, d.X + k), "macro", FMT[f])
     r1, rc, r2 = rows[0], rows[3], rows[-1]
     m.define("ZeroBid_Live", f"Dashboard!${L(d.V)}${r1}:${L(d.V + nb - 1)}${r2}")
-    m.define("ZeroBid_Stored", grid(r1, r2, 1, nb + 1))
+    m.define("ZeroBid_Stored", grid(r1, r2, 1))
+    m.define("ZeroBid_Delta_Stored", grid(rows[1], r2, 2, nb))
     m.define("ZB_Zero_Stored", grid(rc, r2, 1))
     for b in range(1, nb + 1):
         m.define(f"ZB_Live_{b}", col(rc, r2, b))
@@ -637,6 +648,15 @@ def dashboard(m):
                             ("w_dist", "Distributable at the exit", "Distributable"),
                             ("w_fep", "FEP receipts", "FEP_Proceeds"), ("w_dev", "Developer (DSA + 30 %)", "Developer")]:
         d.link(label, "EUR m", "{%s.F}" % key, scale="Thousand", out=out, fmt=m2, bold=key in ("w_dist", "w_fep"))
+    d.subheader("Exit split, devex-file view")
+    for t, label, out, unit, scale, f in [
+            ("{split.E}", "FEP: claims + 70 %", "Split_FEP", "EUR m", "Thousand", m2),
+            ("{split.F}", "A.RES: DSA + 30 %", "Split_ARES", "EUR m", "Thousand", m2),
+            ("{split_tot.E}", "Total", "Split_Total", "EUR m", "Thousand", m2),
+            ("{split_mw.E}", "FEP per committed wind MW", "Split_FEP_MW", "EUR k/MW", None, "money1"),
+            ("{split_mw.F}", "A.RES per committed wind MW", "Split_ARES_MW", "EUR k/MW", None, "money1"),
+            ("{split_tot_mw.E}", "Total per committed wind MW", "Split_Total_MW", "EUR k/MW", None, "money1")]:
+        d.link(label, unit, t, scale=scale, out=out, fmt=f, bold=out in ("Split_Total", "Split_Total_MW"))
     d.link("FEP MOIC – RtB route", "x", "{rtb_moic.E}", out="RtB_MOIC")
     d.link("FEP NPV – RtB route", "EUR m", "{rtb_npv.E}", scale="Thousand", out="RtB_NPV", fmt=m2)
 

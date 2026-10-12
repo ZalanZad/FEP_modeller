@@ -2,8 +2,8 @@ Attribute VB_Name = "BoraImpact"
 ' Bora macros (SPEC sections 0 and 10). Named ranges only.
 ' RefreshAll: the zero bid and the commitment impact table, then the stored results for every key-assumption set.
 ' RunCommitmentImpact, on the base set:
-'   1. every lever of both bids at its zero level -> ZeroBid_Stored: the zero bid (one column, from bid 1 = Calc_1),
-'      then bid - zero bid per bid;
+'   1. every lever of both bids at its zero level -> ZeroBid_Stored: the zero bid (one column, from bid 1 = Calc_1);
+'      ZeroBid_Delta_Stored: bid - zero bid per bid, for the last rows of ZeroBid_Live (the points row has no delta);
 '   2. for each commitment and bid, only that lever back at the bid's value -> Impact_Stored: item - zero bid;
 '   3. every lever restored.
 ' On any error every lever and the selected set are restored before the error is shown.
@@ -20,7 +20,7 @@ End Sub
 
 Public Sub RunCommitmentImpact()
     Dim levers As Variant, zeros As Variant, live As Range, zb As Range, store As Range
-    Dim nb As Long, nz As Long, i As Long, b As Long, k As Long, c As Long
+    Dim zd As Range, nb As Long, nz As Long, dz As Long, i As Long, b As Long, k As Long, c As Long
     Dim orig() As Variant, zero() As Variant, zl() As Variant
     Dim origSet As Variant, errNo As Long, errMsg As String
     levers = Array("Dash_Municipal", "Dash_Community", "Dash_Overbuild", "Dash_BESS", "Dash_BESS_Hours", _
@@ -29,9 +29,11 @@ Public Sub RunCommitmentImpact()
     zeros = Array(0, 0, 0, 0, "keep", 1, 0, 0, 0, 0, 0)     ' "keep": no zero level (BESS hours stay)
     Set live = Range("ZeroBid_Live")
     Set zb = Range("ZeroBid_Stored")
+    Set zd = Range("ZeroBid_Delta_Stored")
     Set store = Range("Impact_Stored")
     nb = Range("Dash_Municipal").Columns.Count
     nz = live.Rows.Count
+    dz = nz - zd.Rows.Count                                 ' live rows above the first delta row
     ReDim orig(0 To UBound(levers), 1 To nb)
     For i = 0 To UBound(levers)
         For b = 1 To nb
@@ -59,7 +61,7 @@ Public Sub RunCommitmentImpact()
         Next k
         For k = 1 To nz
             If b = 1 Then zb.Cells(k, 1).Value = live.Cells(k, 1).Value
-            zb.Cells(k, 1 + b).Value = Delta(zl(k, b), live.Cells(k, 1).Value)
+            If k > dz Then zd.Cells(k - dz, b).Value = Delta(zl(k, b), live.Cells(k, 1).Value)
         Next k
     Next b
 
