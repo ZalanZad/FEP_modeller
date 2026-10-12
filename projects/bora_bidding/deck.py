@@ -124,7 +124,8 @@ def build_deck(xlsm: Path, out: Path) -> Path:
         ("Before submission: ", f("legal confirmation that the two bids sit within the {c} MVA group cap per node.",
                                   c=b("In_Group_Cap", n0)))],
         left=CARD_L, top=TOP, width=CARD_W, height=4.7)
-    s.footnote(f("Post-tax, FEP share, EU turbine, base case (overbuild not built, BESS built, pro-rata PB call); "
+    s.footnote(f("Post-tax, FEP share, EU turbine, base case (overbuild not built, BESS built, PB lost pro rata to the "
+                 "shortfall); "
                  "RtB exit {x}. Zero bid = every commitment at its zero level.", x=b("Dashboard!E60", date)))
 
     # ---- 3 Why these commitments -----------------------------------------------------------------------------
@@ -152,7 +153,7 @@ def build_deck(xlsm: Path, out: Path) -> Path:
         ["Community contribution (ÖSZ-2)", pair(*dash("E13"), dp2, "{a} / {b} €/MWh"), *impact(13),
          f("Operating cost after COD. At the band floor, BORA 2 earns {p} points.", p=b("Dashboard!J13", pts))],
         ["Overbuild (ÖSZ-3)", pair(*dash("E14"), pct0), *impact(14),
-         "Not built: the cost is the larger PB and its pro-rata call."],
+         "Not built: the cost is the larger PB, lost pro rata to the shortfall."],
         [f("BESS power (ÖSZ-4), {h} h", h=b("Dashboard!E16", n0)), pair(*dash("E15"), pct0, "{a} / {b} of MVA"),
          *impact(15), "Sized with the overbuild and built; valued at cost, with no BESS revenue."],
         ["PB multiple (ÖSZ-6)", pair(*dash("E17"), x1), pair(*dash("I17"), pts), *zero((17, 17)),
@@ -172,7 +173,7 @@ def build_deck(xlsm: Path, out: Path) -> Path:
             col_widths=[3.1, 1.95, 1.2, 1.3, 1.2, 1.2, 1.55, 3.5], align="LRRRRRRL", unit_col=None)
     s.footnote(f("Δ = zero bid plus that commitment alone, minus the zero bid. Zero levels: municipal 0, "
                  "community 0, overbuild 0%, BESS 0%, PB 1.0x, yes/no items no. Δ deposits and guarantees = extra "
-                 "security posted, not a call. ÖSZ-6: 5 points at {y} (Kiírás X.4 bf, Annex 4). Brownfield (ÖSZ-7) "
+                 "security posted, not a PB loss. ÖSZ-6: 5 points at {y} (Kiírás X.4 bf, Annex 4). Brownfield (ÖSZ-7) "
                  "is not offered.", y=b("Curves!S19", x1)))
 
     # ---- 4 Securities and cash to the RtB exit ---------------------------------------------------------------
@@ -241,7 +242,7 @@ def build_deck(xlsm: Path, out: Path) -> Path:
             memo("Construction capex incl. connection fees, municipal and pre-COD lease", "€ m",
                  both("Commitment_Construction", eur)),
             memo("Financing: IDC, debt fees, guarantee fees", "€ m", both("Commitment_Financing", eur)),
-            memo("Memo, not in the commitment: PB call, overbuild not built", "€ m", both("Commitment_Penalty", eur))]
+            memo("Memo, not in the commitment: PB lost pro rata, overbuild not built", "€ m", both("Commitment_Penalty", eur))]
     s.table(["Item", "Unit", "Zero bid", "BORA 1", "BORA 2", "Δ B1", "Δ B2"], rows, key_rows={1}, top=TOP,
             width=SIDE_W, height=0.59 + 9 * 0.46, col_widths=[4.06, 0.9, 1.0, 1.0, 1.0, 0.98, 0.98])
     s.card(None, [
@@ -257,43 +258,47 @@ def build_deck(xlsm: Path, out: Path) -> Path:
                  mw=b("Out_Wind_Built_MW_1", n0), ppa=b("Dashboard!V19", n0), g=b("Dashboard!V20", pct)))
 
     # ---- 6 Risks and mitigants -------------------------------------------------------------------------------
-    s = d.content("Risks and mitigants", f(
-        "Main risk: the unbuilt overbuild – a PB call, a 3-year group exclusion and {v} MVA of "
-        "connection right lost", v=pair("Out_MVA_At_Risk_1", "Out_MVA_At_Risk_2", n1)),
-        "The base COD and HTM returns include the pro-rata call; the lost MVA and any deduction from the RtB "
-        "price are not in the returns.", title_lines=2)
+    pen = pair("Out_Commitment_Penalty_1", "Out_Commitment_Penalty_2", eur, m2)
+    mva = pair("Out_MVA_At_Risk_1", "Out_MVA_At_Risk_2", n1)
+    s = d.content("Risks and mitigants", f(        # writer's title tightened to two lines
+        "Unbuilt overbuild: €{p}m of PB and {v} MVA of connection right lost pro rata; a full call is unresolved",
+        p=pen, v=mva),
+        "The base COD and HTM returns include the pro-rata PB loss; the lost MVA, any RtB price deduction and a "
+        "possible group exclusion are not in the returns.", title_lines=2)
     rows = [
-        ["PB call on the unbuilt overbuild: pro rata (Kiírás XII.12) or full (XIII.17, GYIK Q72)",
-         f("Pro rata €{p}m (base). Full call €{c}m: COD IRR {i}, HTM IRR {h}",
-           p=pair("Out_Commitment_Penalty_1", "Out_Commitment_Penalty_2", eur, m2),
-           c=pair("Out_Sanction_Full_1", "Out_Sanction_Full_2", eur, m2),
+        [f("Overbuild not built: PB lost pro rata to the shortfall above {t} (Kiírás XII.12; GYIK Q28/30/44) – base",
+           t=b("In_Tolerance_Cap", pct0)),
+         f("€{p}m, the PB on the extra MW.", p=pen),
+         f("PB at the {x} minimum. Part of the loss may be deducted from the RtB price.", x=b("Dashboard!E17", x1))],
+        ["Full PB call if the points-commitment rule (Kiírás XIII.17; GYIK Q72) also applies to the overbuild "
+         "– unresolved",
+         f("€{c}m: COD IRR {i}, HTM IRR {h}.", c=pair("Out_Sanction_Full_1", "Out_Sanction_Full_2", eur, m2),
            i=pair("Dashboard!J107", "Dashboard!J108", pct), h=pair("Dashboard!J109", "Dashboard!J110", pct)),
-         f("PB at the {x} minimum. Part of the call may be deducted from the RtB price.", x=b("Dashboard!E17", x1))],
-        ["3-year group exclusion (Kiírás VII.2 n, GYIK Q71)",
-         "Any PB call triggers it, the base pro-rata call included, for both bids. The call falls after COD, "
-         "so it is likely to hit the group then holding the SPV.", "Allocate it in the RtB SPA."],
-        ["Connection right lost pro rata (Kiírás XII.12, GYIK Q28)",
-         f("{v} MVA; not reflected in generation or price.", v=pair("Out_MVA_At_Risk_1", "Out_MVA_At_Risk_2", n1)),
+         "Downside case, not the base. PB at the minimum limits it."],
+        ["3-year group exclusion (Kiírás VII.2 n; GYIK Q71)",
+         "Possible if the PB is called; unclear whether a pro-rata loss counts as a call. A call after COD would "
+         "likely hit the group then holding the SPV.", "Allocate it in the RtB SPA."],
+        ["Connection right lost pro rata (GYIK Q28/30)",
+         f("{v} MVA, in the pro-rata reading only (GYIK Q72: a full call keeps the right). Not reflected in "
+           "generation or price.", v=mva),
          "The buyer can build the overbuild (card)."],
-        [f("{c} MVA group cap per node (Kiírás V.7, GYIK Q52)", c=b("In_Group_Cap", n0)),
+        [f("{c} MVA group cap per node (Kiírás V.7; GYIK Q52)", c=b("In_Group_Cap", n0)),
          "Both bids are invalid if FEP, A.RES and the SPVs count as one company group.",
          "Legal confirmation before submission."],
-        ["ÖSZ-4 scored on installed wind (GYIK Q20)",
-         f("Points fall to {p}; returns unchanged.", p=pair("Dashboard!M103", "Dashboard!M104", dp2)),
-         "Ranking risk only; the commitment is the same."],
-        ["BESS valued at cost only",
-         f("{a} pp of COD IRR, with no BESS revenue or sale value.", a=pair(*dash("M15"), pp)),
-         "Conservative: any BESS revenue is upside."],
+        ["ÖSZ-4 scored on installed wind (GYIK Q20); BESS valued at cost only",
+         f("Points {p}, returns unchanged. BESS costs {a} pp of COD IRR with no BESS revenue.",
+           p=pair("Dashboard!M103", "Dashboard!M104", dp2), a=pair(*dash("M15"), pp)),
+         "Ranking risk only. Any BESS revenue is upside."],
     ]
-    s.table(["Risk", "Exposure (B1 / B2)", "Mitigant"], rows, top=TOP, height=0.59 + 6 * 0.66,
-            col_widths=[4.4, 6.0, 4.6], align="LLL", unit_col=None)
+    s.table(["Risk", "Exposure (B1 / B2)", "Mitigant"], rows, top=TOP, height=0.59 + 6 * 0.72,
+            col_widths=[5.0, 5.4, 4.6], align="LLL", unit_col=None)
     s.card("Why the base does not build the overbuild", [
         ("", f("The grid connection stays at {m} MVA. Building the overbuild lifts the all-in cost to COD from €{a}m "
                "to €{c}m. In that case COD IRR is {i} and HTM IRR is {h}. The build decision passes to the buyer "
                "at RtB.", m=b("In_MVA", n0), a=pair("Out_Cost_To_COD_1", "Out_Cost_To_COD_2", eur, m2),
                c=pair("Dashboard!I113", "Dashboard!I114", eur, m2), i=pair("Dashboard!I107", "Dashboard!I108", pct),
                h=pair("Dashboard!I109", "Dashboard!I110", pct)))],
-        left=4.92, top=7.45, width=15.0, height=1.35)
-    s.footnote(f("PB call tested {m} months after COD. Pro rata = shortfall share × the wind PB (GYIK Q28/Q30). "
-                 "Full-call and overbuild-built figures are alternative cases.", m=b("In_Sanction_Lag", n0)))
+        left=4.92, top=8.05, width=15.0, height=1.35)
+    s.footnote(f("Shortfall tested {m} months after COD. Pro rata = shortfall share × the wind PB (GYIK Q28/30). "
+                 "The full-call and overbuild-built figures are alternative cases.", m=b("In_Sanction_Lag", n0)))
     return d.save(out / "Bora_Bid_IC.pptx")
