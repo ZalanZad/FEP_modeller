@@ -116,7 +116,7 @@ def inputs(m):
     a("Substation", "Substation and 132 kV bay, EU", "EUR k", 12000, source="Old engine Inputs E167")
     a("Substation_CN", "Substation and 132 kV bay, CN", "EUR k", 10800, source="Old engine Tender E29")
     a("Capex_Contingency", "Contingency on wind and substation capex", "%", 0.05, source="Old engine Inputs E171")
-    a("BESS_Capex", "BESS capex", "EUR k/MW", 200, source="Old engine Inputs E168")
+    a("BESS_Capex", "BESS capex", "EUR k/MW", 240, source="User 12-Oct-26")
 
     i.section("Operations")
     a("P50_Hours", "Net P50 hours", "h/yr", 2460, source="Old engine Inputs E179", fmt="money")
@@ -524,7 +524,7 @@ def checks(m):
 # =========================================================================================== dashboard
 LEVERS = [  # key, label, unit, BORA 1 / BORA 2, offerable range, points row, list options, format
     ("Municipal", "Municipal one-off (ÖSZ-1)", "EUR k/MW", [50, 50], "0 or 10–50", "osz1", None, "money"),
-    ("Community", "Community contribution (ÖSZ-2)", "EUR/MWh", [3, 2], "0 or 2–3", "osz2", None, "money2"),
+    ("Community", "Community contribution (ÖSZ-2)", "EUR/MWh", [3, 2.01], "0 or 2–3", "osz2", None, "money2"),
     ("Overbuild", "Overbuild (ÖSZ-3)", "%", [0.51, 0.40], "≥ 0 %", "osz3", None, "pct"),
     ("BESS", "BESS power, share of MVA (ÖSZ-4)", "%", [0.51, 0.40], "≤ wind MW", "osz4", None, "pct"),
     ("BESS_Hours", "BESS duration", "h", [4, 4], "≥ 4 h", None, None, "money1"),

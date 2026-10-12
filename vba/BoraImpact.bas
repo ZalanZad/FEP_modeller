@@ -2,13 +2,14 @@ Attribute VB_Name = "BoraImpact"
 ' Bora macros (SPEC sections 0 and 10). Named ranges only.
 ' RefreshAll: the zero bid and the commitment impact table, then the stored results for every key-assumption set.
 ' RunCommitmentImpact, on the base set:
-'   1. every lever of both bids at its zero level -> store the zero bid (ZeroBid_Stored: zero bid, then bid - zero bid);
-'   2. for each commitment and bid, only that lever back at the bid's value -> store item - zero bid (Impact_Stored);
-'   3. every lever restored -> last row of Impact_Stored = full bid - zero bid.
+'   1. every lever of both bids at its zero level -> ZeroBid_Stored: the zero bid (one column, from bid 1 = Calc_1),
+'      then bid - zero bid per bid;
+'   2. for each commitment and bid, only that lever back at the bid's value -> Impact_Stored: item - zero bid;
+'   3. every lever restored.
 ' On any error every lever and the selected set are restored before the error is shown.
 Option Explicit
 
-Private Const N_IMPACT As Long = 3                          ' COD IRR, HTM IRR, cash + guarantee at the exit
+Private Const N_IMPACT As Long = 3                          ' COD IRR, HTM IRR, securities (cash + guarantee)
 
 Public Sub RefreshAll()
     Application.ScreenUpdating = False
@@ -20,7 +21,7 @@ End Sub
 Public Sub RunCommitmentImpact()
     Dim levers As Variant, zeros As Variant, live As Range, zb As Range, store As Range
     Dim nb As Long, nz As Long, i As Long, b As Long, k As Long, c As Long
-    Dim orig() As Variant, full() As Variant, zero() As Variant, zl() As Variant
+    Dim orig() As Variant, zero() As Variant, zl() As Variant
     Dim origSet As Variant, errNo As Long, errMsg As String
     levers = Array("Dash_Municipal", "Dash_Community", "Dash_Overbuild", "Dash_BESS", "Dash_BESS_Hours", _
                    "Dash_PB_Mult", "Dash_Partial", "Dash_Brownfield", "Dash_Shared", "Dash_EU_Turbine", _
@@ -41,13 +42,9 @@ Public Sub RunCommitmentImpact()
     On Error GoTo Failed
     Range("Scenario_Name").Value = Range("Scenario_Names").Cells(1, 1).Value
     Application.Calculate
-    ReDim full(1 To N_IMPACT, 1 To nb)
     ReDim zero(1 To N_IMPACT, 1 To nb)
     ReDim zl(1 To nz, 1 To nb)
     For b = 1 To nb
-        For k = 1 To N_IMPACT
-            full(k, b) = Metric(k, b)
-        Next k
         For k = 1 To nz
             zl(k, b) = live.Cells(k, b).Value
         Next k
@@ -61,8 +58,8 @@ Public Sub RunCommitmentImpact()
             zero(k, b) = Metric(k, b)
         Next k
         For k = 1 To nz
-            zb.Cells(k, b).Value = live.Cells(k, b).Value
-            zb.Cells(k, nb + b).Value = Delta(zl(k, b), live.Cells(k, b).Value)
+            If b = 1 Then zb.Cells(k, 1).Value = live.Cells(k, 1).Value
+            zb.Cells(k, 1 + b).Value = Delta(zl(k, b), live.Cells(k, 1).Value)
         Next k
     Next b
 
@@ -85,12 +82,7 @@ Public Sub RunCommitmentImpact()
         Next b
     Next i
 
-    ' 3. full bid - zero bid, then everything back
-    For b = 1 To nb
-        For k = 1 To N_IMPACT
-            store.Cells(store.Rows.Count, (k - 1) * nb + b).Value = Delta(full(k, b), zero(k, b))
-        Next k
-    Next b
+    ' 3. everything back
     SetLevers levers, zeros, orig, False
     Range("Scenario_Name").Value = origSet
     Application.Calculate
@@ -125,7 +117,7 @@ Private Function Metric(ByVal k As Long, ByVal b As Long) As Variant
     Select Case k
         Case 1: Metric = Range("Out_COD_IRR_" & b).Value
         Case 2: Metric = Range("Out_HTM_IRR_" & b).Value
-        Case 3: Metric = Range("Out_Securities_Total_" & b).Value
+        Case 3: Metric = Range("Out_Commitment_Securities_" & b).Value
     End Select
 End Function
 
