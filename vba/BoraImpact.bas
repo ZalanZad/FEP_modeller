@@ -9,7 +9,7 @@ Attribute VB_Name = "BoraImpact"
 ' On any error every lever and the selected set are restored before the error is shown.
 Option Explicit
 
-Private Const N_IMPACT As Long = 3                          ' COD IRR, HTM IRR, securities (cash + guarantee)
+Private Const N_IMPACT As Long = 4                          ' RtB profit, COD IRR, HTM IRR, securities
 
 Public Sub RefreshAll()
     Application.ScreenUpdating = False
@@ -117,9 +117,10 @@ End Sub
 
 Private Function Metric(ByVal k As Long, ByVal b As Long) As Variant
     Select Case k
-        Case 1: Metric = Range("Out_COD_IRR_" & b).Value
-        Case 2: Metric = Range("Out_HTM_IRR_" & b).Value
-        Case 3: Metric = Range("Out_Commitment_Securities_" & b).Value
+        Case 1: Metric = Range("Out_RtB_Profit_" & b).Value
+        Case 2: Metric = Range("Out_COD_IRR_" & b).Value
+        Case 3: Metric = Range("Out_HTM_IRR_" & b).Value
+        Case 4: Metric = Range("Out_Commitment_Securities_" & b).Value
     End Select
 End Function
 
