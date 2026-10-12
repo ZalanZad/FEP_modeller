@@ -219,7 +219,7 @@ def build_deck(xlsm: Path, out: Path) -> Path:
 
     # ---- 5 COD and HTM value and the commitment breakdown ----------------------------------------------------
     s = d.content("Economics – COD and HTM", f(
-        "All-in cost of {c}\u00a0k€ per built MW against a {p}\u00a0k€/MW COD price; HTM NPV of €{n}m at {r}",
+        "All-in cost of {c}\u00a0k€ per built MW against a {p}\u00a0k€/MW COD price; HTM NPV €{n}m at {r}",
         c=pair("Out_Cost_To_COD_MW_1", "Out_Cost_To_COD_MW_2", n0), p=b("In_COD_Price", n0),
         n=pair("Out_HTM_NPV_1", "Out_HTM_NPV_2", eur, m2), r=b("Dashboard!V22", pct)), f(
         "The commitments reduce HTM NPV by €{h}m against the zero bid; construction is €{c}m of the all-in "
