@@ -31,20 +31,13 @@ def inputs(m):
     a = i.add_input
     a("Invest_Date", "Signing fee and DD paid", "date", D(2026, 7, 31), source="Old engine Inputs E27")
     a("Signing_Date", "Signing (DSA accrual start)", "date", D(2026, 10, 26), source="Old engine Inputs E70")
-    a("Bid_Date", "Bid submission", "date", D(2026, 10, 30), source="Kiírás VI.5; Old engine Inputs E95")
-    a("Award_Date", "Award decision", "date", D(2026, 12, 13), source="Old engine Inputs E96")
-    a("PB_Days", "Performance security due after award", "days", 15, source="Kiírás XII.5, GYIK 68", fmt="int")
-    a("TSO_Date", "Connection request (TSO security)", "date", D(2026, 12, 30), source="Old engine Inputs E97")
     a("Contingency_Date", "Devex contingency paid", "date", D(2028, 12, 31), source="Old engine Devex_FEP row 38")
-    a("HCSSZ_Date", "Connection agreement (HCSSZ), fees paid", "date", D(2029, 1, 8), source="Old engine Inputs E99")
     a("NTP", "Notice to proceed", "date", D(2029, 9, 30), source="Old engine Inputs E154")
     a("COD", "Commercial operation date", "date", D(2031, 9, 30), source="Bora!N16")
     a("Life", "Operating life", "years", 30, source="Old engine Inputs E157", fmt="int")
     a("Freeze_Start", "Interest freeze start", "date", D(2029, 6, 30), source="Old engine Inputs E64")
     a("Freeze_End", "Interest freeze end (accrual resumes)", "date", D(2030, 1, 1), source="Old engine Inputs E73")
     a("Freeze_On", "Interest freeze on (1 = yes)", "flag", 1, {4: 0}, source="User 09-Oct-26 (Inputs E64)")
-    a("PB_Release", "Performance security released (hold route)", "date", D(2033, 3, 31),
-      source="Kiírás XII.8 (COD deadline + 6 m)")
     a("Sanction_Lag", "Sanction paid after COD", "months", 6, source="Kiírás XIII.17; old Tender E31", fmt="int")
     a("Valuation_Date", "Valuation date (RtB price PV)", "date", D(2026, 10, 12), source="IC date")
 
@@ -62,31 +55,40 @@ def inputs(m):
     i.add_constant("Points_Decimals", "Points rounded to decimals", "#", 2, "Kiírás X.1 b")
     a("MVA", "Net connection capacity per bid", "MVA", 100, source="Old engine Calc E74", fmt="money")
     a("Group_Cap", "Cap per group per node", "MVA", 100, source="Kiírás V.2", fmt="money")
-    a("Bench_Wind", "Benchmark investment, wind", "mHUF/MW", 406, source="Kiírás Annex 2", fmt="money")
-    a("Bench_BESS", "Benchmark investment, BESS", "mHUF/MWh", 200, source="Kiírás Annex 2", fmt="money")
-    a("Bid_Rate", "Bid security rate", "%", 0.005, source="Kiírás VIII.2", fmt="0.00%")
-    a("PB_Rate", "Performance security rate (minimum)", "%", 0.025, source="Kiírás XII.3", fmt="0.00%")
-    a("PB_Max_Mult", "Performance security multiple for full ÖSZ-6 points", "x", 2.0,
-      source="Kiírás X.4 bf; GYIK Q34", fmt="mult")
-    a("Part_Fee", "Participation fee per bid", "mHUF", 3, source="Kiírás VI.4", fmt="money1")
     a("Tolerance_Cap", "Build shortfall tolerated without sanction", "%", 0.10, source="GYIK 28, 30")
     a("Min_Hours", "Minimum BESS duration", "h", 4, source="Kiírás Annex 8; GYIK Q5", fmt="money1")
     a("OSZ4_Basis", "ÖSZ-4 basis (0 = net MVA, 1 = committed wind)", "flag", 0, {6: 1},
       source="User 12-Oct-26; GYIK Q20 = 1")
 
-    i.section("Grid connection (devex-file method)")
-    a("TSO_Security", "TSO connection-request security", "mHUF/MVA", 4.5, source="Old engine Inputs E83", fmt="money1")
-    a("Direct_Fee", "Direct connection fee (per connection point)", "mHUF", 508.345804,
+    i.section("Deposits and fees (timeline order)")
+    a("Bench_Wind", "Security base: benchmark investment, wind", "mHUF/MW", 406, source="Kiírás Annex 2", fmt="money")
+    a("Bench_BESS", "Security base: benchmark investment, BESS", "mHUF/MWh", 200, source="Kiírás Annex 2", fmt="money")
+    a("Bid_Date", "Bid submission: fee paid, bid security posted", "date", D(2026, 10, 30),
+      source="Kiírás VI.5; Old engine Inputs E95")
+    a("Part_Fee", "Participation fee per bid (cash, not refunded)", "mHUF", 3, source="Kiírás VI.4", fmt="money1")
+    a("Bid_Rate", "Bid security (guarantee), share of base", "%", 0.005, source="Kiírás VIII.2", fmt="0.00%")
+    a("Award_Date", "Award decision", "date", D(2026, 12, 13), source="Old engine Inputs E96")
+    a("PB_Days", "Performance security posted after award (bid released)", "days", 15, source="Kiírás XII.5, GYIK 68",
+      fmt="int")
+    a("PB_Rate", "Performance security (guarantee), minimum share of base", "%", 0.025, source="Kiírás XII.3",
+      fmt="0.00%")
+    a("TSO_Date", "Connection request: TSO security posted", "date", D(2026, 12, 30), source="Old engine Inputs E97")
+    a("TSO_Security", "TSO security (cash, credited to the indirect fee)", "mHUF/MVA", 4.5,
+      source="Old engine Inputs E83", fmt="money1")
+    a("HCSSZ_Date", "Connection agreement (HCSSZ): fees paid", "date", D(2029, 1, 8), source="Old engine Inputs E99")
+    a("Direct_Fee", "Direct connection fee per connection point (cash)", "mHUF", 508.345804,
       source="BORA_Devex 02-Oct row 19", fmt="money2")
-    a("Indirect_Fee", "Indirect connection fee", "mHUF/MVA", 73.071306, source="BORA_Devex 02-Oct row 18",
+    a("Indirect_Fee", "Indirect connection fee (cash)", "mHUF/MVA", 73.071306, source="BORA_Devex 02-Oct row 18",
       fmt="money2")
+    a("PB_Release", "Performance security released (hold route)", "date", D(2033, 3, 31),
+      source="Kiírás XII.8 (COD deadline + 6 m)")
+    a("Guarantee_Fee", "Bank guarantee fee on guarantees outstanding", "%", 0.06, source="Old engine Inputs E113")
 
     i.section("FEP claims and fees")
     a("Cash_Rate", "Return on cash lines", "%", 0.12, source="BORA_Devex 02-Oct V18")
     a("Guar_Credit", "Return on guarantee face value", "%", 0.06, source="BORA_Devex 02-Oct V17")
     a("AtRisk_Rate", "Return on devex and land (at risk)", "%", 0.20, source="BORA_Devex 02-Oct V19")
     a("Min_Multiple", "Minimum multiple on at-risk principal", "x", 2.0, source="BORA_Devex 02-Oct V20")
-    a("Guarantee_Fee", "Bank guarantee fee", "%", 0.06, source="Old engine Inputs E113")
     a("Devex_Contingency", "Contingency on devex, land and fee", "%", 0.10, source="Old engine Inputs E68")
 
     i.section("Exit prices")
@@ -317,17 +319,8 @@ def calc(m):
           "=-({bid}+{pb})*In_Guarantee_Fee*{days}/Days_In_Year", e=EXIT, f=TO_COD)
     c.row("dev_cf", "Development cash flow (excl. connection fees)", "EUR k", "={inv}+{fee}+{tso}+{dev_cost}+{gfee}",
           bold=True)
-    c.row("cash_cum", "Cash posted incl. land, cumulative (E: at the exit, F: plus guarantee)", "EUR k",
-          "={self@prev}-{fee}-{tso}-{conn}-{land}", e="SUMIF({end.all},{exit.E},{self.all})",
-          f="{self.E}+{pb.E}", total="seed")
-    c.row("pbx_pts", "ÖSZ-6 points at the maximum PB multiple (F: extra vs live)", "points",
-          e="INDEX(Osz6_Pts,1+SUMPRODUCT((Osz6_LB<In_PB_Max_Mult)+(Osz6_LB=In_PB_Max_Mult)*Osz6_Incl))*Osz6_W",
-          f="{self.E}-{osz6.F}", ef_fmt="money2")
-    c.row("pbx", "PB at the maximum multiple: extra guarantee fee (E: extra PB)", "EUR k",
-          "=-{self.E}*In_Guarantee_Fee*MAX(0,MIN({exit.E},{end})-MAX({pb.F},{start})+1)/Days_In_Year",
-          e="In_PB_Rate*(In_PB_Max_Mult-{osz6.E})*{pb_base.E}*Thousand/In_FX")
-    c.row("pbx_ppm", "PB at the maximum multiple: points per EUR m of extra guarantee", "points/EUR m",
-          e="IFERROR({pbx_pts.F}*Thousand/{pbx.E},0)", ef_fmt="money1")
+    c.row("cash_cum", "Cash posted incl. land, cumulative (E: at the exit)", "EUR k",
+          "={self@prev}-{fee}-{tso}-{conn}-{land}", e="SUMIF({end.all},{exit.E},{self.all})", total="seed")
 
     c.section("FEP claims, devex-file method, accrued to COD (E: to the exit, F: to COD)")
     acc = ("=In_{r}/Days_In_Year*(1-{{freeze}})*({{{p}_open}}*{{days}}+({{end}}+1)*{{{p}_new}}-{{{p}_dated}})"
@@ -469,13 +462,15 @@ def calc(m):
     c.xirr("cod_irr", "FEP IRR – sale at COD", "cod_cf")
     c.moic("cod_moic", "FEP MOIC – sale at COD", "cod_cf")
     c.xnpv("cod_npv", "FEP NPV – sale at COD", "In_Discount_Rate", "cod_cf")
-    c.subheader("All-in cost to COD")
-    c.row("c2c_dev", "Development (devex, land, signing, securities, guarantee fees)", "EUR k",
-          e='-SUMIF({end.all},"<="&In_COD,{dev_cf.all})')
-    c.row("c2c_con", "Construction (capex, connection fees, municipal)", "EUR k",
+    c.subheader("Commitment overview")
+    c.row("ov_sec", "Securities: cash posted and guarantee outstanding", "EUR k", e="{pb.E}-{fee.I}-{tso.I}")
+    c.row("ov_dev", "Devex, land, signing and DD", "EUR k", e="-({dev_cost.I}+{inv.I})")
+    c.row("ov_con", "Construction capex incl. connection fees and municipal", "EUR k",
           e="-({capex.I}+{conn.I}+{municipal.I})")
-    c.row("c2c_fin", "Financing (IDC and debt fees)", "EUR k", e="{d_idc.I}-{d_up.I}-{d_cf.I}")
-    c.row("c2c", "All-in cost to COD (E: uses, F: sources)", "EUR k", e="SUM({c2c_dev.E}:{c2c_fin.E})",
+    c.row("ov_fin", "Financing: IDC, debt fees, guarantee fees", "EUR k", e="{d_idc.I}-{d_up.I}-{d_cf.I}-{gfee.F}")
+    c.row("ov_pen", "Penalty if overbuild not built (F: full call, memo)", "EUR k", e="-{sanction.I}", f="{sanc.F}")
+    c.row("ov_tot", "Total commitment", "EUR k", e="SUM({ov_sec.E}:{ov_pen.E})", bold=True)
+    c.row("c2c", "All-in cost to COD (E: uses, F: sources)", "EUR k", e="{ov_tot.E}-{ov_pen.E}-{pb.E}",
           f='{d_draw.I}+{d_idc.I}-{cod_contrib.I}+SUMIF({end.all},"<="&In_COD,{ebitda.all})', bold=True)
     c.row("c2c_mw", "All-in cost to COD per built MW", "EUR k/MW", e="{c2c.E}/{wind.F}")
 
@@ -520,9 +515,10 @@ def checks(m):
     k.add_check("Debt repaid by the end of the tenor", "=N(({end}>={tenor.F})*ABS({d_close})>Tolerance)")
     k.add_check("XIRR returned a number on every route",
                 "=N(ISTEXT({rtb_irr.E}))+N(ISERROR({htm_irr.E}))+N(ISERROR({cod_irr.E}))", per_period=False)
-    k.add_check("Stored zero-bid comparison = live (base set)",
-                "=(Scenario_Selected=1)*(SUMPRODUCT(ABS(ZB_Live-ZB_Zero_Stored-ZB_Delta_Stored))>Tolerance)",
-                per_period=False)
+    for b in (1, 2):
+        k.add_check(f"Stored zero bid + Δ = live, base set – bid {b}",
+                    f"=(Scenario_Selected=1)*(SUMPRODUCT(ABS(ZB_Live_{b}-ZB_Zero_Stored-ZB_Delta_{b}_Stored))>Tolerance)",
+                    per_period=False)
 
 
 # =========================================================================================== dashboard
@@ -540,15 +536,15 @@ LEVERS = [  # key, label, unit, BORA 1 / BORA 2, offerable range, points row, li
     ("EU_Transformer", "EU transformers ≥ 80 % (ÖSZ-9)", "flag", [1, 1], "0 / 1", "osz9b", [0, 1], "flag"),
 ]
 IMPACT = [("Δ COD IRR", "0.00%"), ("Δ HTM IRR", "0.00%"), ("Δ securities €m", "money2")]   # macro columns
-ZERO_BID = [  # label, unit, calc template, scale, format; the RtB IRR can be "n/a", so it stays last (out of the check)
-    ("Points, live route", "points", "{pts_live.E}", None, "money2"),
-    ("FEP profit – RtB route", "EUR m", "{rtb_cf.I}", "Thousand", "money2"),
-    ("FEP IRR – sale at COD", "%", "{cod_irr.E}", None, "pct"),
-    ("FEP NPV – sale at COD", "EUR m", "{cod_npv.E}", "Thousand", "money2"),
-    ("FEP IRR – hold to maturity", "%", "{htm_irr.E}", None, "pct"),
-    ("FEP NPV – hold to maturity", "EUR m", "{htm_npv.E}", "Thousand", "money2"),
-    ("Cash and guarantee at the exit", "EUR m", "{cash_cum.F}", "Thousand", "money2"),
-    ("FEP IRR – RtB route", "%", "{rtb_irr.E}", None, "pct"),
+GLANCE = [  # label, unit, calc template, scale, out name
+    ("Points, live turbine route", "points", "{pts_live.E}", None, "Points"),
+    ("FEP profit – RtB route", "EUR m", "{rtb_cf.I}", "Thousand", "RtB_Profit"),
+    ("FEP IRR – RtB route", "%", "{rtb_irr.E}", None, "RtB_IRR"),
+    ("FEP IRR – sale at COD", "%", "{cod_irr.E}", None, "COD_IRR"),        # check covers this row and below
+    ("FEP NPV – sale at COD", "EUR m", "{cod_npv.E}", "Thousand", "COD_NPV"),
+    ("FEP IRR – hold to maturity", "%", "{htm_irr.E}", None, "HTM_IRR"),
+    ("FEP NPV – hold to maturity", "EUR m", "{htm_npv.E}", "Thousand", "HTM_NPV"),
+    ("Total commitment", "EUR m", "{ov_tot.E}", "Thousand", "Commitment_Total"),
 ]
 
 
@@ -558,42 +554,53 @@ def dashboard(m):
     bids = [f"B{n}" for n in range(1, nb + 1)]
     m2 = "money2"
 
-    def grid_range(r1, r2, c1, n):
+    def grid(r1, r2, c1, n=1):
         return f"Dashboard!${L(d.X + c1 - 1)}${r1}:${L(d.X + c1 + n - 2)}${r2}"
 
-    # 1. levers and the impact of each commitment against the zero bid
-    grid = ["Offerable range"] + [f"Points {b}" for b in bids] + [f"{h} {b}" for h, _ in IMPACT for b in bids]
-    d.section("Tender commitments (levers) and impact vs the zero bid (macro)", grid)
+    def col(r1, r2, b):
+        return f"Dashboard!${L(d.V + b - 1)}${r1}:${L(d.V + b - 1)}${r2}"
+
+    # 1. returns at a glance: the bids next to the zero bid (macro, computed on Calc_1)
+    d.section("Returns at a glance", ["Zero bid"] + [f"Δ {b}" for b in bids])
+    rows = []
+    for label, unit, t, scale, out in GLANCE:
+        f = "pct" if unit == "%" else m2
+        r = d.link(label, unit, t, scale=scale, fmt=f, out=out, bold=out == "Commitment_Total")
+        rows.append(r)
+        for k in range(nb + 1):
+            apply(d.ws.cell(r, d.X + k), "macro", FMT[f])
+    r1, rc, r2 = rows[0], rows[3], rows[-1]
+    m.define("ZeroBid_Live", f"Dashboard!${L(d.V)}${r1}:${L(d.V + nb - 1)}${r2}")
+    m.define("ZeroBid_Stored", grid(r1, r2, 1, nb + 1))
+    m.define("ZB_Zero_Stored", grid(rc, r2, 1))
+    for b in range(1, nb + 1):
+        m.define(f"ZB_Live_{b}", col(rc, r2, b))
+        m.define(f"ZB_Delta_{b}_Stored", grid(rc, r2, 1 + b))
+
+    # 2. what FEP commits per bid (total in Returns at a glance)
+    d.section("Commitment overview (total in Returns at a glance)")
+    for t, label, out in [("{ov_sec.E}", "Securities: cash posted and guarantee outstanding", "Commitment_Securities"),
+                          ("{ov_dev.E}", "Devex, land, signing and DD", "Commitment_Devex"),
+                          ("{ov_con.E}", "Construction capex incl. connection fees and municipal",
+                           "Commitment_Construction"),
+                          ("{ov_fin.E}", "Financing: IDC, debt fees, guarantee fees", "Commitment_Financing"),
+                          ("{ov_pen.E}", "Penalty if overbuild not built (selected regime)", "Commitment_Penalty"),
+                          ("{ov_pen.F}", "Memo: penalty under a full PB call", "Sanction_Full")]:
+        d.link(label, "EUR m", t, scale="Thousand", out=out, fmt=m2)
+
+    # 3. levers and the impact of each commitment against the zero bid
+    head = ["Offerable range"] + [f"Points {b}" for b in bids] + [f"{h} {b}" for h, _ in IMPACT for b in bids]
+    d.section("Tender commitments (levers) and impact vs the zero bid (macro)", head)
     for key, label, unit, vals, rng, pkey, opts, f in LEVERS:
         pts = [f"={c.ref(pkey, 'F', s)}" for s in S] if pkey else []
         d.input(key, label, unit, vals, fmt=f, options=opts, extra=[rng] + pts)
-    d._row("imp_total", "Full bid vs zero bid", "", bold=True)
-    d.stored_block("Impact", LEVERS[0][0], "imp_total", range(nb + 2, len(grid) + 1))
+    d.stored_block("Impact", LEVERS[0][0], LEVERS[-1][0], range(nb + 2, len(head) + 1))
     for i, (_, f) in enumerate(IMPACT):
         for b in range(nb):
-            for r in range(d.rows[LEVERS[0][0]], d.rows["imp_total"] + 1):
+            for r in range(d.rows[LEVERS[0][0]], d.rows[LEVERS[-1][0]] + 1):
                 d.ws.cell(r, d.X + nb + 1 + i * nb + b).number_format = FMT.get(f, f)
 
-    # 2. zero bid (macro) next to the bids
-    d.section("Zero bid vs the bids (macro)", [f"Zero bid {b}" for b in bids] + [f"Δ {b}" for b in bids])
-    rows = []
-    for label, unit, t, scale, f in ZERO_BID:
-        r = d.link(label, unit, t, scale=scale, fmt=f)
-        rows.append(r)
-        for col in range(2 * nb):
-            d.ws.cell(r, d.X + col).number_format = FMT.get(f, f)
-    r1, r2 = rows[0], rows[-1]
-    for col in range(2 * nb):
-        for r in rows:
-            apply(d.ws.cell(r, d.X + col), "macro", d.ws.cell(r, d.X + col).number_format)
-    m.define("ZeroBid_Live", f"Dashboard!${L(d.V)}${r1}:${L(d.V + nb - 1)}${r2}")
-    m.define("ZeroBid_Stored", grid_range(r1, r2, 1, 2 * nb))
-    m.define("ZB_Live", f"Dashboard!${L(d.V)}${r1}:${L(d.V + nb - 1)}${r2 - 1}")
-    m.define("ZB_Zero_Stored", grid_range(r1, r2 - 1, 1, nb))
-    m.define("ZB_Delta_Stored", grid_range(r1, r2 - 1, nb + 1, nb))
-
     d.section("Points and validity")
-    d.link("Points, live turbine route", "points", "{pts_live.E}", out="Points", fmt=m2, bold=True)
     d.link("Wind committed", "MW", "{wind.E}", out="Wind_MW")
     d.link("Wind built", "MW", "{wind.F}", out="Wind_Built_MW")
     d.link("BESS committed", "MW", "{bess.E}", out="BESS_MW")
@@ -612,21 +619,7 @@ def dashboard(m):
         r = d.link(label, "EUR m", "{%s.E}" % key, scale="Thousand", fmt="0.000", extra=[form, posted, released])
         for col in (d.X + 1, d.X + 2):
             d.ws.cell(r, col).number_format = FMT["date"]
-    d.subheader("Summary to the RtB exit")
-    d.link("Cash posted, incl. land", "EUR m", "{cash_cum.E}", scale="Thousand", out="Cash_Posted", fmt=m2)
-    d.link("Guarantee outstanding (peak = at the exit)", "EUR m", "{pb.E}", scale="Thousand", out="Guarantee_Peak",
-           fmt=m2)
     d.link("Guarantee fees to the exit", "EUR m", "-{gfee.E}", scale="Thousand", out="Guarantee_Fees", fmt="0.000")
-    d.link("Total cash and guarantee committed", "EUR m", "{cash_cum.F}", scale="Thousand", out="Securities_Total",
-           fmt=m2, bold=True)
-    d.subheader("Performance security at 2.0x the minimum (ÖSZ-6)")
-    d.link("Extra guarantee", "EUR m", "{pbx.E}", scale="Thousand", out="PBMax_Guarantee", fmt=m2)
-    d.link("Extra guarantee fee to the exit", "EUR m", "-{pbx.I}", scale="Thousand", out="PBMax_Fee", fmt="0.000")
-    d.link("Extra points", "points", "{pbx_pts.F}", out="PBMax_Points", fmt=m2)
-    d.link("Points per EUR m of extra guarantee", "points", "{pbx_ppm.E}", out="PBMax_Pts_Per_EURm", fmt="money1")
-    d.subheader("Overbuild and BESS not built")
-    d.link("Sanction: pro rata", "EUR m", "{sanc.E}", scale="Thousand", out="Sanction_Pro_Rata", fmt=m2)
-    d.link("Sanction: full call", "EUR m", "{sanc.F}", scale="Thousand", out="Sanction_Full", fmt=m2)
     d.link("Connection capacity at risk", "MVA", "{mva_risk.E}", out="MVA_At_Risk")
     d.link("3-year group exclusion (1 = yes)", "flag", "{excl.E}", out="Exclusion")
 
@@ -644,23 +637,12 @@ def dashboard(m):
                             ("w_dist", "Distributable at the exit", "Distributable"),
                             ("w_fep", "FEP receipts", "FEP_Proceeds"), ("w_dev", "Developer (DSA + 30 %)", "Developer")]:
         d.link(label, "EUR m", "{%s.F}" % key, scale="Thousand", out=out, fmt=m2, bold=key in ("w_dist", "w_fep"))
-    d.subheader("FEP returns – RtB route")
-    d.link("FEP profit – RtB route", "EUR m", "{rtb_cf.I}", scale="Thousand", out="RtB_Profit", fmt=m2, bold=True)
-    d.link("FEP IRR – RtB route", "%", "{rtb_irr.E}", out="RtB_IRR", bold=True)
     d.link("FEP MOIC – RtB route", "x", "{rtb_moic.E}", out="RtB_MOIC")
     d.link("FEP NPV – RtB route", "EUR m", "{rtb_npv.E}", scale="Thousand", out="RtB_NPV", fmt=m2)
 
     d.section("Sale at COD")
-    d.subheader("All-in cost to COD")
-    for t, label, out, unit in [("{c2c_dev.E}", "Development (devex, land, signing, securities, fees)",
-                                 "C2C_Development", "EUR m"),
-                                ("{c2c_con.E}", "Construction (capex, connection fees, municipal)", "C2C_Construction",
-                                 "EUR m"),
-                                ("{c2c_fin.E}", "Financing (IDC and debt fees)", "C2C_Financing", "EUR m"),
-                                ("{c2c.E}", "All-in cost to COD", "Cost_To_COD", "EUR m")]:
-        d.link(label, unit, t, scale="Thousand", out=out, fmt=m2, bold=out == "Cost_To_COD")
+    d.link("All-in cost to COD", "EUR m", "{c2c.E}", scale="Thousand", out="Cost_To_COD", fmt=m2, bold=True)
     d.link("All-in cost per built MW", "EUR k/MW", "{c2c_mw.E}", out="Cost_To_COD_MW")
-    d.subheader("Sale and FEP returns")
     d.link("Sale price (built MW, after bottleneck loss)", "EUR m", "{v_price.E}", scale="Thousand", out="COD_Price",
            fmt=m2)
     d.link("COD price effect (community, sanction)", "EUR m", "{v_price.F}", scale="Thousand",
@@ -668,14 +650,10 @@ def dashboard(m):
     d.link("Debt repaid at COD", "EUR m", "{v_avail.E}", scale="Thousand", out="COD_Debt", fmt=m2)
     d.link("FEP proceeds at COD", "EUR m", "{v_fep.F}", scale="Thousand", out="COD_Proceeds", fmt=m2)
     d.link("FEP profit – sale at COD", "EUR m", "{cod_cf.I}", scale="Thousand", out="COD_Profit", fmt=m2)
-    d.link("FEP IRR – sale at COD", "%", "{cod_irr.E}", out="COD_IRR", bold=True)
     d.link("FEP MOIC – sale at COD", "x", "{cod_moic.E}", out="COD_MOIC")
-    d.link("FEP NPV – sale at COD", "EUR m", "{cod_npv.E}", scale="Thousand", out="COD_NPV", fmt=m2)
 
     d.section("Hold to maturity")
-    d.link("FEP IRR – hold to maturity", "%", "{htm_irr.E}", out="HTM_IRR", bold=True)
     d.link("FEP MOIC – hold to maturity", "x", "{htm_moic.E}", out="HTM_MOIC")
-    d.link("FEP NPV – hold to maturity", "EUR m", "{htm_npv.E}", scale="Thousand", out="HTM_NPV", fmt=m2)
     d.link("Minimum DSCR (memo)", "x", "{dscr.E}", out="Min_DSCR")
 
     d.scenario_results(outs=["Points", "Distributable", "RtB_Profit", "Cost_To_COD", "COD_IRR", "HTM_IRR"])
