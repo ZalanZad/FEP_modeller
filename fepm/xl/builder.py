@@ -98,7 +98,7 @@ class Model:
     def __init__(self, project: str, purpose: str = "Investment model", *, periods: int, start: dt.date,
                  periodicity: str = "annual", scenarios=("Base",), version: str = "v1", author: str = "FEP",
                  date: dt.date | None = None, curves: bool = False, layout: str = "standard",
-                 calc_sheets=("Calc",), bids=None, extra_cols: int = 0):
+                 calc_sheets=("Calc",), bids=None, extra_cols: int = 0, source_col: bool = True):
         if periodicity not in ("annual", "quarterly"):
             raise ValueError("periodicity must be 'annual' or 'quarterly'")
         if not 1 <= len(scenarios) <= 8:
@@ -128,7 +128,8 @@ class Model:
             self.cover = Cover(self, ws, project, purpose, version, author, date or dt.date.today())
             self.summary = Summary(self, self.wb.create_sheet("Summary"))
         else:
-            self.dashboard = Dashboard(self, ws, project, purpose, version, date or dt.date.today(), extra_cols)
+            self.dashboard = Dashboard(self, ws, project, purpose, version, date or dt.date.today(), extra_cols,
+                                       source_col)
         self.inputs = Inputs(self, self.wb.create_sheet("Inputs"), start, periodicity)
         self.curves = Curves(self, self.wb.create_sheet("Curves")) if curves else None
         self.calc = Calc(self, [self.wb.create_sheet(name) for name in calc_sheets])
@@ -769,22 +770,23 @@ class Dashboard:
 
     TOP = 11
 
-    def __init__(self, model, ws, project, purpose, version, date, extra_cols):
+    def __init__(self, model, ws, project, purpose, version, date, extra_cols, source_col=True):
         self.m, self.ws = model, ws
         self.nb = len(model.calc_sheets)
         self.nx = max(extra_cols, len(model.scenarios))     # grid also holds the stored scenario results
         self.V = 5                                           # first value column (E)
         self.X = self.V + self.nb + 1                        # first grid column
-        self.SRC = self.X + self.nx + 1                      # source column
-        self.P = self.SRC + 2                                # panel: label, unit, value
-        self.left, self.last = self.SRC, self.P + 2
+        self.SRC = self.X + self.nx + 1 if source_col else None   # source column (optional)
+        self.P = (self.SRC or self.X + self.nx - 1) + 2           # panel: label, unit, value
+        self.left, self.last = self.SRC or self.X + self.nx - 1, self.P + 2
         self.r = self.pr = self.TOP
         self.rows: dict[str, int] = {}
         self.outs: list[tuple] = []                          # (out key, name, label, unit, fmt, formula)
         self.selector_cell = None
         _columns(ws, {"A": 3, "B": 3, "C": 44, "D": 10, **{L(self.V + i): 12 for i in range(self.nb)},
-                      L(self.X - 1): 2, **{L(self.X + i): 12 for i in range(self.nx)}, L(self.SRC - 1): 2,
-                      L(self.SRC): 28, L(self.SRC + 1): 3, L(self.P): 34, L(self.P + 1): 10, L(self.P + 2): 12})
+                      L(self.X - 1): 2, **{L(self.X + i): 12 for i in range(self.nx)}, L(self.P - 1): 3,
+                      L(self.P): 34, L(self.P + 1): 10, L(self.P + 2): 12,
+                      **({L(self.SRC - 1): 2, L(self.SRC): 28} if self.SRC else {})})
         ws["B2"] = '=C3&" – Dashboard"'
         _banner(ws, 2, self.last)
         apply(ws.cell(3, 3, project), "input")
@@ -798,6 +800,8 @@ class Dashboard:
         ws.cell(8, 3, "Master check")
         for c, h in ((3, "Item"), (4, "Unit"), (self.SRC, "Source"), (self.P, "Key assumptions"),
                      (self.P + 1, "Unit"), (self.P + 2, "Live")):
+            if c is None:
+                continue
             apply(ws.cell(9, c, h), "header")
             if c in (3, 4, self.SRC, self.P, self.P + 1):
                 ws.cell(9, c).alignment = styles.Alignment(horizontal="left")
@@ -838,7 +842,7 @@ class Dashboard:
             self.rows[key] = r
         ws.cell(r, 3, label)
         apply(ws.cell(r, 4, unit), "unit")
-        if source:
+        if source and self.SRC:
             ws.cell(r, self.SRC, source)
         if bold:
             ws.cell(r, 3).font = Font(name=styles.FONT, size=styles.SIZE, bold=True)
