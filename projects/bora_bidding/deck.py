@@ -86,6 +86,13 @@ def build_deck(xlsm: Path, out: Path) -> Path:
     def both(key, fm):
         return [b(f"Out_{key}_1", fm), b(f"Out_{key}_2", fm)]
 
+    sets = [c.value for row in d.wb["Inputs"][next(d.wb.defined_names["Scenario_Names"].destinations)[1]]
+            for c in row]          # stored key-assumption sets, in the order of the Stored_Results columns
+
+    def stored(key, set_name, fm, tpl="{a} / {b}"):   # BORA 1 / BORA 2 result stored for one key-assumption set
+        i = sets.index(set_name) + 1
+        return f(tpl, a=d.stored(f"{key}_1", i, fm), b=d.stored(f"{key}_2", i, fm))
+
     # ---- 1 Cover -------------------------------------------------------------------------------------------
     d.cover("Project Bora", "BORA 1 and BORA 2 capacity bids", b("Dashboard!E6", date),
             subtitle=f("Approval of the tender commitments,\n2 × {m} MVA, Szombathely OVIT", m=b("In_MVA", n0)))
@@ -126,7 +133,7 @@ def build_deck(xlsm: Path, out: Path) -> Path:
         left=CARD_L, top=TOP, width=CARD_W, height=4.7)
     s.footnote(f("Post-tax, FEP share, EU turbine, base case (overbuild not built, BESS built, PB lost pro rata to the "
                  "shortfall); "
-                 "RtB exit {x}. Zero bid = every commitment at its zero level.", x=b("Dashboard!E60", date)))
+                 "RtB exit {x}. Zero bid = every commitment at its zero level.", x=b("Dash_Exit_Date", date)))
 
     # ---- 3 Why these commitments -----------------------------------------------------------------------------
     s = d.content("Commitments", f(
@@ -176,47 +183,57 @@ def build_deck(xlsm: Path, out: Path) -> Path:
                  "security posted, not a PB loss. ÖSZ-6: 5 points at {y} (Kiírás X.4 bf, Annex 4). Brownfield (ÖSZ-7) "
                  "is not offered.", y=b("Curves!S19", x1)))
 
-    # ---- 4 Securities and cash to the RtB exit ---------------------------------------------------------------
+    # ---- 4 Securities and cash to the RtB exit: the devex-file waterfall (paid amounts) ---------------------
+    prem_row = next(d.wb.defined_names["In_RtB_Premium"].destinations)[1].split("$")[-1]
+    prem_col = next(d.wb.defined_names["Scenario_Names"].destinations)[1].split(":")[0].split("$")[1]
+    low_col = chr(ord(prem_col) + sets.index("Low premium"))
     s = d.content("Economics – RtB exit", f(
         "At the RtB exit FEP recovers its cash and earns €{p}m, a {m} MOIC",
         p=pair("Out_RtB_Profit_1", "Out_RtB_Profit_2", eur, m2),
         m=pair("Out_RtB_MOIC_1", "Out_RtB_MOIC_2", fmt_mult)), f(
-        "FEP funds €{o}m per bid to {x} and carries the PB guarantee. Of the €{t}m RtB price net of sale costs, "
-        "FEP takes €{a}m.", o=b("Out_RtB_Outlay_1", eur_abs), x=b("Dashboard!E60", date),
-        t=b("Out_Split_Total_1", eur), a=pair("Out_Split_FEP_1", "Out_Split_FEP_2", eur, m2)), title_lines=2)
+        "Of the €{t}m exit premium per bid, FEP nets €{n}m and A.RES €{a}m; at a {lp} k€/MVA premium "
+        "FEP's RtB profit falls to €{lo}m.", t=b("Out_RtB_Price_1", eur),
+        n=pair("Out_Exit_FEP_Net_1", "Out_Exit_FEP_Net_2", eur, m2),
+        a=pair("Out_Exit_ARES_Total_1", "Out_Exit_ARES_Total_2", eur, m2),
+        lp=b(f"Inputs!{low_col}{prem_row}", n0), lo=stored("RtB_Profit", "Low premium", eur, m2)), title_lines=2)
 
-    def split(key):              # "11.1 (73)": € m and k€ per installed wind MW
-        return [f("{a} ({k})", a=b(f"Out_Split_{key}_{i}", eur), k=b(f"Out_Split_{key}_MW_{i}", n0))
-                for i in (1, 2)]
+    def wf(lbl, key):            # waterfall row: BORA 1 | BORA 2 (named outputs) | Total (column H of that row)
+        row = next(d.wb.defined_names[f"Out_{key}_1"].destinations)[1].split("$")[-1]
+        return [lbl, "€ m", *both(key, eur), b(f"Dashboard!H{row}", eur)]
 
-    rows = [["RtB price", "€ m", *both("RtB_Price", eur)],
-            ["Receipts at the exit", "€ m", *both("FEP_Proceeds", eur)],
-            ["Outlays: devex, land, deposits, connection fees, signing", "€ m", *both("RtB_Outlay", eur)],
-            [f("Guarantee fees ({g} carry)", g=b("In_Guarantee_Fee", pct0)), "€ m", *both("Guarantee_Fees", eur)],
-            ["Tax at the exit", "€ m", *both("RtB_Tax", eur)],
-            ["FEP profit – RtB route", "€ m", *both("RtB_Profit_Buildup", eur)],
-            [f("FEP profit – RtB route, low-premium case ({p} k€/MVA)", p=b("Inputs!L74", n0)), "€ m",
-             b("Dashboard!L105", eur), b("Dashboard!L106", eur)],
-            [f("Exit split – FEP: claims + {s}", s=b("In_FEP_Share", pct0)), "€ m (k€/MW)", *split("FEP")],
-            ["Exit split – A.RES: DSA + 30%", "€ m (k€/MW)", *split("ARES")],
-            ["Exit split – total", "€ m (k€/MW)", *split("Total")]]
-    s.table(["Item", "Unit", "BORA 1", "BORA 2"], rows, key_rows={5}, top=TOP, width=SIDE_W,
-            height=0.59 + 10 * 0.46, col_widths=[5.06, 1.6, 1.6, 1.6])
+    rows = [wf("Memo: buyer reimbursement (deposits, fees, land)", "Exit_Reimbursement"),
+            wf("Exit premium (RtB price)", "RtB_Price"),
+            wf("Less sale costs", "WF_Sale_Costs"),
+            wf(f("Less FEP claim {r} on deposits and connection fees", r=b("In_Cash_Rate", pct0)), "WF_Return_12"),
+            wf(f("Less FEP claim {r} / {m} on devex and land", r=b("In_AtRisk_Rate", pct0),
+                 m=b("In_Min_Multiple", lambda v: f"{v:.0f}×")), "WF_Return_AtRisk"),
+            wf(f("Less FEP claim {r} on guarantees", r=b("In_Guar_Credit", pct0)), "WF_Return_6"),
+            wf("Less FEP interest claims, total", "Exit_Claims"),
+            wf("Less DSA", "WF_DSA"),
+            wf("Distributable", "Distributable"),
+            wf(f("FEP {s}", s=b("In_FEP_Share", pct0)), "Exit_FEP_70"),
+            wf("FEP-borne devex principal", "Exit_FEP_Devex"),
+            wf(f("FEP net = claims + {s} − devex", s=b("In_FEP_Share", pct0)), "Exit_FEP_Net"),
+            wf("A.RES 30%", "Exit_ARES_30"),
+            wf("A.RES total = 30% + DSA", "Exit_ARES_Total"),
+            wf("Guarantee fees, signing and DD, tax", "RtB_Route_Costs"),
+            wf("FEP profit – RtB route", "RtB_Profit_Buildup")]
+    s.table(["RtB exit waterfall (paid)", "Unit", "BORA 1", "BORA 2", "Total"], rows, key_rows={11, 13, 15},
+            top=TOP, width=SIDE_W, height=0.59 + 16 * 0.36, col_widths=[4.68, 0.8, 1.5, 1.5, 1.5])
     s.card("Securities to the exit", [
         ("Bid guarantee ", f("€{a}m, {p} to {r}.", a=pair(*dash("E51"), eur, m2),
                              p=b("Dashboard!I51", date), r=b("Dashboard!J51", date))),
         ("PB guarantee ", f("€{a}m from {p}; the buyer replaces it at the exit.",
                             a=pair(*dash("E52"), eur, m2), p=b("Dashboard!I52", date))),
-        ("Cash: ", f("TSO security €{t}m ({td}) and connection fees €{c1}m + €{c2}m ({cd}). "
-                     "The buyer reimburses €{r}m at the exit.",
+        ("Cash: ", f("TSO security €{t}m ({td}) and connection fees €{c1}m + €{c2}m ({cd}). The buyer "
+                     "reimburses deposits, fees and land at the exit (memo line).",
                      t=b("Dashboard!E53", eur), td=b("Dashboard!I53", date), c1=b("Dashboard!E54", eur),
-                     c2=b("Dashboard!E55", eur), cd=b("Dashboard!I54", date), r=b("Out_WF_Principal_1", eur)))],
+                     c2=b("Dashboard!E55", eur), cd=b("Dashboard!I54", date)))],
         left=CARD_L, top=TOP, width=CARD_W, height=2.6)
     s.footnote(f("RtB price {p} k€/MVA × {m} MVA, per the Bora scenarios meeting file (Bora!N5), confirmed {c}. "
-                 "Receipts = recoverable principal, land and claims, plus {s} of the distributable. Per-MW figures "
-                 "use installed wind of {w} MW. The participation fee is not recovered.",
+                 "Paid amounts at the RtB exit on {x}, in devex-file order. The participation fee is not recovered.",
                  p=b("In_RtB_Premium", n0), m=b("In_MVA", n0), c=b("Dashboard!E6", date),
-                 s=b("In_FEP_Share", pct0), w=pair("Out_Wind_MW_1", "Out_Wind_MW_2", n0)))
+                 x=b("Dash_Exit_Date", date)))
 
     # ---- 5 COD and HTM value and the commitment breakdown ----------------------------------------------------
     s = d.content("Economics – COD and HTM", f(
@@ -273,7 +290,7 @@ def build_deck(xlsm: Path, out: Path) -> Path:
         ["Full PB call if the points-commitment rule (Kiírás XIII.17; GYIK Q72) also applies to the overbuild "
          "– unresolved",
          f("€{c}m: COD IRR {i}, HTM IRR {h}.", c=pair("Out_Sanction_Full_1", "Out_Sanction_Full_2", eur, m2),
-           i=pair("Dashboard!J107", "Dashboard!J108", pct), h=pair("Dashboard!J109", "Dashboard!J110", pct)),
+           i=stored("COD_IRR", "Full PB call", pct), h=stored("HTM_IRR", "Full PB call", pct)),
          "Downside case, not the base. PB at the minimum limits it."],
         ["3-year group exclusion (Kiírás VII.2 n; GYIK Q71)",
          "Possible if the PB is called; unclear whether a pro-rata loss counts as a call. A call after COD would "
@@ -287,7 +304,7 @@ def build_deck(xlsm: Path, out: Path) -> Path:
          "Legal confirmation before submission."],
         ["ÖSZ-4 scored on installed wind (GYIK Q20); BESS valued at cost only",
          f("Points {p}, returns unchanged. BESS costs {a} pp of COD IRR with no BESS revenue.",
-           p=pair("Dashboard!M103", "Dashboard!M104", dp2), a=pair(*dash("M15"), pp)),
+           p=stored("Points", "ÖSZ-4 on wind", dp2), a=pair(*dash("M15"), pp)),
          "Ranking risk only. Any BESS revenue is upside."],
     ]
     s.table(["Risk", "Exposure (B1 / B2)", "Mitigant"], rows, top=TOP, height=0.59 + 6 * 0.72,
@@ -296,8 +313,8 @@ def build_deck(xlsm: Path, out: Path) -> Path:
         ("", f("The grid connection stays at {m} MVA. Building the overbuild lifts the all-in cost to COD from €{a}m "
                "to €{c}m. In that case COD IRR is {i} and HTM IRR is {h}. The build decision passes to the buyer "
                "at RtB.", m=b("In_MVA", n0), a=pair("Out_Cost_To_COD_1", "Out_Cost_To_COD_2", eur, m2),
-               c=pair("Dashboard!I113", "Dashboard!I114", eur, m2), i=pair("Dashboard!I107", "Dashboard!I108", pct),
-               h=pair("Dashboard!I109", "Dashboard!I110", pct)))],
+               c=stored("Cost_To_COD", "Overbuild built", eur, m2), i=stored("COD_IRR", "Overbuild built", pct),
+               h=stored("HTM_IRR", "Overbuild built", pct)))],
         left=4.92, top=8.05, width=15.0, height=1.35)
     s.footnote(f("Shortfall tested {m} months after COD. Pro rata = shortfall share × the wind PB (GYIK Q28/30). "
                  "The full-call and overbuild-built figures are alternative cases.", m=b("In_Sanction_Lag", n0)))

@@ -69,34 +69,40 @@ Footnote: Δ = zero bid plus that commitment alone, minus the zero bid. Zero lev
 - Section: Economics – RtB exit
 - Action title: At the RtB exit FEP recovers its cash and earns €6.5m / €6.7m, a 1.25x / 1.26x MOIC  
   <sub>Cells: `Out_RtB_Profit_1`, `Out_RtB_Profit_2` (€ m 1 dp); `Out_RtB_MOIC_1`, `Out_RtB_MOIC_2` (x 2 dp)</sub>
-- Subtitle: FEP funds €24.9m per bid to 31-Dec-2029 and carries the PB guarantee. Of the €14.5m RtB price net of sale costs, FEP takes €11.1m / €11.1m.  
-  <sub>Cells: `Out_RtB_Outlay_1` (€ m 1 dp (magnitude)); `Dashboard!E60` (date); `Out_Split_Total_1`, `Out_Split_FEP_1`, `Out_Split_FEP_2` (€ m 1 dp)</sub>
+- Subtitle: Of the €15.0m exit premium per bid, FEP nets €8.4m / €8.4m and A.RES €3.4m / €3.4m; at a 100 k€/MVA premium FEP's RtB profit falls to €3.0m / €3.2m.  
+  <sub>Cells: `Out_RtB_Price_1`, `Out_Exit_FEP_Net_1`, `Out_Exit_FEP_Net_2`, `Out_Exit_ARES_Total_1`, `Out_Exit_ARES_Total_2` (€ m 1 dp); `Inputs!L74` (0 dp, In_RtB_Premium in the "Low premium" set); `Dashboard!L97`, `Dashboard!L98` (`RtB_Profit_1_Stored` / `RtB_Profit_2_Stored`, "Low premium"; € m 1 dp)</sub>
 
-Table (FEP RtB build-up and exit split):
+Table (RtB exit waterfall, devex-file order, paid amounts; Total = both bids, Dashboard column H of the same row):
 
-| Item | Unit | BORA 1 | BORA 2 | Cells (format) |
-|---|---|---:|---:|---|
-| RtB price | € m | 15.0 | 15.0 | `Out_RtB_Price_1`, `Out_RtB_Price_2` (€ m 1 dp) |
-| Receipts at the exit | € m | 32.9 | 32.9 | `Out_FEP_Proceeds_1`, `Out_FEP_Proceeds_2` (€ m 1 dp) |
-| Outlays: devex, land, deposits, connection fees, signing | € m | (24.9) | (24.9) | `Out_RtB_Outlay_1`, `Out_RtB_Outlay_2` (€ m 1 dp) |
-| Guarantee fees (6% carry) | € m | (1.3) | (1.1) | `Out_Guarantee_Fees_1`, `Out_Guarantee_Fees_2` (€ m 1 dp) |
-| Tax at the exit | € m | (0.1) | (0.1) | `Out_RtB_Tax_1`, `Out_RtB_Tax_2` (€ m 1 dp) |
-| FEP profit – RtB route [key row] | € m | 6.5 | 6.7 | `Out_RtB_Profit_Buildup_1`, `Out_RtB_Profit_Buildup_2` (€ m 1 dp) |
-| FEP profit – RtB route, low-premium case (100 k€/MVA) | € m | 3.0 | 3.2 | `Inputs!L74` (0 dp); `Dashboard!L105`, `Dashboard!L106` (€ m 1 dp) |
-| Exit split – FEP: claims + 70% | € m (k€/MW) | 11.1 (73) | 11.1 (79) | `Out_Split_FEP_1`, `Out_Split_FEP_2` (€ m 1 dp); `Out_Split_FEP_MW_1`, `Out_Split_FEP_MW_2` (k€/MW 0 dp) |
-| Exit split – A.RES: DSA + 30% | € m (k€/MW) | 3.4 (23) | 3.4 (25) | `Out_Split_ARES_1`, `Out_Split_ARES_2` (€ m 1 dp); `Out_Split_ARES_MW_1`, `Out_Split_ARES_MW_2` (k€/MW 0 dp) |
-| Exit split – total | € m (k€/MW) | 14.5 (96) | 14.5 (104) | `Out_Split_Total_1`, `Out_Split_Total_2` (€ m 1 dp); `Out_Split_Total_MW_1`, `Out_Split_Total_MW_2` (k€/MW 0 dp) |
+| RtB exit waterfall (paid) | Unit | BORA 1 | BORA 2 | Total | Cells (format) |
+|---|---|---:|---:|---:|---|
+| Memo: buyer reimbursement (deposits, fees, land) | € m | 21.8 | 21.8 | 43.7 | `Out_Exit_Reimbursement_1`, `Out_Exit_Reimbursement_2`, `Dashboard!H61` (€ m 1 dp) |
+| Exit premium (RtB price) | € m | 15.0 | 15.0 | 30.0 | `Out_RtB_Price_1`, `Out_RtB_Price_2`, `Dashboard!H62` (€ m 1 dp) |
+| Less sale costs | € m | (0.5) | (0.5) | (1.0) | `Out_WF_Sale_Costs_1`, `Out_WF_Sale_Costs_2`, `Dashboard!H63` (€ m 1 dp) |
+| Less FEP claim 12% on deposits and connection fees | € m | (1.6) | (1.6) | (3.1) | `In_Cash_Rate` (% 0 dp); `Out_WF_Return_12_1`, `Out_WF_Return_12_2`, `Dashboard!H64` (€ m 1 dp) |
+| Less FEP claim 20% / 2× on devex and land | € m | (3.1) | (3.1) | (6.2) | `In_AtRisk_Rate` (% 0 dp); `In_Min_Multiple` (0 dp ×); `Out_WF_Return_AtRisk_1`, `Out_WF_Return_AtRisk_2`, `Dashboard!H65` (€ m 1 dp) |
+| Less FEP claim 6% on guarantees | € m | (1.1) | (1.0) | (2.1) | `In_Guar_Credit` (% 0 dp); `Out_WF_Return_6_1`, `Out_WF_Return_6_2`, `Dashboard!H66` (€ m 1 dp) |
+| Less FEP interest claims, total | € m | (5.8) | (5.7) | (11.5) | `Out_Exit_Claims_1`, `Out_Exit_Claims_2`, `Dashboard!H67` (€ m 1 dp) |
+| Less DSA | € m | (1.2) | (1.1) | (2.3) | `Out_WF_DSA_1`, `Out_WF_DSA_2`, `Dashboard!H68` (€ m 1 dp) |
+| Distributable | € m | 7.5 | 7.7 | 15.2 | `Out_Distributable_1`, `Out_Distributable_2`, `Dashboard!H69` (€ m 1 dp) |
+| FEP 70% | € m | 5.2 | 5.4 | 10.7 | `In_FEP_Share` (% 0 dp); `Out_Exit_FEP_70_1`, `Out_Exit_FEP_70_2`, `Dashboard!H70` (€ m 1 dp) |
+| FEP-borne devex principal | € m | (2.7) | (2.7) | (5.4) | `Out_Exit_FEP_Devex_1`, `Out_Exit_FEP_Devex_2`, `Dashboard!H71` (€ m 1 dp) |
+| FEP net = claims + 70% − devex [key row] | € m | 8.4 | 8.4 | 16.7 | `In_FEP_Share` (% 0 dp); `Out_Exit_FEP_Net_1`, `Out_Exit_FEP_Net_2`, `Dashboard!H72` (€ m 1 dp) |
+| A.RES 30% | € m | 2.2 | 2.3 | 4.6 | `Out_Exit_ARES_30_1`, `Out_Exit_ARES_30_2`, `Dashboard!H73` (€ m 1 dp) |
+| A.RES total = 30% + DSA [key row] | € m | 3.4 | 3.4 | 6.9 | `Out_Exit_ARES_Total_1`, `Out_Exit_ARES_Total_2`, `Dashboard!H74` (€ m 1 dp) |
+| Guarantee fees, signing and DD, tax | € m | (1.8) | (1.6) | (3.4) | `Out_RtB_Route_Costs_1`, `Out_RtB_Route_Costs_2`, `Dashboard!H75` (€ m 1 dp) |
+| FEP profit – RtB route [key row] | € m | 6.5 | 6.7 | 13.3 | `Out_RtB_Profit_Buildup_1`, `Out_RtB_Profit_Buildup_2`, `Dashboard!H76` (€ m 1 dp) |
 
 Card – Securities to the exit:
 - Bid guarantee €1.4m / €1.2m, 30-Oct-2026 to 28-Dec-2026.  
   <sub>Cells: `Dashboard!E51`, `Dashboard!F51` (€ m 1 dp); `Dashboard!I51`, `Dashboard!J51` (date)</sub>
 - PB guarantee €7.0m / €6.1m from 28-Dec-2026; the buyer replaces it at the exit.  
   <sub>Cells: `Dashboard!E52`, `Dashboard!F52` (€ m 1 dp); `Dashboard!I52` (date)</sub>
-- Cash: TSO security €1.2m (30-Dec-2026) and connection fees €1.4m + €18.8m (08-Jan-2029). The buyer reimburses €21.4m at the exit.  
-  <sub>Cells: `Dashboard!E53`, `Dashboard!E54`, `Dashboard!E55`, `Out_WF_Principal_1` (€ m 1 dp); `Dashboard!I53`, `Dashboard!I54` (date)</sub>
+- Cash: TSO security €1.2m (30-Dec-2026) and connection fees €1.4m + €18.8m (08-Jan-2029). The buyer reimburses deposits, fees and land at the exit (memo line).  
+  <sub>Cells: `Dashboard!E53`, `Dashboard!E54`, `Dashboard!E55` (€ m 1 dp); `Dashboard!I53`, `Dashboard!I54` (date)</sub>
 
-Footnote: RtB price 150 k€/MVA × 100 MVA, per the Bora scenarios meeting file (Bora!N5), confirmed 12-Oct-2026. Receipts = recoverable principal, land and claims, plus 70% of the distributable. Per-MW figures use installed wind of 151 / 140 MW. The participation fee is not recovered. Source: Bora_Bid_Model_recalc.xlsx, 12-Oct-2026.  
-  <sub>Cells: `In_RtB_Premium`, `In_MVA`, `Out_Wind_MW_1`, `Out_Wind_MW_2` (0 dp); `Dashboard!E6` (date)</sub>
+Footnote: RtB price 150 k€/MVA × 100 MVA, per the Bora scenarios meeting file (Bora!N5), confirmed 12-Oct-2026. Paid amounts at the RtB exit on 31-Dec-2029, in devex-file order. The participation fee is not recovered. Source: Bora_Bid_Model_recalc.xlsx, 12-Oct-2026.  
+  <sub>Cells: `In_RtB_Premium`, `In_MVA` (0 dp); `Dash_Exit_Date`, `Dashboard!E6` (date)</sub>
 
 ## Slide 5 – COD and HTM value and the commitment breakdown
 
@@ -141,15 +147,15 @@ Table:
 | Risk | Exposure (B1 / B2) | Mitigant | Cells (format) |
 |---|---|---|---|
 | Overbuild not built: PB lost pro rata to the shortfall above 10% (Kiírás XII.12; GYIK Q28/30/44) – base | €1.4m / €1.1m, the PB on the extra MW. | PB at the 1.0x minimum. Part of the loss may be deducted from the RtB price. | `Out_Commitment_Penalty_1`, `Out_Commitment_Penalty_2` (€ m 1 dp); `Dashboard!E17` (x 1 dp) |
-| Full PB call if the points-commitment rule (Kiírás XIII.17; GYIK Q72) also applies to the overbuild – unresolved | €7.0m / €6.1m: COD IRR 35.8% / 38.7%, HTM IRR 9.1% / 9.5%. | Downside case, not the base. PB at the minimum limits it. | `Out_Sanction_Full_1`, `Out_Sanction_Full_2` (€ m 1 dp); `Dashboard!J107`, `Dashboard!J108`, `Dashboard!J109`, `Dashboard!J110` (% 1 dp) |
+| Full PB call if the points-commitment rule (Kiírás XIII.17; GYIK Q72) also applies to the overbuild – unresolved | €7.0m / €6.1m: COD IRR 35.8% / 38.7%, HTM IRR 9.1% / 9.5%. | Downside case, not the base. PB at the minimum limits it. | `Out_Sanction_Full_1`, `Out_Sanction_Full_2` (€ m 1 dp); `Dashboard!J99`, `Dashboard!J100`, `Dashboard!J101`, `Dashboard!J102` (% 1 dp) |
 | 3-year group exclusion (Kiírás VII.2 n; GYIK Q71) | Possible if the PB is called; unclear whether a pro-rata loss counts as a call. A call after COD would likely hit the group then holding the SPV. | Allocate it in the RtB SPA. | |
 | Connection right lost pro rata (GYIK Q28/30) | 33.8 / 28.6 MVA, in the pro-rata reading only (GYIK Q72: a full call keeps the right). Not reflected in generation or price. | The buyer can build the overbuild (card). | `Out_MVA_At_Risk_1`, `Out_MVA_At_Risk_2` (1 dp) |
 | 100 MVA group cap per node (Kiírás V.7; GYIK Q52) | Both bids are invalid if FEP, A.RES and the SPVs count as one company group. | Legal confirmation before submission. | |
-| ÖSZ-4 scored on installed wind (GYIK Q20); BESS valued at cost only | Points 80.50 / 63.75, returns unchanged. BESS costs −6.5 / −5.1 pp of COD IRR with no BESS revenue. | Ranking risk only. Any BESS revenue is upside. | `Dashboard!M103`, `Dashboard!M104` (points (2 dp if fractional)); `Dashboard!M15`, `Dashboard!N15` (pp 1 dp) |
+| ÖSZ-4 scored on installed wind (GYIK Q20); BESS valued at cost only | Points 80.50 / 63.75, returns unchanged. BESS costs −6.5 / −5.1 pp of COD IRR with no BESS revenue. | Ranking risk only. Any BESS revenue is upside. | `Dashboard!M95`, `Dashboard!M96` (points (2 dp if fractional)); `Dashboard!M15`, `Dashboard!N15` (pp 1 dp) |
 
 Card – Why the base does not build the overbuild:
 - The grid connection stays at 100 MVA. Building the overbuild lifts the all-in cost to COD from €164.2m / €161.2m to €217.9m / €203.3m. In that case COD IRR is 54.4% / 53.8% and HTM IRR is 11.5% / 11.6%. The build decision passes to the buyer at RtB.  
-  <sub>Cells: `In_MVA` (0 dp); `Out_Cost_To_COD_1`, `Out_Cost_To_COD_2`, `Dashboard!I113`, `Dashboard!I114` (€ m 1 dp); `Dashboard!I107`, `Dashboard!I108`, `Dashboard!I109`, `Dashboard!I110` (% 1 dp)</sub>
+  <sub>Cells: `In_MVA` (0 dp); `Out_Cost_To_COD_1`, `Out_Cost_To_COD_2`, `Dashboard!I105`, `Dashboard!I106` (€ m 1 dp); `Dashboard!I99`, `Dashboard!I100`, `Dashboard!I101`, `Dashboard!I102` (% 1 dp)</sub>
 
 Footnote: Shortfall tested 6 months after COD. Pro rata = shortfall share × the wind PB (GYIK Q28/30). The full-call and overbuild-built figures are alternative cases. Source: Bora_Bid_Model_recalc.xlsx, 12-Oct-2026.  
   <sub>Cells: `Dashboard!E6` (date)</sub>

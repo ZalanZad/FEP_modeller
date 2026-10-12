@@ -137,40 +137,70 @@ Slide 3 – Why these commitments,−1.9,Dashboard!J30,Dashboard!J30,-0.01915765
 Slide 3 – Why these commitments,12-Oct-2026,Dashboard!E6,Dashboard!E6,2026-10-12 00:00:00,date
 Slide 4 – Securities and cash to the RtB exit,6.5,Out_RtB_Profit_1,Dashboard!E26,6.54675873853232,€ m 1 dp
 Slide 4 – Securities and cash to the RtB exit,6.7,Out_RtB_Profit_2,Dashboard!F26,6.7285303445039,€ m 1 dp
-Slide 4 – Securities and cash to the RtB exit,1.25x,Out_RtB_MOIC_1,Dashboard!E85,1.24970223352323,x 2 dp
-Slide 4 – Securities and cash to the RtB exit,1.26x,Out_RtB_MOIC_2,Dashboard!F85,1.25827110077129,x 2 dp
-Slide 4 – Securities and cash to the RtB exit,24.9,Out_RtB_Outlay_1,Dashboard!E81,-24.9401078106011,€ m 1 dp (magnitude)
-Slide 4 – Securities and cash to the RtB exit,31-Dec-2029,Dashboard!E60,Dashboard!E60,2029-12-31 00:00:00,date
-Slide 4 – Securities and cash to the RtB exit,14.5,Out_Split_Total_1,Dashboard!E75,14.5,€ m 1 dp
-Slide 4 – Securities and cash to the RtB exit,11.1,Out_Split_FEP_1,Dashboard!E73,11.050930589622,€ m 1 dp
-Slide 4 – Securities and cash to the RtB exit,11.1,Out_Split_FEP_2,Dashboard!F73,11.0684831703888,€ m 1 dp
-Slide 4 – Securities and cash to the RtB exit,15.0,Out_RtB_Price_1,Dashboard!E61,15,€ m 1 dp
-Slide 4 – Securities and cash to the RtB exit,15.0,Out_RtB_Price_2,Dashboard!F61,15,€ m 1 dp
-Slide 4 – Securities and cash to the RtB exit,32.9,Out_FEP_Proceeds_1,Dashboard!E80,32.8936392307179,€ m 1 dp
-Slide 4 – Securities and cash to the RtB exit,32.9,Out_FEP_Proceeds_2,Dashboard!F80,32.9111918114847,€ m 1 dp
-Slide 4 – Securities and cash to the RtB exit,(24.9),Out_RtB_Outlay_1,Dashboard!E81,-24.9401078106011,€ m 1 dp
-Slide 4 – Securities and cash to the RtB exit,(24.9),Out_RtB_Outlay_2,Dashboard!F81,-24.9401078106011,€ m 1 dp
-Slide 4 – Securities and cash to the RtB exit,(1.3),Out_Guarantee_Fees_1,Dashboard!E82,-1.27815482229311,€ m 1 dp
-Slide 4 – Securities and cash to the RtB exit,(1.1),Out_Guarantee_Fees_2,Dashboard!F82,-1.11209208481892,€ m 1 dp
-Slide 4 – Securities and cash to the RtB exit,(0.1),Out_RtB_Tax_1,Dashboard!E83,-0.12861785929143,€ m 1 dp
-Slide 4 – Securities and cash to the RtB exit,(0.1),Out_RtB_Tax_2,Dashboard!F83,-0.130461571560805,€ m 1 dp
-Slide 4 – Securities and cash to the RtB exit,6.5,Out_RtB_Profit_Buildup_1,Dashboard!E84,6.54675873853232,€ m 1 dp
-Slide 4 – Securities and cash to the RtB exit,6.7,Out_RtB_Profit_Buildup_2,Dashboard!F84,6.7285303445039,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,1.25x,Out_RtB_MOIC_1,Dashboard!E77,1.24970223352323,x 2 dp
+Slide 4 – Securities and cash to the RtB exit,1.26x,Out_RtB_MOIC_2,Dashboard!F77,1.25827110077129,x 2 dp
+Slide 4 – Securities and cash to the RtB exit,15.0,Out_RtB_Price_1,Dashboard!E62,15,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,8.4,Out_Exit_FEP_Net_1,Dashboard!E72,8.35353142011685,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,8.4,Out_Exit_FEP_Net_2,Dashboard!F72,8.37108400088362,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,3.4,Out_Exit_ARES_Total_1,Dashboard!E74,3.44906941037797,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,3.4,Out_Exit_ARES_Total_2,Dashboard!F74,3.4315168296112,€ m 1 dp
 Slide 4 – Securities and cash to the RtB exit,100,Inputs!L74,Inputs!L74,100,0 dp
-Slide 4 – Securities and cash to the RtB exit,3.0,Dashboard!L105,Dashboard!L105,3.04675873853231,€ m 1 dp
-Slide 4 – Securities and cash to the RtB exit,3.2,Dashboard!L106,Dashboard!L106,3.2285303445039,€ m 1 dp
-Slide 4 – Securities and cash to the RtB exit,11.1,Out_Split_FEP_1,Dashboard!E73,11.050930589622,€ m 1 dp
-Slide 4 – Securities and cash to the RtB exit,73,Out_Split_FEP_MW_1,Dashboard!E76,73.1849707921988,k€/MW 0 dp
-Slide 4 – Securities and cash to the RtB exit,11.1,Out_Split_FEP_2,Dashboard!F73,11.0684831703888,€ m 1 dp
-Slide 4 – Securities and cash to the RtB exit,79,Out_Split_FEP_MW_2,Dashboard!F76,79.0605940742057,k€/MW 0 dp
-Slide 4 – Securities and cash to the RtB exit,3.4,Out_Split_ARES_1,Dashboard!E74,3.44906941037797,€ m 1 dp
-Slide 4 – Securities and cash to the RtB exit,23,Out_Split_ARES_MW_1,Dashboard!E77,22.8415192740263,k€/MW 0 dp
-Slide 4 – Securities and cash to the RtB exit,3.4,Out_Split_ARES_2,Dashboard!F74,3.4315168296112,€ m 1 dp
-Slide 4 – Securities and cash to the RtB exit,25,Out_Split_ARES_MW_2,Dashboard!F77,24.5108344972229,k€/MW 0 dp
-Slide 4 – Securities and cash to the RtB exit,14.5,Out_Split_Total_1,Dashboard!E75,14.5,€ m 1 dp
-Slide 4 – Securities and cash to the RtB exit,96,Out_Split_Total_MW_1,Dashboard!E78,96.0264900662251,k€/MW 0 dp
-Slide 4 – Securities and cash to the RtB exit,14.5,Out_Split_Total_2,Dashboard!F75,14.5,€ m 1 dp
-Slide 4 – Securities and cash to the RtB exit,104,Out_Split_Total_MW_2,Dashboard!F78,103.571428571429,k€/MW 0 dp
+Slide 4 – Securities and cash to the RtB exit,3.0,Dashboard!L97,Dashboard!L97,3.04675873853231,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,3.2,Dashboard!L98,Dashboard!L98,3.2285303445039,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,21.8,Out_Exit_Reimbursement_1,Dashboard!E61,21.8427086410959,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,21.8,Out_Exit_Reimbursement_2,Dashboard!F61,21.8427086410959,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,43.7,Dashboard!H61,Dashboard!H61,43.6854172821918,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,15.0,Out_RtB_Price_1,Dashboard!E62,15,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,15.0,Out_RtB_Price_2,Dashboard!F62,15,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,30.0,Dashboard!H62,Dashboard!H62,30,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,(0.5),Out_WF_Sale_Costs_1,Dashboard!E63,-0.5,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,(0.5),Out_WF_Sale_Costs_2,Dashboard!F63,-0.5,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,(1.0),Dashboard!H63,Dashboard!H63,-1,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,12%,In_Cash_Rate,Inputs!F67,0.12,% 0 dp
+Slide 4 – Securities and cash to the RtB exit,(1.6),Out_WF_Return_12_1,Dashboard!E64,-1.56453664418093,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,(1.6),Out_WF_Return_12_2,Dashboard!F64,-1.56453664418093,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,(3.1),Dashboard!H64,Dashboard!H64,-3.12907328836186,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,20%,In_AtRisk_Rate,Inputs!F69,0.2,% 0 dp
+Slide 4 – Securities and cash to the RtB exit,2×,In_Min_Multiple,Inputs!F70,2,0 dp ×
+Slide 4 – Securities and cash to the RtB exit,(3.1),Out_WF_Return_AtRisk_1,Dashboard!E65,-3.11962451197093,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,(3.1),Out_WF_Return_AtRisk_2,Dashboard!F65,-3.11962451197093,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,(6.2),Dashboard!H65,Dashboard!H65,-6.23924902394185,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,6%,In_Guar_Credit,Inputs!F68,0.06,% 0 dp
+Slide 4 – Securities and cash to the RtB exit,(1.1),Out_WF_Return_6_1,Dashboard!E66,-1.12048016110676,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,(1.0),Out_WF_Return_6_2,Dashboard!F66,-0.974903115514509,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,(2.1),Dashboard!H66,Dashboard!H66,-2.09538327662127,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,(5.8),Out_Exit_Claims_1,Dashboard!E67,-5.80464131725861,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,(5.7),Out_Exit_Claims_2,Dashboard!F67,-5.65906427166636,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,(11.5),Dashboard!H67,Dashboard!H67,-11.463705588925,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,(1.2),Out_WF_DSA_1,Dashboard!E68,-1.20065972222222,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,(1.1),Out_WF_DSA_2,Dashboard!F68,-1.11319444444444,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,(2.3),Dashboard!H68,Dashboard!H68,-2.31385416666667,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,7.5,Out_Distributable_1,Dashboard!E69,7.49469896051916,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,7.7,Out_Distributable_2,Dashboard!F69,7.72774128388919,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,15.2,Dashboard!H69,Dashboard!H69,15.2224402444084,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,70%,In_FEP_Share,Inputs!F37,0.7,% 0 dp
+Slide 4 – Securities and cash to the RtB exit,5.2,Out_Exit_FEP_70_1,Dashboard!E70,5.24628927236341,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,5.4,Out_Exit_FEP_70_2,Dashboard!F70,5.40941889872243,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,10.7,Dashboard!H70,Dashboard!H70,10.6557081710858,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,(2.7),Out_Exit_FEP_Devex_1,Dashboard!E71,-2.69739916950517,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,(2.7),Out_Exit_FEP_Devex_2,Dashboard!F71,-2.69739916950517,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,(5.4),Dashboard!H71,Dashboard!H71,-5.39479833901034,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,70%,In_FEP_Share,Inputs!F37,0.7,% 0 dp
+Slide 4 – Securities and cash to the RtB exit,8.4,Out_Exit_FEP_Net_1,Dashboard!E72,8.35353142011685,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,8.4,Out_Exit_FEP_Net_2,Dashboard!F72,8.37108400088362,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,16.7,Dashboard!H72,Dashboard!H72,16.7246154210005,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,2.2,Out_Exit_ARES_30_1,Dashboard!E73,2.24840968815575,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,2.3,Out_Exit_ARES_30_2,Dashboard!F73,2.31832238516676,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,4.6,Dashboard!H73,Dashboard!H73,4.56673207332251,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,3.4,Out_Exit_ARES_Total_1,Dashboard!E74,3.44906941037797,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,3.4,Out_Exit_ARES_Total_2,Dashboard!F74,3.4315168296112,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,6.9,Dashboard!H74,Dashboard!H74,6.88058623998917,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,(1.8),Out_RtB_Route_Costs_1,Dashboard!E75,-1.80677268158454,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,(1.6),Out_RtB_Route_Costs_2,Dashboard!F75,-1.64255365637972,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,(3.4),Dashboard!H75,Dashboard!H75,-3.44932633796426,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,6.5,Out_RtB_Profit_Buildup_1,Dashboard!E76,6.54675873853232,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,6.7,Out_RtB_Profit_Buildup_2,Dashboard!F76,6.7285303445039,€ m 1 dp
+Slide 4 – Securities and cash to the RtB exit,13.3,Dashboard!H76,Dashboard!H76,13.2752890830362,€ m 1 dp
 Slide 4 – Securities and cash to the RtB exit,1.4,Dashboard!E51,Dashboard!E51,1.39871232876712,€ m 1 dp
 Slide 4 – Securities and cash to the RtB exit,1.2,Dashboard!F51,Dashboard!F51,1.21698630136986,€ m 1 dp
 Slide 4 – Securities and cash to the RtB exit,30-Oct-2026,Dashboard!I51,Dashboard!I51,2026-10-30 00:00:00,date
@@ -183,11 +213,10 @@ Slide 4 – Securities and cash to the RtB exit,30-Dec-2026,Dashboard!I53,Dashbo
 Slide 4 – Securities and cash to the RtB exit,1.4,Dashboard!E54,Dashboard!E54,1.39272823013699,€ m 1 dp
 Slide 4 – Securities and cash to the RtB exit,18.8,Dashboard!E55,Dashboard!E55,18.7866591780822,€ m 1 dp
 Slide 4 – Securities and cash to the RtB exit,08-Jan-2029,Dashboard!I54,Dashboard!I54,2029-01-08 00:00:00,date
-Slide 4 – Securities and cash to the RtB exit,21.4,Out_WF_Principal_1,Dashboard!E65,21.4122641205479,€ m 1 dp
 Slide 4 – Securities and cash to the RtB exit,150,In_RtB_Premium,Inputs!F74,150,0 dp
 Slide 4 – Securities and cash to the RtB exit,100,In_MVA,Inputs!F43,100,0 dp
-Slide 4 – Securities and cash to the RtB exit,151,Out_Wind_MW_1,Dashboard!E43,151,0 dp
-Slide 4 – Securities and cash to the RtB exit,140,Out_Wind_MW_2,Dashboard!F43,140,0 dp
+Slide 4 – Securities and cash to the RtB exit,12-Oct-2026,Dashboard!E6,Dashboard!E6,2026-10-12 00:00:00,date
+Slide 4 – Securities and cash to the RtB exit,31-Dec-2029,Dashboard!E60:F60,Dashboard!E60:F60,2029-12-31 00:00:00,date
 Slide 4 – Securities and cash to the RtB exit,12-Oct-2026,Dashboard!E6,Dashboard!E6,2026-10-12 00:00:00,date
 Slide 5 – COD and HTM value and the commitment breakdown,"1,642",Out_Cost_To_COD_MW_1,Dashboard!E90,1642.20224979066,k€/MW 0 dp
 Slide 5 – COD and HTM value and the commitment breakdown,"1,612",Out_Cost_To_COD_MW_2,Dashboard!F90,1612.0407722257,k€/MW 0 dp
@@ -247,23 +276,23 @@ Slide 6 – Risks and mitigants,1.1,Out_Commitment_Penalty_2,Dashboard!F39,1.112
 Slide 6 – Risks and mitigants,1.0x,Dashboard!E17,Dashboard!E17,1,x 1 dp
 Slide 6 – Risks and mitigants,7.0,Out_Sanction_Full_1,Dashboard!E40,6.99356164383562,€ m 1 dp
 Slide 6 – Risks and mitigants,6.1,Out_Sanction_Full_2,Dashboard!F40,6.08493150684932,€ m 1 dp
-Slide 6 – Risks and mitigants,35.8%,Dashboard!J107,Dashboard!J107,0.357802790721696,% 1 dp
-Slide 6 – Risks and mitigants,38.7%,Dashboard!J108,Dashboard!J108,0.386601925171368,% 1 dp
-Slide 6 – Risks and mitigants,9.1%,Dashboard!J109,Dashboard!J109,0.090505033756487,% 1 dp
-Slide 6 – Risks and mitigants,9.5%,Dashboard!J110,Dashboard!J110,0.0953662426258718,% 1 dp
+Slide 6 – Risks and mitigants,35.8%,Dashboard!J99,Dashboard!J99,0.357802790721696,% 1 dp
+Slide 6 – Risks and mitigants,38.7%,Dashboard!J100,Dashboard!J100,0.386601925171368,% 1 dp
+Slide 6 – Risks and mitigants,9.1%,Dashboard!J101,Dashboard!J101,0.090505033756487,% 1 dp
+Slide 6 – Risks and mitigants,9.5%,Dashboard!J102,Dashboard!J102,0.0953662426258718,% 1 dp
 Slide 6 – Risks and mitigants,33.8,Out_MVA_At_Risk_1,Dashboard!E56,33.7748344370861,1 dp
 Slide 6 – Risks and mitigants,28.6,Out_MVA_At_Risk_2,Dashboard!F56,28.5714285714286,1 dp
-Slide 6 – Risks and mitigants,80.50,Dashboard!M103,Dashboard!M103,80.5,points (2 dp if fractional)
-Slide 6 – Risks and mitigants,63.75,Dashboard!M104,Dashboard!M104,63.75,points (2 dp if fractional)
+Slide 6 – Risks and mitigants,80.50,Dashboard!M95,Dashboard!M95,80.5,points (2 dp if fractional)
+Slide 6 – Risks and mitigants,63.75,Dashboard!M96,Dashboard!M96,63.75,points (2 dp if fractional)
 Slide 6 – Risks and mitigants,−6.5,Dashboard!M15,Dashboard!M15,-0.0650761204818859,pp 1 dp
 Slide 6 – Risks and mitigants,−5.1,Dashboard!N15,Dashboard!N15,-0.051092496085978,pp 1 dp
 Slide 6 – Risks and mitigants,100,In_MVA,Inputs!F43,100,0 dp
 Slide 6 – Risks and mitigants,164.2,Out_Cost_To_COD_1,Dashboard!E89,164.220224979066,€ m 1 dp
 Slide 6 – Risks and mitigants,161.2,Out_Cost_To_COD_2,Dashboard!F89,161.20407722257,€ m 1 dp
-Slide 6 – Risks and mitigants,217.9,Dashboard!I113,Dashboard!I113,217.899554834464,€ m 1 dp
-Slide 6 – Risks and mitigants,203.3,Dashboard!I114,Dashboard!I114,203.305512403274,€ m 1 dp
-Slide 6 – Risks and mitigants,54.4%,Dashboard!I107,Dashboard!I107,0.544455538624024,% 1 dp
-Slide 6 – Risks and mitigants,53.8%,Dashboard!I108,Dashboard!I108,0.538418881592159,% 1 dp
-Slide 6 – Risks and mitigants,11.5%,Dashboard!I109,Dashboard!I109,0.114882860757191,% 1 dp
-Slide 6 – Risks and mitigants,11.6%,Dashboard!I110,Dashboard!I110,0.115898915410319,% 1 dp
+Slide 6 – Risks and mitigants,217.9,Dashboard!I105,Dashboard!I105,217.899554834464,€ m 1 dp
+Slide 6 – Risks and mitigants,203.3,Dashboard!I106,Dashboard!I106,203.305512403274,€ m 1 dp
+Slide 6 – Risks and mitigants,54.4%,Dashboard!I99,Dashboard!I99,0.544455538624024,% 1 dp
+Slide 6 – Risks and mitigants,53.8%,Dashboard!I100,Dashboard!I100,0.538418881592159,% 1 dp
+Slide 6 – Risks and mitigants,11.5%,Dashboard!I101,Dashboard!I101,0.114882860757191,% 1 dp
+Slide 6 – Risks and mitigants,11.6%,Dashboard!I102,Dashboard!I102,0.115898915410319,% 1 dp
 Slide 6 – Risks and mitigants,12-Oct-2026,Dashboard!E6,Dashboard!E6,2026-10-12 00:00:00,date
