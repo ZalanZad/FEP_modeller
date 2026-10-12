@@ -475,13 +475,14 @@ def calc(m):
     c.subheader("Commitment overview")
     c.row("ov_sec", "Securities: cash posted and guarantee outstanding", "EUR k", e="{pb.E}-{fee.I}-{tso.I}")
     c.row("ov_dev", "Devex, land, signing and DD", "EUR k", e="-({dev_cost.I}+{inv.I})")
-    c.row("ov_con", "Construction capex incl. connection fees and municipal", "EUR k",
-          e="-({capex.I}+{conn.I}+{municipal.I})")
+    c.row("ov_con", "Construction capex incl. connection fees, municipal, pre-COD lease", "EUR k",
+          e='-({capex.I}+{conn.I}+{municipal.I})-SUMIF({end.all},"<="&In_COD,{ebitda.all})')
     c.row("ov_fin", "Financing: IDC, debt fees, guarantee fees", "EUR k", e="{d_idc.I}-{d_up.I}-{d_cf.I}-{gfee.F}")
-    c.row("ov_pen", "Penalty if overbuild not built (F: full call, memo)", "EUR k", e="-{sanction.I}", f="{sanc.F}")
-    c.row("ov_tot", "Total commitment", "EUR k", e="SUM({ov_sec.E}:{ov_pen.E})", bold=True)
-    c.row("c2c", "All-in cost to COD (E: uses, F: sources)", "EUR k", e="{ov_tot.E}-{ov_pen.E}-{pb.E}",
-          f='{d_draw.I}+{d_idc.I}-{cod_contrib.I}+SUMIF({end.all},"<="&In_COD,{ebitda.all})', bold=True)
+    c.row("ov_tot", "Total commitment", "EUR k", e="SUM({ov_sec.E}:{ov_fin.E})", bold=True)
+    c.row("ov_pen", "Penalty if overbuild not built, a call on the PB (F: full call)", "EUR k", e="-{sanction.I}",
+          f="{sanc.F}")
+    c.row("c2c", "All-in cost to COD (E: uses, F: sources)", "EUR k", e="{ov_tot.E}-{pb.E}",
+          f="{d_draw.I}+{d_idc.I}-{cod_contrib.I}", bold=True)
     c.row("c2c_mw", "All-in cost to COD per built MW", "EUR k/MW", e="{c2c.E}/{wind.F}")
 
     c.section("Hold to maturity")
@@ -607,11 +608,11 @@ def dashboard(m):
     d.section("Commitment overview (total in Returns at a glance)")
     for t, label, out in [("{ov_sec.E}", "Securities: cash posted and guarantee outstanding", "Commitment_Securities"),
                           ("{ov_dev.E}", "Devex, land, signing and DD", "Commitment_Devex"),
-                          ("{ov_con.E}", "Construction capex incl. connection fees and municipal",
+                          ("{ov_con.E}", "Construction capex incl. connection fees, municipal, pre-COD lease",
                            "Commitment_Construction"),
                           ("{ov_fin.E}", "Financing: IDC, debt fees, guarantee fees", "Commitment_Financing"),
-                          ("{ov_pen.E}", "Penalty if overbuild not built (selected regime)", "Commitment_Penalty"),
-                          ("{ov_pen.F}", "Memo: penalty under a full PB call", "Sanction_Full")]:
+                          ("{ov_pen.E}", "Memo, not in the total: PB call if overbuild not built", "Commitment_Penalty"),
+                          ("{ov_pen.F}", "Memo, not in the total: full PB call", "Sanction_Full")]:
         d.link(label, "EUR m", t, scale="Thousand", out=out, fmt=m2)
 
     d.section("Points and validity")
