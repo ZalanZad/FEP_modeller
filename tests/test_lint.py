@@ -13,8 +13,7 @@ def tiny(tmp_path):
     price = m.inputs.add_input("Price", "Price", "EUR/MWh", 50, {2: 40}, source="test")
     m.calc.section("Revenue")
     m.calc.row("vol", "Volume", "MWh", "=Thousand*{yf}")
-    m.calc.row("rev", "Revenue", "EUR k", f"={{vol}}*{price}/Thousand")
-    m.calc.corkscrew("cash", "Cash", "EUR k", [("cash_in", "Cash in", "={rev}")])
+    m.calc.corkscrew("cash", "Cash", "EUR k", [("rev", "Revenue", f"={{vol}}*{price}/Thousand")])
     m.calc.xirr("irr", "IRR", "rev", iferror=True)
     m.checks.add_check("Volume not negative", "=N({vol}<0)")
     m.summary.add_output("Rev", "Revenue", "EUR m", m.calc.ref("rev"), scale="Thousand")
@@ -67,3 +66,47 @@ def test_catches_literal_direction_and_forbidden(tiny):
 def test_r1c1_relative():
     assert to_r1c1("=J5+$E5*J$4", 5, 10) == to_r1c1("=K5+$E5*K$4", 5, 11)
     assert to_r1c1("=J5", 5, 10) != to_r1c1("=J5", 5, 11)
+
+
+def _plant(path, edit):
+    wb = openpyxl.load_workbook(path)
+    edit(wb)
+    wb.save(path)
+    return lint(path)
+
+
+def test_g_chain_link_to_a_link(tiny):
+    path, m = tiny
+    f = _plant(path, lambda wb: wb["Summary"].cell(30, 3, "=Checks!$J$4"))    # Checks!J4 is =Calc!J$4
+    assert [(x.rule, x.where) for x in f] == [("g-chain", "Summary!C30")]
+
+
+def test_g_chain_copy_row(tiny):
+    path, m = tiny
+    r, vol = m.calc.rows["rev"].r, m.calc.rows["vol"].r
+
+    def edit(wb):
+        for c in range(10, 15):
+            wb["Calc"].cell(r, c).value = f"={openpyxl.utils.get_column_letter(c)}{vol}"
+    f = _plant(path, edit)
+    assert {(x.rule, x.where) for x in f} == {("g-chain", f"Calc!{L}{r}") for L in "JKLMN"}
+
+
+def test_g_long_depth_and_length(tiny):
+    path, m = tiny
+    r = m.calc.rows["vol"].r
+
+    def edit(wb):
+        for c in range(10, 15):
+            wb["Calc"].cell(r, c).value = "=Thousand*IF(ISBLANK(INDEX(Inputs!$F$20:$F$21,1,1)),0,1)"
+        wb["Calc"].cell(r, 5).value = "=" + "+".join(["Thousand"] * 12)          # 108 characters
+    f = _plant(path, edit)
+    assert {x.where for x in f if x.rule == "g-long"} == {f"Calc!{L}{r}" for L in "EJKLMN"}
+    assert any("3 nested function levels" in x.detail for x in f)
+
+
+def test_g_note(tiny):
+    path, m = tiny
+    f = _plant(path, lambda wb: wb["Inputs"].cell(20, 4, "This input is the price we think the market will pay "
+                                                          "in the base case, see the memo"))
+    assert [(x.rule, x.where) for x in f] == [("g-note", "Inputs!D20")]

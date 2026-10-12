@@ -161,11 +161,17 @@ class Deck:
         return b
 
     def stored(self, output_key, scenario: int, fmt=None):
-        """Stored scenario result (1-based scenario) of Summary output `Out_<output_key>`."""
-        sheet, cell = next(self.wb.defined_names[f"Out_{output_key}"].destinations)
-        _, first = next(self.wb.defined_names["Stored_Results"].destinations)
-        col = openpyxl.utils.column_index_from_string(first.split("$")[1]) + scenario - 1
-        row = int(cell.split("$")[-1])
+        """Stored scenario result (1-based scenario) of output `Out_<output_key>`: on its Summary row, or on the
+        Dashboard in the `<output_key>_Stored` row (e.g. `stored("HTM_IRR_2", 3)`)."""
+        names = self.wb.defined_names
+        if f"{output_key}_Stored" in names:                      # Dashboard: own stored row
+            sheet, rng = next(names[f"{output_key}_Stored"].destinations)
+            _, first, row = rng.split(":")[0].split("$")
+        else:                                                    # Summary: stored columns on the output row
+            sheet, cell = next(names[f"Out_{output_key}"].destinations)
+            first = next(names["Stored_Results"].destinations)[1].split("$")[1]
+            row = cell.split("$")[-1]
+        col = openpyxl.utils.column_index_from_string(first) + scenario - 1
         return self.bind(sheet, f"{openpyxl.utils.get_column_letter(col)}{row}", fmt)
 
     def _record_text(self, slide_no, shape, text):

@@ -53,7 +53,7 @@ Periodicity is an input (quarterly by default, annual for simple bid models). Ne
 ## 4. Inputs sheet and scenario selection
 
 - Column layout: B label, C unit, D source/note, F `Live`, H:O scenario 1–8, P spare.
-- Formula in `Live`: `=IF(ISBLANK(INDEX($H r:$O r,1,Scenario_Selected)),$H r,INDEX($H r:$O r,1,Scenario_Selected))`.
+- Formula in `Live`: `=IF(INDEX($H r:$O r,1,Scenario_Selected)="",$H r,INDEX($H r:$O r,1,Scenario_Selected))`.
   A blank scenario cell inherits the base case (column H), so a scenario shows only what differs from base.
 - `Scenario_Selected` is a single input cell at the top, validated against the list of scenario names.
 - Calc pulls only from `Live`. Never pull from a scenario column directly.

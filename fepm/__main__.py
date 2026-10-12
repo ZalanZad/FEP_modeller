@@ -46,10 +46,11 @@ def audit(project: Path) -> int:
     wb = values(rc)
     print("headline outputs (live case):")
     outs = [(next(wb.defined_names[n].destinations), n) for n in wb.defined_names if n.startswith("Out_")]
-    for (sheet, cell), name in sorted(outs, key=lambda x: (x[0][0], int(x[0][1].split("$")[-1]))):
+    for (sheet, cell), name in sorted(outs, key=lambda x: (x[0][0], int(x[0][1].split("$")[-1]), x[1])):
         r = int(cell.split("$")[-1])
         label, unit = wb[sheet].cell(r, 3).value, wb[sheet].cell(r, 4).value
-        print(f"  {label:<36} {unit:<8} {name_value(wb, name)}")
+        shared = sum(1 for (s, c), _ in outs if s == sheet and int(c.split("$")[-1]) == r) > 1
+        print(f"  {label:<36} {unit:<8} {name_value(wb, name)}" + (f"  ({name})" if shared else ""))
     mc = name_value(wb, "Master_Check")
     print(f"master check: {mc} ({'OK' if mc == 0 else 'CHECK'})")
     return 1 if findings else 0

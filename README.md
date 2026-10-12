@@ -19,6 +19,16 @@ python3 -m pytest -q
   (Inputs / Curves / Calc / Checks / Summary). Calc rows are formula templates (`{key}`, `{key@prev}`,
   `{key.E}`, `{key.all}`, `{key.todate}`, header keys `start end days yf year period`) rendered once per
   column, so one formula per row holds by construction. See the module docstring.
+  Two layouts: `layout="standard"` (Cover | Summary | Inputs | Curves | Calc | Checks) and
+  `layout="dashboard"` (Dashboard | Inputs | Curves | Calc_1..Calc_n | Checks). `calc_sheets=["Calc_1", "Calc_2"]`
+  writes one set of row templates to identical sheets with the bid number in `A1`
+  (`m.calc.lever("Dash_X")` = `INDEX(Dash_X,1,$A$1)`, `m.calc.ref(key, "E", sheet="Calc_2")`); checks with row
+  tokens get one row per calc sheet. `m.dashboard`: `section`, `subheader`, `input` (`Dash_<key>`), `link`
+  (`out=` → `Out_<key>_<bid>`), `status`, `stored_row` / `stored_block` (`<name>_Stored`), `scenario_results`,
+  `panel_section`, `panel_link`, `selector` (`Scenario_Name`).
+- Lint rules beyond the standards: `g-chain` (a link to a link, or a row that only copies another row),
+  `g-long` (over 100 characters or 2 nested function levels), `g-note` (source notes over 60 characters),
+  `c-sheet` (Calc_n formula text differs from Calc_1), `a-bid` (Calc_n!A1 is not n).
 - `fepm/recalc.py` headless LibreOffice over UNO; `fepm/audit/lint.py` static + post-recalc lint.
 - `fepm/ppt/deck.py` deck builder on `templates/fep_ic_template.pptx` (made by `make_template()` from the
   reference deck: slides 2–8 dropped, cover slide kept with its images and neutral text).
@@ -33,7 +43,9 @@ are LibreOffice's (XIRR/XNPV included, tested against Python to 1e-9). Without `
 `soffice --convert-to xlsx` (recalculates, but cannot set inputs or run macros).
 
 ## Macros
-`fepm.xl.macros.package()` embeds `vba/*.bas` with LibreOffice and runs `RunAllScenarios` headlessly:
+`fepm.xl.macros.package(xlsx, xlsm, run=...)` embeds every `vba/*.bas` with LibreOffice and runs the macros in
+order headlessly (`run` = `("Scenarios", "RunAllScenarios")` by default, or a list such as
+`["BoraImpact.RunCommitmentImpact", "Scenarios.RunAllScenarios"]`):
 the modules go into the document's Basic library in VBA-compatibility mode (with `ModuleInfo`, project name set),
 and LibreOffice's experimental VBA exporter (`/org.openoffice.Office.Calc/Filter/Import/VBA/UseExport`) writes a
 real `xl/vbaProject.bin` (PROJECT, VBA/dir, VBA/_VBA_PROJECT, one stream per module); `olevba` decodes the

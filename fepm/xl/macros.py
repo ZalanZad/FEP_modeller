@@ -19,18 +19,34 @@ def modules(vba_dir: Path = VBA_DIR) -> dict[str, str]:
     return {p.stem: p.read_text() for p in sorted(vba_dir.glob("*.bas"))}
 
 
-def package(xlsx, xlsm, run: tuple[str, str] | None = ("Scenarios", "RunAllScenarios"),
-            vba_dir: Path = VBA_DIR) -> Path:
-    """Embed the .bas modules, optionally run a macro (module, sub), recalc and save as .xlsm."""
+def _calls(run) -> list[tuple[str, str]]:
+    """`("Module", "Sub")`, `"Module.Sub"` or a list of either → [(module, sub), ...] in run order."""
+    if not run:
+        return []
+    if isinstance(run, tuple) and len(run) == 2 and all(isinstance(x, str) and "." not in x for x in run):
+        return [run]
+    out = []
+    for item in [run] if isinstance(run, str) else run:
+        module, sub = item.split(".") if isinstance(item, str) else item
+        out.append((module, sub))
+    return out
+
+
+def package(xlsx, xlsm, run=("Scenarios", "RunAllScenarios"), vba_dir: Path = VBA_DIR) -> Path:
+    """Embed every vba_dir/*.bas, run the macros in order, recalc and save as .xlsm.
+
+    `run`: one ("Module", "Sub") / "Module.Sub", a list of them (e.g. ["BoraImpact.RunCommitmentImpact",
+    "Scenarios.RunAllScenarios"]), or None."""
+    calls = _calls(run)
     with Office(xlsx) as lo:
         lo.add_vba_modules(modules(vba_dir))
-        if run:
-            lo.run_macro(*run)   # LibreOffice swallows VBA runtime errors: the checks are the safety net
+        for module, sub in calls:
+            lo.run_macro(module, sub)   # LibreOffice swallows VBA runtime errors: the checks are the safety net
         lo.calculate()
         mc = lo.get("Master_Check")
         if mc != 0:
-            print(f"warning: Master_Check = {mc} after {'.'.join(run or ())} – see the Checks sheet",
-                  file=sys.stderr)
+            ran = ", ".join(f"{m}.{s}" for m, s in calls) or "no macro"
+            print(f"warning: Master_Check = {mc} after {ran} – see the Checks sheet", file=sys.stderr)
         return lo.save(xlsm, macro=True)
 
 

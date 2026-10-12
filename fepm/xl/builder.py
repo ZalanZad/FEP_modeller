@@ -17,7 +17,23 @@ Tokens (`key` is a Calc row key or a header key: start, end, days, yf, year, per
     {self...}      the row being written
 
 Workbook names (inputs `In_<key>`, constants such as `Thousand`) are written as plain text.
-On Checks and Summary the same tokens resolve to `Calc!` cells.
+On calc sheets tokens render without a sheet prefix; on Checks / Summary / Dashboard they resolve to one calc sheet.
+
+Layouts:
+    layout="standard"   Cover | Summary | Inputs | Curves | Calc | Checks          (default)
+    layout="dashboard"  Dashboard | Inputs | Curves | Calc_1..Calc_n | Checks    (no Cover, no Summary)
+
+Several identical calc sheets: `calc_sheets=["Calc_1", "Calc_2"], bids=["BORA 1", "BORA 2"]`. One set of row
+templates is written to every sheet with identical formula text; `A1` holds the bid number (input style) and
+`m.calc.lever("Dash_X")` gives `INDEX(Dash_X,1,$A$1)`. `m.calc.ref(key, "E", sheet="Calc_2")` addresses one sheet.
+A check whose formula has row tokens gets one row per calc sheet (label suffixed with the sheet name);
+`sheet="Calc_2"` pins it to one sheet, and a check without tokens is a single row.
+
+Dashboard (`m.dashboard`): section / subheader bars (bid labels over the value columns, optional headers over the
+grid columns), `input` (deal levers `Dash_<key>`, one value per bid, optional list validation), `link` (a calc
+result per bid, optional scale and `out=` → `Out_<key>_<n>`), `status` (OK/CHECK), `stored_row` / `stored_block`
+(purple, `<name>_Stored`, written by a macro), `scenario_results` (`Live_Results` / `Stored_Results`), and the
+right-hand panel: `panel_section`, `panel_link` (Live values from Inputs) and `selector` (`Scenario_Name`).
 """
 from __future__ import annotations
 
@@ -81,11 +97,23 @@ class Row:
 class Model:
     def __init__(self, project: str, purpose: str = "Investment model", *, periods: int, start: dt.date,
                  periodicity: str = "annual", scenarios=("Base",), version: str = "v1", author: str = "FEP",
-                 date: dt.date | None = None, curves: bool = False):
+                 date: dt.date | None = None, curves: bool = False, layout: str = "standard",
+                 calc_sheets=("Calc",), bids=None, extra_cols: int = 0):
         if periodicity not in ("annual", "quarterly"):
             raise ValueError("periodicity must be 'annual' or 'quarterly'")
         if not 1 <= len(scenarios) <= 8:
             raise ValueError("1 to 8 scenarios")
+        if layout not in ("standard", "dashboard"):
+            raise ValueError("layout must be 'standard' or 'dashboard'")
+        calc_sheets = list(calc_sheets)
+        if calc_sheets != ["Calc"] and calc_sheets != [f"Calc_{i}" for i in range(1, len(calc_sheets) + 1)]:
+            raise ValueError("calc_sheets must be ['Calc'] or ['Calc_1', 'Calc_2', ...]")
+        self.calc_sheets = calc_sheets
+        self.bids = list(bids or [f"Bid {i}" for i in range(1, len(calc_sheets) + 1)])
+        if len(self.bids) != len(calc_sheets):
+            raise ValueError("one bid label per calc sheet")
+        self.layout = layout
+        self.home = "Cover" if layout == "standard" else "Dashboard"
         self.wb = Workbook()
         styles.register(self.wb)
         self.n, self.last = periods, J + periods - 1
@@ -94,18 +122,29 @@ class Model:
         self.solver_topics: list[str] = []
         self.goal_topics: list[str] = []
         ws = self.wb.active
-        ws.title = "Cover"
-        self.cover = Cover(self, ws, project, purpose, version, author, date or dt.date.today())
-        self.summary = Summary(self, self.wb.create_sheet("Summary"))
+        ws.title = self.home
+        self.cover = self.summary = self.dashboard = None
+        if layout == "standard":
+            self.cover = Cover(self, ws, project, purpose, version, author, date or dt.date.today())
+            self.summary = Summary(self, self.wb.create_sheet("Summary"))
+        else:
+            self.dashboard = Dashboard(self, ws, project, purpose, version, date or dt.date.today(), extra_cols)
         self.inputs = Inputs(self, self.wb.create_sheet("Inputs"), start, periodicity)
         self.curves = Curves(self, self.wb.create_sheet("Curves")) if curves else None
-        self.calc = Calc(self, self.wb.create_sheet("Calc"))
+        self.calc = Calc(self, [self.wb.create_sheet(name) for name in calc_sheets])
         self.checks = Checks(self, self.wb.create_sheet("Checks"))
         for w in self.wb.worksheets:
             w.sheet_view.showGridLines = False
-            if w.title != "Cover":
-                w["B2"] = f'=Cover!$C$3&" – {_PURPOSE[w.title]}"'
+            if w.title != self.home:
+                w["B2"] = f'={self.home}!$C$3&" – {self._purpose(w.title)}'
                 _banner(w, 2, self._width(w.title))
+
+    def _purpose(self, title):
+        """Banner text after the project name (closing quote included; bid sheets add their bid label)."""
+        if title.startswith("Calc_"):
+            bid = "INDEX(Bid_Labels,1,$A$1)" if self.dashboard else '"bid "&$A$1'
+            return f'Calculations – "&{bid}'
+        return f'{_PURPOSE[title]}"'
 
     # ---- names and references -------------------------------------------------------------
     def define(self, name: str, ref: str) -> str:
@@ -119,9 +158,12 @@ class Model:
     def address(self, name_or_ref: str) -> str:
         return self.names.get(name_or_ref, name_or_ref)
 
-    def render(self, template: str, row: Row | None, col: int | None, sheet: str = "Calc") -> str:
-        """Render a formula template for column `col` (None for row constants / totals)."""
-        prefix = "" if sheet == "Calc" else "Calc!"
+    def render(self, template: str, row: Row | None, col: int | None, sheet: str = "Calc",
+               target: str | None = None) -> str:
+        """Render a formula template for column `col` (None for row constants / totals).
+
+        On a calc sheet tokens refer to the same sheet; elsewhere to `target` (default: the first calc sheet)."""
+        prefix = "" if sheet in self.calc_sheets else f"{target or self.calc_sheets[0]}!"
 
         def sub(m):
             key, mod = m.group(1), m.group(2) or ""
@@ -162,6 +204,8 @@ class Model:
 
     # ---- output ---------------------------------------------------------------------------
     def _width(self, title):
+        if title == "Dashboard":
+            return self.dashboard.last
         return {"Cover": 8, "Summary": 6 + len(self.scenarios), "Inputs": 16}.get(title, self.last)
 
     def save(self, path):
@@ -169,10 +213,14 @@ class Model:
         if self.curves:
             self.curves.finish()
         self.calc.finish()
-        self.summary.write_outputs()     # adds the stored = live check
+        if self.summary:
+            self.summary.write_outputs()     # adds the stored = live check
         self.checks.finish()
-        self.summary.write_checks()
-        self.cover.finish()
+        if self.summary:
+            self.summary.write_checks()
+            self.cover.finish()
+        if self.dashboard:
+            self.dashboard.finish()
         for ws in self.wb.worksheets:
             ws.column_dimensions.group(L(self._width(ws.title) + 1), "XFD", hidden=True)
         self.wb.calculation.fullCalcOnLoad = True
@@ -182,6 +230,8 @@ class Model:
 
 _PURPOSE = {"Summary": "Summary", "Inputs": "Inputs and scenarios", "Curves": "Time-series inputs",
             "Calc": "Calculations", "Checks": "Checks"}
+STORED_CHECK = ("Stored results = live case",
+                "=--(SUMPRODUCT(ABS(Stored_Results-Live_Results)*(Scenario_Names=Scenario_Name))>Tolerance)")
 
 
 def _banner(ws, r, last_col):
@@ -204,6 +254,14 @@ def _end(ws, r, last_col):
 def _columns(ws, widths: dict):
     for col, w in widths.items():
         ws.column_dimensions[col].width = w
+
+
+def _validate(ws, cells, options):
+    """List validation: `options` is a workbook name / range or a list of allowed values."""
+    f = options if isinstance(options, str) else '"' + ",".join(str(o) for o in options) + '"'
+    dv = DataValidation(type="list", formula1=f, allow_blank=False)
+    ws.add_data_validation(dv)
+    dv.add(cells)
 
 
 def _write(ws, r, c, formula, kind="calc", fmt=None):
@@ -262,14 +320,16 @@ class Inputs:
         _columns(ws, {"A": 3, "B": 40, "C": 10, "D": 36, "E": 2, "F": 12, "G": 2,
                       **{L(8 + i): 12 for i in range(8)}, "P": 2})
         ws["B4"], ws["B5"] = "Scenario selected", "Scenario number"
-        apply(ws.cell(4, 6, model.scenarios[0]), "input")
-        model.define("Scenario_Name", "Inputs!$F$4")
+        if model.dashboard:              # the selector lives on the Dashboard
+            _write(ws, 4, 6, "=Scenario_Name")
+            ws["D4"] = "Set on the Dashboard"
+        else:
+            apply(ws.cell(4, 6, model.scenarios[0]), "input")
+            model.define("Scenario_Name", "Inputs!$F$4")
+            _validate(ws, "F4", "Scenario_Names")
         names_ref = f"Inputs!$H$7:${L(7 + n)}$7"
         _write(ws, 5, 6, "=MATCH(Scenario_Name,Scenario_Names,0)", fmt="int")
         model.define("Scenario_Selected", "Inputs!$F$5")
-        dv = DataValidation(type="list", formula1="Scenario_Names", allow_blank=False)
-        ws.add_data_validation(dv)
-        dv.add("F4")
         for c, h in zip((2, 3, 4, 6), ("Input", "Unit", "Source / note", "Live")):
             apply(ws.cell(7, c, h), "header")
         ws["B7"].alignment = ws["C7"].alignment = ws["D7"].alignment = styles.Alignment(horizontal="left")
@@ -320,7 +380,7 @@ class Inputs:
             v = base if i == 0 else (scenarios or {}).get(i + 1)
             apply(ws.cell(r, 8 + i, v), "input", fmt)
         live = f"INDEX($H{r}:$O{r},1,Scenario_Selected)"
-        _write(ws, r, 6, f"=IF(ISBLANK({live}),$H{r},{live})", fmt=fmt)
+        _write(ws, r, 6, f'=IF({live}="",$H{r},{live})', fmt=fmt)     # blank scenario cell = base case
         self.r += 1
         return self.m.define(f"In_{key}", f"Inputs!$F${r}")
 
@@ -384,24 +444,32 @@ class Curves:
 
 # =========================================================================================
 class Calc:
-    def __init__(self, model, ws):
-        self.m, self.ws = model, ws
+    """Row templates written to every calc sheet (`Calc`, or `Calc_1..Calc_n` with the bid number in A1)."""
+
+    def __init__(self, model, sheets):
+        self.m, self.sheets, self.ws = model, sheets, sheets[0]
         self.rows: dict[str, Row] = {}
         self.r = FIRST_ROW
-        _columns(ws, {"A": 3, "B": 3, "C": 40, "D": 10, "E": 12, "F": 12, "G": 2, "H": 2, "I": 12,
-                      **{L(c): 11 for c in range(J, model.last + 1)}})
-        ws.freeze_panes = "J10"
+        for i, ws in enumerate(sheets, 1):
+            _columns(ws, {"A": 3, "B": 3, "C": 40, "D": 10, "E": 12, "F": 12, "G": 2, "H": 2, "I": 12,
+                          **{L(c): 11 for c in range(J, model.last + 1)}})
+            ws.freeze_panes = "J10"
+            if ws.title != "Calc":
+                apply(ws.cell(1, 1, i), "input", "int")
+                ws.cell(1, 3, "Bid number")
 
     # ---- layout ---------------------------------------------------------------------------
     def section(self, title):
         if self.r > FIRST_ROW:
             self.r += 1
-        _bar(self.ws, self.r, title, self.m.last)
+        for ws in self.sheets:
+            _bar(ws, self.r, title, self.m.last)
         self.r += 1
 
     def subheader(self, title):
-        _bar(self.ws, self.r, title, self.m.last, "subheader")
-        self.ws.cell(self.r, 1).value = None
+        for ws in self.sheets:
+            _bar(ws, self.r, title, self.m.last, "subheader")
+            ws.cell(self.r, 1).value = None
         self.r += 1
 
     def blank(self):
@@ -420,12 +488,21 @@ class Calc:
         self.r += 1
         return key
 
-    def ref(self, key, col="I") -> str:
-        """Absolute reference to a row's E/F/I cell, e.g. for Summary outputs."""
-        return f"Calc!${col}${self.rows[key].r}"
+    def ref(self, key, col="I", sheet=None) -> str:
+        """Absolute reference to a row's E/F/I cell on one calc sheet (default: the first)."""
+        return f"{sheet or self.m.calc_sheets[0]}!${col}${self.rows[key].r}"
 
-    def name(self, name, key, col="E") -> str:
-        return self.m.define(name, self.ref(key, col))
+    def refs(self, key, col="I") -> list[str]:
+        """The same cell on every calc sheet, in bid order."""
+        return [self.ref(key, col, s) for s in self.m.calc_sheets]
+
+    def name(self, name, key, col="E", sheet=None) -> str:
+        return self.m.define(name, self.ref(key, col, sheet))
+
+    @staticmethod
+    def lever(name) -> str:
+        """This sheet's value of a 1 x n Dashboard range (`Dash_<key>`): `INDEX(name,1,$A$1)`."""
+        return f"INDEX({name},1,$A$1)"
 
     # ---- flags (MODELLING_STANDARDS §6.5) -----------------------------------------------
     def window(self, key, label, start, end):
@@ -464,28 +541,35 @@ class Calc:
     add_row = row
 
     # ---- circularity (COPY / PASTE / Delta, §7) -------------------------------------------
+    def _topics(self, topic):
+        """(sheet, topic name) per calc sheet: `Fee` on a single sheet, `Fee_1`, `Fee_2`... otherwise."""
+        sheets = self.m.calc_sheets
+        return [(s, topic if len(sheets) == 1 else f"{topic}_{i}") for i, s in enumerate(sheets, 1)]
+
     def paste(self, topic, label, unit):
         """Macro-written PASTE row (place it above the rows that use it). Key: `<topic>_paste`."""
         key = self.row(f"{topic.lower()}_paste", f"{label} – paste (macro)", unit, None, total="none",
                        style="macro")
         self.rows[key].values = [0] * self.m.n
-        self.m.define(f"{topic}_Paste", self._span(key))
+        for sheet, t in self._topics(topic):
+            self.m.define(f"{t}_Paste", self._span(key, sheet))
         return key
 
     def copy(self, topic, label, unit, formula):
-        """COPY row with the live formula and its Delta row; registers the topic for Solver.bas."""
+        """COPY row with the live formula and its Delta row; registers the topic(s) for Solver.bas."""
         ck = self.row(f"{topic.lower()}_copy", f"{label} – copy", unit, formula, total="none")
         dk = self.row(f"{topic.lower()}_delta", f"{label} – delta", unit,
                       f"=ABS({{{ck}}}-{{{topic.lower()}_paste}})", total="sum")
-        self.m.define(f"{topic}_Copy", self._span(ck))
-        self.m.define(f"{topic}_Delta", self.ref(dk))
-        self.m.solver_topics.append(topic)
-        self.m.checks.add_check(f"Solver {topic}: delta = 0", f"=N({topic}_Delta>Tolerance)", per_period=False)
+        for sheet, t in self._topics(topic):
+            self.m.define(f"{t}_Copy", self._span(ck, sheet))
+            self.m.define(f"{t}_Delta", self.ref(dk, "I", sheet))
+            self.m.solver_topics.append(t)
+            self.m.checks.add_check(f"Solver {t}: delta = 0", f"=N({t}_Delta>Tolerance)", per_period=False)
         return ck
 
-    def _span(self, key):
+    def _span(self, key, sheet):
         r = self.rows[key].r
-        return f"Calc!${L(J)}${r}:${L(self.m.last)}${r}"
+        return f"{sheet}!${L(J)}${r}:${L(self.m.last)}${r}"
 
     # ---- returns (column E) -------------------------------------------------------------
     def xirr(self, key, label, cf, iferror=False):
@@ -503,7 +587,11 @@ class Calc:
 
     # ---- write ----------------------------------------------------------------------------
     def finish(self):
-        ws, m = self.ws, self.m
+        for ws in self.sheets:
+            self._finish(ws)
+
+    def _finish(self, ws):
+        m = self.m
         for r, (label, unit) in zip(range(3, 9), [("Period start", "date"), ("Period end", "date"),
                                                   ("Days in period", "days"), ("Year fraction", "factor"),
                                                   ("Year", "year"), ("Period counter", "#")]):
@@ -515,11 +603,11 @@ class Calc:
         fmts = {3: "date", 4: "date", 5: "int", 6: "factor", 7: "int", 8: "int"}
         for c in range(J, m.last + 1):
             for r, t in tmpl.items():
-                cell = _write(ws, r, c, m.render(t, None, c), fmt=fmts[r])
+                cell = _write(ws, r, c, m.render(t, None, c, ws.title), fmt=fmts[r])
                 if r == 4:
                     cell.font = Font(name=styles.FONT, size=styles.SIZE, bold=True)
         for row in self.rows.values():
-            _write_row(ws, m, row, "Calc")
+            _write_row(ws, m, row, ws.title)
         _end(ws, self.r + 1, m.last)
 
 
@@ -553,40 +641,50 @@ class Checks:
 
     def __init__(self, model, ws):
         self.m, self.ws = model, ws
-        self.items: list[tuple[str, str, bool]] = []
+        self.items: list[tuple[str, str, bool, str | None]] = []
         _columns(ws, {"A": 3, "B": 3, "C": 48, "D": 10, "E": 12, "F": 12, "G": 2, "H": 2, "I": 2,
                       **{L(c): 11 for c in range(J, model.last + 1)}})
         ws.freeze_panes = "J10"
 
-    def add_check(self, label, formula, per_period=True):
-        """`formula` returns 0 when OK. Per-period formulas use Calc tokens ({key} → Calc!J15)."""
-        self.items.append((label, formula, per_period))
+    def add_check(self, label, formula, per_period=True, sheet=None):
+        """`formula` returns 0 when OK; row tokens resolve to a calc sheet ({key} → Calc_1!J15).
+
+        With several calc sheets a formula with row tokens gives one row per sheet (label suffixed with the
+        sheet name); `sheet` pins it to one sheet. A formula without tokens is a single row."""
+        self.items.append((label, formula, per_period, sheet))
 
     def equal(self, label, a, b):
         """Per-period check that two Calc rows (templates) agree within Tolerance."""
         self.add_check(label, f"=N(ABS({a}-{b})>Tolerance)")
 
+    def _expand(self):
+        multi = len(self.m.calc_sheets) > 1
+        for label, formula, per_period, sheet in self.items:
+            sheets = [sheet] if sheet else self.m.calc_sheets if _TOKEN.search(formula) else [None]
+            for s in sheets:
+                yield (f"{label} – {s}" if multi and s else label), formula, per_period, s
+
     def finish(self):
         ws, m = self.ws, self.m
         ws.cell(4, 3, "Period end")
         for c in range(J, m.last + 1):
-            _write(ws, 4, c, f"=Calc!{L(c)}$4", fmt="date")
+            _write(ws, 4, c, f"={m.calc_sheets[0]}!{L(c)}$4", fmt="date")
         apply(ws.cell(9, 5, "Status"), "header")
         apply(ws.cell(9, 6, "Fails"), "header")
         r = FIRST_ROW
         _bar(ws, r, "Checks (0 = OK)", m.last)
         first = r + 1
         self.rows = []
-        for label, formula, per_period in self.items:
+        for label, formula, per_period, sheet in self._expand():
             r += 1
             ws.cell(r, 3, label)
             apply(ws.cell(r, 4, "flag"), "unit")
             if per_period:
                 for c in range(J, m.last + 1):
-                    _write(ws, r, c, m.render(formula, None, c, "Checks"), fmt="flag")
+                    _write(ws, r, c, m.render(formula, None, c, "Checks", sheet), fmt="flag")
                 _write(ws, r, 6, f"=SUM({L(J)}{r}:{L(m.last)}{r})", fmt="flag")
             else:
-                _write(ws, r, 6, m.render(formula, None, None, "Checks"), fmt="flag")
+                _write(ws, r, 6, m.render(formula, None, None, "Checks", sheet), fmt="flag")
             _write(ws, r, 5, _status(f"F{r}"))
             self.rows.append((label, r))
         r += 2
@@ -638,9 +736,7 @@ class Summary:
         if self.outputs:
             m.define("Live_Results", f"Summary!$E$6:$E${r - 1}")
             m.define("Stored_Results", f"Summary!$G$6:${L(last)}${r - 1}")
-            m.checks.add_check("Stored scenario results = live case (rerun RunAllScenarios)",
-                               "=N(SUMPRODUCT(ABS(INDEX(Stored_Results,0,Scenario_Selected)-Live_Results))>Tolerance)",
-                               per_period=False)
+            m.checks.add_check(*STORED_CHECK, per_period=False)
         self.r = r
 
     def write_checks(self):
@@ -651,9 +747,249 @@ class Summary:
         ws.cell(r, 3, "Master check")
         ws.cell(r, 3).font = Font(name=styles.FONT, size=styles.SIZE, bold=True)
         _write(ws, r, 5, _status("Master_Check"), "total")
-        _ok_format(ws, f"E{r}:E{r + len(m.checks.items)}")
+        _ok_format(ws, f"E{r}:E{r + len(m.checks.rows)}")
         for label, cr in m.checks.rows:
             r += 1
             ws.cell(r, 3, label)
             _write(ws, r, 5, f"=Checks!$E${cr}")
         _end(ws, r + 2, last)
+
+
+# =========================================================================================
+class Dashboard:
+    """Front sheet of the dashboard layout: header, deal levers, per-bid results and a right-hand panel.
+
+    Columns: C label | D unit | E.. one value column per bid | grid (per-item info, stored scenario results)
+    | Source | panel (label, unit, live value). Rows 3-8 header, row 9 column headers, content from row 11."""
+
+    TOP = 11
+
+    def __init__(self, model, ws, project, purpose, version, date, extra_cols):
+        self.m, self.ws = model, ws
+        self.nb = len(model.calc_sheets)
+        self.nx = max(extra_cols, len(model.scenarios))     # grid also holds the stored scenario results
+        self.V = 5                                           # first value column (E)
+        self.X = self.V + self.nb + 1                        # first grid column
+        self.SRC = self.X + self.nx + 1                      # source column
+        self.P = self.SRC + 2                                # panel: label, unit, value
+        self.left, self.last = self.SRC, self.P + 2
+        self.r = self.pr = self.TOP
+        self.rows: dict[str, int] = {}
+        self.outs: list[tuple] = []                          # (out key, name, label, unit, fmt, formula)
+        self.selector_cell = None
+        _columns(ws, {"A": 3, "B": 3, "C": 44, "D": 10, **{L(self.V + i): 12 for i in range(self.nb)},
+                      L(self.X - 1): 2, **{L(self.X + i): 12 for i in range(self.nx)}, L(self.SRC - 1): 2,
+                      L(self.SRC): 28, L(self.SRC + 1): 3, L(self.P): 34, L(self.P + 1): 10, L(self.P + 2): 12})
+        ws["B2"] = '=C3&" – Dashboard"'
+        _banner(ws, 2, self.last)
+        apply(ws.cell(3, 3, project), "input")
+        ws["C3"].font = Font(name=styles.FONT, size=16, bold=True, color=styles.BLUE)
+        ws["C3"].alignment = styles.Alignment(horizontal="left")
+        ws.cell(4, 3, purpose)
+        for r, label, value, fmt in ((5, "Version", version, "text"), (6, "Model date", date, "date")):
+            ws.cell(r, 3, label)
+            apply(ws.cell(r, self.V, value), "input", fmt)
+        ws.cell(7, 3, "Key-assumption set")
+        ws.cell(8, 3, "Master check")
+        for c, h in ((3, "Item"), (4, "Unit"), (self.SRC, "Source"), (self.P, "Key assumptions"),
+                     (self.P + 1, "Unit"), (self.P + 2, "Live")):
+            apply(ws.cell(9, c, h), "header")
+            if c in (3, 4, self.SRC, self.P, self.P + 1):
+                ws.cell(9, c).alignment = styles.Alignment(horizontal="left")
+        for i, b in enumerate(model.bids):
+            apply(ws.cell(9, self.V + i, b), "header")
+        model.define("Bid_Labels", f"Dashboard!${L(self.V)}$9:${L(self.V + self.nb - 1)}$9")
+        ws.freeze_panes = "A10"
+
+    # ---- layout ---------------------------------------------------------------------------
+    def section(self, title, headers=()):
+        """Section bar with the bid labels over the value columns and `headers` over the grid columns."""
+        if self.r > self.TOP:
+            self.r += 1
+        self._bar(title, "section", headers)
+
+    def subheader(self, title, headers=()):
+        self._bar(title, "subheader", headers)
+        self.ws.cell(self.r - 1, 1).value = None
+
+    def blank(self):
+        self.r += 1
+
+    def _bar(self, title, kind, headers, values=None):
+        ws, r = self.ws, self.r
+        if len(headers) > self.nx:
+            raise ValueError(f"{len(headers)} grid headers, only {self.nx} grid columns (extra_cols)")
+        _bar(ws, r, title, self.left, kind)
+        for c, h in [(self.V + i, b) for i, b in enumerate(values or self.m.bids)] + \
+                    [(self.X + i, h) for i, h in enumerate(headers)]:
+            ws.cell(r, c, h).alignment = styles.RIGHT
+        self.r += 1
+
+    def _row(self, key, label, unit, source=None, extra=(), bold=False):
+        ws, r = self.ws, self.r
+        if key is not None:
+            if key in self.rows:
+                raise ValueError(f"duplicate Dashboard row {key}")
+            self.rows[key] = r
+        ws.cell(r, 3, label)
+        apply(ws.cell(r, 4, unit), "unit")
+        if source:
+            ws.cell(r, self.SRC, source)
+        if bold:
+            ws.cell(r, 3).font = Font(name=styles.FONT, size=styles.SIZE, bold=True)
+        if len(extra) > self.nx:
+            raise ValueError(f"{len(extra)} grid values, only {self.nx} grid columns (extra_cols)")
+        for i, v in enumerate(extra):
+            if isinstance(v, str) and v.startswith("="):
+                _write(ws, r, self.X + i, v)
+            elif v is not None:
+                ws.cell(r, self.X + i, v)
+        self.r += 1
+        return r
+
+    def _values(self, values):
+        vals = list(values) if isinstance(values, (list, tuple)) else [values] * self.nb
+        if len(vals) != self.nb:
+            raise ValueError(f"{self.nb} values needed (one per bid)")
+        return vals
+
+    def _span(self, r, first=None, n=None):
+        first = first or self.V
+        return f"Dashboard!${L(first)}${r}:${L(first + (n or self.nb) - 1)}${r}"
+
+    def ref(self, key, bid=1, grid=None) -> str:
+        """Address of a row's value for `bid` (1-based), or of grid column `grid` (1-based)."""
+        c = self.X + grid - 1 if grid else self.V + bid - 1
+        return f"Dashboard!${L(c)}${self.rows[key]}"
+
+    # ---- rows -----------------------------------------------------------------------------
+    def input(self, key, label, unit, values, *, source="", fmt=None, options=None, extra=()) -> str:
+        """Deal lever: one input per bid (blue on yellow), named `Dash_<key>` over the 1 x n range.
+
+        `options` adds list validation (a list of values or a workbook name). Calc reads it with
+        `m.calc.lever("Dash_<key>")`."""
+        fmt = _fmt(unit, fmt)
+        r = self._row(key, label, unit, source, extra)
+        for i, v in enumerate(self._values(values)):
+            apply(self.ws.cell(r, self.V + i, v), "input", fmt)
+        if options:
+            _validate(self.ws, f"{L(self.V)}{r}:{L(self.V + self.nb - 1)}{r}", options)
+        return self.m.define(f"Dash_{key}", self._span(r))
+
+    def link(self, label, unit, ref, *, key=None, scale=None, fmt=None, out=None, bold=False, extra=()):
+        """A calc result per bid. `ref` is a row template (`"{irr.E}"`, `"-{capex.I}"`) rendered once per calc
+        sheet; `scale` divides it (e.g. "Thousand" for EUR m). `out` names the cells `Out_<out>_<bid>`
+        (`Out_<out>` with one bid). Returns the Dashboard row."""
+        fmt = _fmt(unit, fmt)
+        r = self._row(key, label, unit, None, extra, bold)
+        t = ref[1:] if ref.startswith("=") else ref
+        for i, (sheet, bid) in enumerate(zip(self.m.calc_sheets, self.m.bids)):
+            x = self.m.render(t, None, None, "Dashboard", sheet)
+            if scale:
+                x = f"{x}/{scale}" if re.fullmatch(r"[\w$!.]+", x) else f"({x})/{scale}"
+            f = "=" + x
+            _write(self.ws, r, self.V + i, f, "total" if bold else "calc", fmt)
+            if out:
+                name = f"Out_{out}_{i + 1}" if self.nb > 1 else f"Out_{out}"
+                self.m.define(name, f"Dashboard!${L(self.V + i)}${r}")
+                self.outs.append((out, name, f"{label} – {bid}" if self.nb > 1 else label, unit, fmt, f))
+        return r
+
+    def status(self, label, check=None, *, ref=None, key=None, extra=()):
+        """OK/CHECK cells: `check` is a calc template that is 0 when OK (one cell per bid), or `ref` a single
+        workbook name / cell (first value column)."""
+        r = self._row(key, label, "flag", None, extra)
+        if check is not None:
+            t = check[1:] if check.startswith("=") else check
+            for i, sheet in enumerate(self.m.calc_sheets):
+                _write(self.ws, r, self.V + i, _status(self.m.render(t, None, None, "Dashboard", sheet)))
+        else:
+            _write(self.ws, r, self.V, _status(ref))
+        _ok_format(self.ws, f"{L(self.V)}{r}:{L(self.V + self.nb - 1)}{r}")
+        return r
+
+    def stored_row(self, key, label, unit, fmt=None, extra=()) -> str:
+        """Purple macro-written cells, one per bid, named `<key>_Stored`."""
+        r = self._row(key, label, unit, None, extra)
+        for i in range(self.nb):
+            apply(self.ws.cell(r, self.V + i), "macro", _fmt(unit, fmt))
+        return self.m.define(f"{key}_Stored", self._span(r))
+
+    def stored_block(self, name, first, last, cols, fmt="general") -> str:
+        """Purple macro-written block over grid columns `cols` (1-based, contiguous) of Dashboard rows
+        `first`..`last` (row keys). Named `<name>_Stored`."""
+        cols = list(cols)
+        if cols != list(range(cols[0], cols[-1] + 1)) or cols[-1] > self.nx:
+            raise ValueError("cols must be contiguous grid columns")
+        r1, r2 = self.rows[first], self.rows[last]
+        for r in range(r1, r2 + 1):
+            for c in cols:
+                apply(self.ws.cell(r, self.X + c - 1), "macro", fmt)
+        c1, c2 = L(self.X + cols[0] - 1), L(self.X + cols[-1] - 1)
+        return self.m.define(f"{name}_Stored", f"Dashboard!${c1}${r1}:${c2}${r2}")
+
+    def scenario_results(self, title="Stored results by key-assumption set", outs=None):
+        """Live (E) and stored (grid, purple) value of the `out=` links (all, or the `outs` keys), one row per
+        output and bid, written by RunAllScenarios. Defines `Live_Results`, `Stored_Results`, `<Out key>_Stored`
+        and the stored = live check. Leave out results that can be text ("n/a"): the check needs numbers."""
+        ws, m, n = self.ws, self.m, len(self.m.scenarios)
+        rows = [o[1:] for o in self.outs if outs is None or o[0] in outs]
+        if not rows:
+            raise ValueError("no outputs: use link(..., out=...) first")
+        self.section(title, [f"=Inputs!{L(8 + i)}$7" for i in range(n)])
+        ws.cell(self.r - 1, self.V, "Live")
+        for i in range(1, self.nb):
+            ws.cell(self.r - 1, self.V + i).value = None
+        first = self.r
+        for name, label, unit, fmt, formula in rows:
+            r = self._row(None, label, unit)
+            _write(ws, r, self.V, formula, "calc", fmt)        # same link as the output: no chain
+            for i in range(n):
+                apply(ws.cell(r, self.X + i), "macro", fmt)
+            m.define(f"{name[4:]}_Stored", self._span(r, self.X, n))
+        last = self.r - 1
+        m.define("Live_Results", f"Dashboard!${L(self.V)}${first}:${L(self.V)}${last}")
+        m.define("Stored_Results", f"Dashboard!${L(self.X)}${first}:${L(self.X + n - 1)}${last}")
+        m.checks.add_check(*STORED_CHECK, per_period=False)
+
+    # ---- right-hand panel ---------------------------------------------------------------
+    def panel_section(self, title):
+        if self.pr > self.TOP:
+            self.pr += 1
+        for c in range(self.P, self.P + 3):
+            apply(self.ws.cell(self.pr, c), "section")
+        self.ws.cell(self.pr, self.P, title)
+        self.pr += 1
+
+    def panel_link(self, label, unit, ref, fmt=None):
+        """Live value from Inputs (a workbook name such as `In_Premium`, or `Sheet!$A$1`)."""
+        ws, r = self.ws, self.pr
+        ws.cell(r, self.P, label)
+        apply(ws.cell(r, self.P + 1, unit), "unit")
+        _write(ws, r, self.P + 2, f"={ref}", fmt=_fmt(unit, fmt))
+        self.pr += 1
+        return r
+
+    def selector(self, label="Key-assumption set"):
+        """Put the `Scenario_Name` input (list of `Scenario_Names`) in the panel; the header then links to it.
+        Without this call the selector sits in the header."""
+        ws, r = self.ws, self.pr
+        ws.cell(r, self.P, label)
+        apply(ws.cell(r, self.P + 1, "text"), "unit")
+        self.selector_cell = (r, self.P + 2)
+        self.pr += 1
+        return "Scenario_Name"
+
+    # ---- write ----------------------------------------------------------------------------
+    def finish(self):
+        ws, m = self.ws, self.m
+        r, c = self.selector_cell or (7, self.V)
+        apply(ws.cell(r, c, m.scenarios[0]), "input", "text")
+        ws.cell(r, c).alignment = styles.Alignment(horizontal="left")
+        _validate(ws, f"{L(c)}{r}", "Scenario_Names")
+        m.define("Scenario_Name", f"Dashboard!${L(c)}${r}")
+        if self.selector_cell:
+            _write(ws, 7, self.V, "=Scenario_Name").alignment = styles.Alignment(horizontal="left")
+        _write(ws, 8, self.V, _status("Master_Check")).alignment = styles.Alignment(horizontal="left")
+        _ok_format(ws, f"{L(self.V)}8")
+        _end(ws, max(self.r, self.pr) + 1, self.last)
