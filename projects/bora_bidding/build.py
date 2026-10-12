@@ -66,6 +66,8 @@ def inputs(m):
     a("Bench_BESS", "Benchmark investment, BESS", "mHUF/MWh", 200, source="Kiírás Annex 2", fmt="money")
     a("Bid_Rate", "Bid security rate", "%", 0.005, source="Kiírás VIII.2", fmt="0.00%")
     a("PB_Rate", "Performance security rate (minimum)", "%", 0.025, source="Kiírás XII.3", fmt="0.00%")
+    a("PB_Max_Mult", "Performance security multiple for full ÖSZ-6 points", "x", 2.0,
+      source="Kiírás X.4 bf; GYIK Q34", fmt="mult")
     a("Part_Fee", "Participation fee per bid", "mHUF", 3, source="Kiírás VI.4", fmt="money1")
     a("Tolerance_Cap", "Build shortfall tolerated without sanction", "%", 0.10, source="GYIK 28, 30")
     a("Min_Hours", "Minimum BESS duration", "h", 4, source="Kiírás Annex 8; GYIK Q5", fmt="money1")
@@ -337,6 +339,15 @@ def calc(m):
           bold=True)
     c.row("sec_tot", "Cash posted (E) and upfront securities (F)", "EUR k", e="-({fee.I}+{tso.I}+{conn.I})",
           f="-({fee.I}+{tso.I})+MAX({bid.E},{pb.E})")
+    c.row("pbx_p", "ÖSZ-6 at the maximum multiple (E: multiple, F: extra points)", "x", e="In_PB_Max_Mult",
+          f="INDEX(Osz6_Pts,1+SUMPRODUCT((Osz6_LB<{self.E})+(Osz6_LB={self.E})*Osz6_Incl))*Osz6_W-{osz6.F}",
+          ef_fmt="mult")
+    fmt("pbx_p", "F", "money2")
+    c.row("pbx", "PB at the maximum: extra guarantee fee (E: extra PB, F: points per EUR m)", "EUR k",
+          "=-{self.E}*In_Guarantee_Fee*MAX(0,MIN({exit.E},{end})-MAX({pb.F},{start})+1)/Days_In_Year",
+          e="In_PB_Rate*({pbx_p.E}-{osz6.E})*{pb_base.E}*Thousand/In_FX",
+          f="IFERROR({pbx_p.F}*Thousand/{self.E},0)")
+    fmt("pbx", "F", "money1")
 
     c.section("FEP claims, devex-file method, accrued to COD (E: to the exit, F: to COD)")
     acc = ("=In_{r}/Days_In_Year*(1-{{freeze}})*({{{p}_open}}*{{days}}+({{end}}+1)*{{{p}_new}}-{{{p}_dated}})"
@@ -622,7 +633,14 @@ def dashboard(m):
     d.link("Total cash posted", "EUR m", "{sec_tot.E}", scale="Thousand", out="Cash_Posted", fmt=m2)
     d.link("Upfront securities (cash + peak guarantee)", "EUR m", "{sec_tot.F}", scale="Thousand", out="Upfront",
            fmt=m2)
-    d.link("Guarantee fees to the exit", "EUR m", "{gfee.E}", scale="Thousand", out="Guarantee_Fees", fmt="0.000")
+    d.link("Guarantee fees to the exit", "EUR m", "-{gfee.E}", scale="Thousand", out="Guarantee_Fees", fmt="0.000")
+    d.link("PB at 2.0x minimum: extra guarantee", "EUR m", "{pbx.E}", scale="Thousand", out="PBMax_Guarantee",
+           fmt=m2)
+    d.link("PB at 2.0x minimum: extra guarantee fee to the exit", "EUR m", "-{pbx.I}", scale="Thousand",
+           out="PBMax_Fee", fmt="0.000")
+    d.link("PB at 2.0x minimum: extra points", "points", "{pbx_p.F}", out="PBMax_Points", fmt=m2)
+    d.link("PB at 2.0x minimum: points per EUR m of extra guarantee", "points", "{pbx.F}", out="PBMax_Pts_Per_EURm",
+           fmt="money1")
     d.link("Sanction if not built: pro rata", "EUR m", "{sanc.E}", scale="Thousand", out="Sanction_Pro_Rata", fmt=m2)
     d.link("Sanction if not built: full call", "EUR m", "{sanc.F}", scale="Thousand", out="Sanction_Full", fmt=m2)
     d.link("Connection capacity at risk", "MVA", "{mva_risk.E}", out="MVA_At_Risk")
