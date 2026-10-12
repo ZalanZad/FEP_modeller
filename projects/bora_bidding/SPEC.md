@@ -13,6 +13,20 @@ v2 (12-Oct-2026) replaces v1. It adds the logic recovered from the old engine (`
 
 `fepm audit` lint (incl. `g-chain`, `g-long`, `g-note`, `c-sheet`) must be clean. Fewer rows beat clever rows.
 
+## 0. v2.1 changes (user review, 12-Oct-2026) – these override the sections below
+1. **RtB price = 150 k€/MVA × 100 MVA for both bids.** The RtB price effect (and the price reference) is removed.
+   The RtB route stays: waterfall, FEP profit, IRR, MOIC. The COD price effect stays (community Δ vs reference, sanction exposure).
+2. **Impact block (macro).** For each commitment, measure it against the **zero bid** (all levers at their zero level):
+   zero bid + that commitment alone − zero bid. Show Δ COD IRR, Δ HTM IRR and Δ upfront securities per bid, and a total row
+   (full bid − zero bid). Drop the Δ points, Δ RtB PV, Δ RtB proceeds and points-per-€m columns.
+3. **Zero bid case.** The macro stores the zero bid's RtB, COD and HTM results (FEP RtB profit and IRR, COD IRR and FEP NPV,
+   HTM IRR and NPV, points). They are shown next to BORA 1 | BORA 2 with the difference.
+4. **Turbines.** EU 600 k€/MW (was 950), CN 500. The Dashboard shows the EU case only. A single Inputs switch `In_CN_Turbine`
+   (0 EU / 1 CN) moves turbine price, substation, gearing, COD price and the ÖSZ-9 points. Set 2 "CN turbine" goes.
+5. **PPA 90 €/MWh for the whole operating life**, escalating 1 %/yr as before. There is no merchant tail, so the Aurora curves go.
+6. **Dashboard clean-up.** The "Source" column goes. The securities section gets a summary: cash posted, guarantees,
+   carrying cost to the exit, and total. The cost-to-COD section gets a summary: development, construction, financing, all-in, per MW.
+
 ## 1. Decision
 The IC is asked to approve the tender commitments for two 100 MVA capacity bids at the Szombathely OVIT node,
 **BORA 1** and **BORA 2** (2 × 100 MVA, each within the 100 MVA per group per node cap). For each bid the IC needs to see:
