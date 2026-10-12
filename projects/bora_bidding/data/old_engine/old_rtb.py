@@ -34,6 +34,7 @@ Toggles for the reconciliation bridge (keyword overrides of compute()); defaults
   pass_through        1.0   share of the promise PV passed into the RtB price (Tender E30)
 Toggles added for the new-model reconciliation (SPEC v2 §8; defaults = old engine):
   pb_release_date     None  a date overrides COD + pb_hold_months_after_cod as the end of the PB carry (fix 4: 31-Mar-2033)
+  pb_carry_tax        False True = the ÖSZ-6 PB carry in the price effect is after tax, x (1 - CIT) (SPEC v2 §5.6)
   n_bids              None  None = Inputs E82 (2 bids' participation fees charged to each bid); 1 = one fee per bid (fix 7)
   guarantee_fee_days  False True = guarantee fee on exact days outstanding, [posting, release), act/365 (fix 8)
   interest_method     'daily' = the new model's per-class accrual: simple act/365 within each calendar year on actual
@@ -308,7 +309,7 @@ def price_effect(s, o, ph, ref, E18, E29, E20, E23, cod, ntp, sale):
         f = {'municipal': -d_mun * (y == cod.year) + d_mun * depsh * tax,                 # row 209
              'community': -d_comm * r['gen'] * (1 - tax),                                  # row 210
              'bess': -d_bess * r['cons'] + d_bess * depsh * tax,                           # row 211
-             'security': -d_pb * G['guarantee_rate'] * yrs_pb,                             # row 212
+             'security': -d_pb * G['guarantee_rate'] * yrs_pb * (1 - tax * o['pb_carry_tax']),  # row 212
              'eu_turbine': -d_tur * r['cons'] + d_tur * depsh * tax,                       # row 213
              'overbuild': -(r['gen'] * e205) * margin * (1 - tax)}                         # rows 205, 214
         for k, v in f.items():
@@ -363,7 +364,8 @@ def price_effect_quarterly(o, ph, ref, E18, E29, E20, cod, ntp, sale):
                   + var * (1 + G['opex_contingency']) - ph['community'] * gen / 1000)
         pb_days = max(0, (min(pb_release, e_) - max(sale + dt.timedelta(days=1), s_)).days + 1)
         f = {'municipal': d_mun * (dep * tax - cod_f), 'community': -d_com * gen * (1 - tax) / 1000,
-             'bess': d_bess * (dep * tax - constr), 'security': -d_pb * G['guarantee_rate'] * pb_days / 365,
+             'bess': d_bess * (dep * tax - constr),
+             'security': -d_pb * G['guarantee_rate'] * pb_days / 365 * (1 - tax * o['pb_carry_tax']),
              'eu_turbine': 0.0, 'overbuild': -margin * e_ob * (1 - tax)}
         for k, v in f.items():
             items[k] += v * df
@@ -377,7 +379,7 @@ DEFAULTS = dict(
     indirect_fee_basis='net', bid_netting=None, bid_release_date=None, pb_date=None, pb_hold_months_after_cod=None,
     interest_method='line', same_year_stub_fix=False, pause=True, sale_date=None, cod=None, net_mva=None, rtb_premium=None,
     tender_mw=None, dev_floor=True, guarantee_fee=True, signing_dd=True, tax=True, osz4_basis_installed=None, pass_through=None,
-    n_bids=None, pb_release_date=None, guarantee_fee_days=False, atrisk_floor='line', waterfall='full', margin_revenue='merchant', grid='monthly',
+    n_bids=None, pb_release_date=None, pb_carry_tax=False, guarantee_fee_days=False, atrisk_floor='line', waterfall='full', margin_revenue='merchant', grid='monthly',
 )
 
 

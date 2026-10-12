@@ -492,6 +492,7 @@ def compute(strategy='S2', route='HTM-EU', *, fx=None, built_overbuild=True, bes
     costs['All-in cost per installed MW (Bora row 89)'] = costs['All-in cost to COD (Bora row 87)'] / mw
 
     out = {'strategy': strategy, 'route': route, 'installed_mw': mw, 'committed_mw': E29, 'bess_mw': bess,
+           'debt_size': E75, 'upfront_fee': E75 * I[219],
            'annual': {'years': yr, 'fep_cf': r129, 'dev': r24, 'capex': r27, 'conn': r28, 'municipal': r29, 'draw': r77,
                       'fees': r85, 'idc': r78, 'interest': r81, 'principal': r83, 'sweep': r87, 'dsra': r89,
                       'revenue': r54, 'opex': r69, 'ebitda': r70, 'tax': r100, 'decom': r107, 'gen_gwh': r38,
