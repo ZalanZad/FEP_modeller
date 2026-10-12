@@ -6,6 +6,7 @@ every input row cites its cell. BoraImpact.bas stores the per-commitment impact,
 """
 import csv
 import datetime as dt
+import importlib.util
 from pathlib import Path
 
 from openpyxl.utils import get_column_letter as L
@@ -728,7 +729,16 @@ def build_model(out: Path) -> Path:
     return xlsm
 
 
+def build_deck(xlsm: Path, out: Path) -> Path:
+    """IC deck (deck.py next to this file), bound to the packaged, LibreOffice-recalculated workbook."""
+    spec = importlib.util.spec_from_file_location("bora_deck", HERE / "deck.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.build_deck(xlsm, out)
+
+
 def build(out: Path):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
-    return {"model": build_model(out)}
+    xlsm = build_model(out)
+    return {"model": xlsm, "deck": build_deck(xlsm, out)}
