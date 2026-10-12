@@ -438,8 +438,10 @@ def calc(m):
     c.row("split_tot", "Split total", "EUR k", e="{split.E}+{split.F}", bold=True)
     c.row("split_mw", "Split per installed wind MW (E: FEP, F: A.RES)", "EUR k/MW", e="{split.E}/{wind.E}",
           f="{split.F}/{wind.E}", ef_fmt="money1")
-    c.row("rtb_out", "FEP outlay to the exit: devex, deposits, signing and DD", "EUR k",
-          e="{inv.I}-({dev_cost.E}+{a_new.E}+{fee.E})")
+    c.row("bu_in", "FEP receipts (E: principal returned, F: 70 % of distributable)", "EUR k",
+          e="{w_prin.F}+{w_land.F}", f="In_FEP_Share*{w_dist.F}")
+    c.row("bu_out", "FEP outlays to the exit (E: devex and contingency, F: all)", "EUR k",
+          e="{land.E}-{dev_cost.E}", f="{self.E}-{cash_cum.E}+{inv.I}")
     c.row("split_tot_mw", "Split total per installed wind MW", "EUR k/MW", e="{split_tot.E}/{wind.E}",
           ef_fmt="money1")
     c.subheader("FEP returns – RtB route")
@@ -519,7 +521,7 @@ def checks(m):
     k.add_check("RtB waterfall: paid + distributable = cash available",
                 "=N(ABS({w_fep.F}+{w_dev.F}+{w_cost.F}-{w_avail.F})>Tolerance)", per_period=False)
     k.add_check("FEP RtB build-up adds up to the profit",
-                "=N(ABS({w_fep.F}+{rtb_out.E}+{gfee.E}+{rtb_pre.E}-{rtb_cf.I})>Tolerance)", per_period=False)
+                "=N(ABS({w_fep.F}+{bu_out.F}+{gfee.E}+{rtb_pre.E}-{rtb_cf.I})>Tolerance)", per_period=False)
     k.add_check("RtB waterfall: no step paid above its amount due",
                 "=N(SUMPRODUCT(--({w_cost.F}:{w_dsa.F}>{w_cost.E}:{w_dsa.E}+Tolerance))>0)", per_period=False)
     k.add_check("COD waterfall: distributable not negative, paid within cash available",
@@ -642,12 +644,9 @@ def dashboard(m):
     m.define("Period_Ends", f"{S[0]}!$J$4:${L(m.last)}$4")
     d.input("Exit_Date", "RtB exit date (a quarter end)", "date", [D(2029, 12, 31)] * nb, options="Period_Ends")
     d.link("RtB price", "EUR m", "{eff.E}", scale="Thousand", out="RtB_Price", fmt=m2, bold=True)
-    d.subheader("Exit waterfall (paid)")
+    d.subheader("Exit waterfall (paid; FEP's steps in the build-up below)")
     for key, label, out in [("w_avail", "Cash available (price + buyer reimbursement)", "WF_Available"),
-                            ("w_cost", "Sale costs", "WF_Sale_Costs"), ("w_prin", "Recoverable principal", "WF_Principal"),
-                            ("w_r12", "12 % return", "WF_Return_12"), ("w_land", "Land principal", "WF_Land"),
-                            ("w_r20", "At-risk return (20 %, 2x floor)", "WF_Return_AtRisk"),
-                            ("w_r6", "6 % guarantee return", "WF_Return_6"), ("w_dsa", "DSA", "WF_DSA"),
+                            ("w_cost", "Sale costs", "WF_Sale_Costs"), ("w_dsa", "DSA", "WF_DSA"),
                             ("w_dist", "Distributable at the exit", "Distributable")]:
         d.link(label, "EUR m", "{%s.F}" % key, scale="Thousand", out=out, fmt=m2, bold=key == "w_dist")
     d.subheader("Exit split, devex-file view")
@@ -660,12 +659,20 @@ def dashboard(m):
             ("{split_tot_mw.E}", "Total per installed wind MW", "Split_Total_MW", "EUR k/MW", None, "money1")]:
         d.link(label, unit, t, scale=scale, out=out, fmt=f, bold=out in ("Split_Total", "Split_Total_MW"))
     d.subheader("FEP result – RtB route")
-    for t, label, out in [("{w_fep.F}", "Receipts at the exit", "FEP_Proceeds"),
-                          ("{rtb_out.E}", "Outlays: devex, land, deposits, connection fees, signing", "RtB_Outlay"),
-                          ("{gfee.E}", "Guarantee fees (6 % carry)", "Guarantee_Fees"),
+    for t, label, out in [("{bu_in.E}", "Principal returned: deposits, connection fees, land", "WF_Principal"),
+                          ("{w_r12.F}", "Claim 12 % on deposits and connection fees", "WF_Return_12"),
+                          ("{w_r20.F}", "Claim 20 % / 2x on devex, land, contingency", "WF_Return_AtRisk"),
+                          ("{w_r6.F}", "Claim 6 % on the bank guarantees", "WF_Return_6"),
+                          ("{bu_in.F}", "70 % of the distributable", "WF_FEP_Share"),
+                          ("{w_fep.F}", "= FEP receipts at the exit", "FEP_Proceeds"),
+                          ("-{cash_cum.E}", "Outlays: deposits, fees, land (buyer repays)", "RtB_Outlay_Deposits"),
+                          ("{bu_out.E}", "Outlays: devex, contingency (only 2x claim)", "RtB_Outlay_Devex"),
+                          ("{inv.I}", "Outlays: signing fee and DD", "RtB_Signing"),
+                          ("{gfee.E}", "Guarantee fees paid to the bank (6 %)", "Guarantee_Fees"),
                           ("{rtb_pre.E}", "Tax at the exit", "RtB_Tax"),
-                          ("{rtb_cf.I}", "FEP profit", "RtB_Profit_Buildup")]:
-        d.link(label, "EUR m", t, scale="Thousand", out=out, fmt=m2, bold=out == "RtB_Profit_Buildup")
+                          ("{rtb_cf.I}", "= FEP profit – RtB route", "RtB_Profit_Buildup")]:
+        d.link(label.lstrip("= ") if label.startswith("=") else label, "EUR m", t, scale="Thousand", out=out, fmt=m2,
+               bold=out in ("FEP_Proceeds", "RtB_Profit_Buildup"))
     d.link("FEP MOIC – RtB route", "x", "{rtb_moic.E}", out="RtB_MOIC")
     d.link("FEP NPV – RtB route", "EUR m", "{rtb_npv.E}", scale="Thousand", out="RtB_NPV", fmt=m2)
 
