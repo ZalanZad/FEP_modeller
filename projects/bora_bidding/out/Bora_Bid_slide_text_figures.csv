@@ -218,8 +218,8 @@ Slide 4 – Securities and cash to the RtB exit,100,In_MVA,Inputs!F43,100,0 dp
 Slide 4 – Securities and cash to the RtB exit,12-Oct-2026,Dashboard!E6,Dashboard!E6,2026-10-12 00:00:00,date
 Slide 4 – Securities and cash to the RtB exit,31-Dec-2029,Dashboard!E60:F60,Dashboard!E60:F60,2029-12-31 00:00:00,date
 Slide 4 – Securities and cash to the RtB exit,12-Oct-2026,Dashboard!E6,Dashboard!E6,2026-10-12 00:00:00,date
-Slide 5 – COD and HTM value and the commitment breakdown,"1,642",Out_Cost_To_COD_MW_1,Dashboard!E90,1642.20224979066,k€/MW 0 dp
-Slide 5 – COD and HTM value and the commitment breakdown,"1,612",Out_Cost_To_COD_MW_2,Dashboard!F90,1612.0407722257,k€/MW 0 dp
+Slide 5 – COD and HTM value and the commitment breakdown,"1,642",Out_Cost_To_COD_MW_1,Dashboard!E82,1642.20224979066,k€/MW 0 dp
+Slide 5 – COD and HTM value and the commitment breakdown,"1,612",Out_Cost_To_COD_MW_2,Dashboard!F82,1612.0407722257,k€/MW 0 dp
 Slide 5 – COD and HTM value and the commitment breakdown,"2,450",In_COD_Price,Inputs!F76,2450,k€/MW 0 dp
 Slide 5 – COD and HTM value and the commitment breakdown,13.4,Out_HTM_NPV_1,Dashboard!E31,13.3631648488628,€ m 1 dp
 Slide 5 – COD and HTM value and the commitment breakdown,17.2,Out_HTM_NPV_2,Dashboard!F31,17.1991009115114,€ m 1 dp
@@ -238,8 +238,8 @@ Slide 5 – COD and HTM value and the commitment breakdown,13.4,Out_HTM_NPV_1,Da
 Slide 5 – COD and HTM value and the commitment breakdown,17.2,Out_HTM_NPV_2,Dashboard!F31,17.1991009115114,€ m 1 dp
 Slide 5 – COD and HTM value and the commitment breakdown,(18.1),Dashboard!I31,Dashboard!I31,-18.0616639298542,Δ € m 1 dp
 Slide 5 – COD and HTM value and the commitment breakdown,(14.2),Dashboard!J31,Dashboard!J31,-14.2257278672057,Δ € m 1 dp
-Slide 5 – COD and HTM value and the commitment breakdown,"1,642",Out_Cost_To_COD_MW_1,Dashboard!E90,1642.20224979066,k€/MW 0 dp
-Slide 5 – COD and HTM value and the commitment breakdown,"1,612",Out_Cost_To_COD_MW_2,Dashboard!F90,1612.0407722257,k€/MW 0 dp
+Slide 5 – COD and HTM value and the commitment breakdown,"1,642",Out_Cost_To_COD_MW_1,Dashboard!E82,1642.20224979066,k€/MW 0 dp
+Slide 5 – COD and HTM value and the commitment breakdown,"1,612",Out_Cost_To_COD_MW_2,Dashboard!F82,1612.0407722257,k€/MW 0 dp
 Slide 5 – COD and HTM value and the commitment breakdown,"2,450",In_COD_Price,Inputs!F76,2450,k€/MW 0 dp
 Slide 5 – COD and HTM value and the commitment breakdown,"2,450",In_COD_Price,Inputs!F76,2450,k€/MW 0 dp
 Slide 5 – COD and HTM value and the commitment breakdown,8.2,Out_Commitment_Securities_1,Dashboard!E35,8.23465753424658,€ m 1 dp
@@ -252,15 +252,15 @@ Slide 5 – COD and HTM value and the commitment breakdown,8.5,Out_Commitment_Fi
 Slide 5 – COD and HTM value and the commitment breakdown,8.2,Out_Commitment_Financing_2,Dashboard!F38,8.17047814372495,€ m 1 dp
 Slide 5 – COD and HTM value and the commitment breakdown,1.4,Out_Commitment_Penalty_1,Dashboard!E39,1.41821917808219,€ m 1 dp
 Slide 5 – COD and HTM value and the commitment breakdown,1.1,Out_Commitment_Penalty_2,Dashboard!F39,1.11232876712329,€ m 1 dp
-Slide 5 – COD and HTM value and the commitment breakdown,124.4,Out_COD_Proceeds_1,Dashboard!E94,124.442364391184,€ m 1 dp
-Slide 5 – COD and HTM value and the commitment breakdown,127.2,Out_COD_Proceeds_2,Dashboard!F94,127.191143481749,€ m 1 dp
-Slide 5 – COD and HTM value and the commitment breakdown,245.0,Out_COD_Price_1,Dashboard!E91,245,€ m 1 dp
-Slide 5 – COD and HTM value and the commitment breakdown,1.78x,Out_COD_MOIC_1,Dashboard!E96,1.77775514692048,x 2 dp
-Slide 5 – COD and HTM value and the commitment breakdown,1.85x,Out_COD_MOIC_2,Dashboard!F96,1.85305545723671,x 2 dp
-Slide 5 – COD and HTM value and the commitment breakdown,4.89x,Out_HTM_MOIC_1,Dashboard!E99,4.89335391904422,x 2 dp
-Slide 5 – COD and HTM value and the commitment breakdown,5.13x,Out_HTM_MOIC_2,Dashboard!F99,5.12573169894475,x 2 dp
-Slide 5 – COD and HTM value and the commitment breakdown,1.33x,Out_Min_DSCR_1,Dashboard!E100,1.32847346238474,x 2 dp
-Slide 5 – COD and HTM value and the commitment breakdown,1.37x,Out_Min_DSCR_2,Dashboard!F100,1.36879038642014,x 2 dp
+Slide 5 – COD and HTM value and the commitment breakdown,124.4,Out_COD_Proceeds_1,Dashboard!E86,124.442364391184,€ m 1 dp
+Slide 5 – COD and HTM value and the commitment breakdown,127.2,Out_COD_Proceeds_2,Dashboard!F86,127.191143481749,€ m 1 dp
+Slide 5 – COD and HTM value and the commitment breakdown,245.0,Out_COD_Price_1,Dashboard!E83,245,€ m 1 dp
+Slide 5 – COD and HTM value and the commitment breakdown,1.78x,Out_COD_MOIC_1,Dashboard!E88,1.77775514692048,x 2 dp
+Slide 5 – COD and HTM value and the commitment breakdown,1.85x,Out_COD_MOIC_2,Dashboard!F88,1.85305545723671,x 2 dp
+Slide 5 – COD and HTM value and the commitment breakdown,4.89x,Out_HTM_MOIC_1,Dashboard!E91,4.89335391904422,x 2 dp
+Slide 5 – COD and HTM value and the commitment breakdown,5.13x,Out_HTM_MOIC_2,Dashboard!F91,5.12573169894475,x 2 dp
+Slide 5 – COD and HTM value and the commitment breakdown,1.33x,Out_Min_DSCR_1,Dashboard!E92,1.32847346238474,x 2 dp
+Slide 5 – COD and HTM value and the commitment breakdown,1.37x,Out_Min_DSCR_2,Dashboard!F92,1.36879038642014,x 2 dp
 Slide 5 – COD and HTM value and the commitment breakdown,8.0%,Dashboard!V22,Dashboard!V22,0.08,% 1 dp
 Slide 5 – COD and HTM value and the commitment breakdown,30-Sep-2031,Dashboard!V23,Dashboard!V23,2031-09-30 00:00:00,date
 Slide 5 – COD and HTM value and the commitment breakdown,100,Out_Wind_Built_MW_1,Dashboard!E44,100,0 dp
@@ -287,8 +287,8 @@ Slide 6 – Risks and mitigants,63.75,Dashboard!M96,Dashboard!M96,63.75,points (
 Slide 6 – Risks and mitigants,−6.5,Dashboard!M15,Dashboard!M15,-0.0650761204818859,pp 1 dp
 Slide 6 – Risks and mitigants,−5.1,Dashboard!N15,Dashboard!N15,-0.051092496085978,pp 1 dp
 Slide 6 – Risks and mitigants,100,In_MVA,Inputs!F43,100,0 dp
-Slide 6 – Risks and mitigants,164.2,Out_Cost_To_COD_1,Dashboard!E89,164.220224979066,€ m 1 dp
-Slide 6 – Risks and mitigants,161.2,Out_Cost_To_COD_2,Dashboard!F89,161.20407722257,€ m 1 dp
+Slide 6 – Risks and mitigants,164.2,Out_Cost_To_COD_1,Dashboard!E81,164.220224979066,€ m 1 dp
+Slide 6 – Risks and mitigants,161.2,Out_Cost_To_COD_2,Dashboard!F81,161.20407722257,€ m 1 dp
 Slide 6 – Risks and mitigants,217.9,Dashboard!I105,Dashboard!I105,217.899554834464,€ m 1 dp
 Slide 6 – Risks and mitigants,203.3,Dashboard!I106,Dashboard!I106,203.305512403274,€ m 1 dp
 Slide 6 – Risks and mitigants,54.4%,Dashboard!I99,Dashboard!I99,0.544455538624024,% 1 dp
