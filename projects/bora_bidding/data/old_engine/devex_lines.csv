@@ -1,0 +1,79 @@
+source,devex_row,task,item,category,settlement,pay_date,pay_date_formula,fep_pays,buyer_reimburses,native,huf_native,eur_native,amount_keur_engine,rate,source_huf_formula,source_eur_formula,cell,grid_month,multiple_to_sale_cached
+engine_pasted_20260925,14,Capacity allocation process - Awarding,Land reservation fee,Land,,2027-02-13,=BORA_Devex!$E$14,0,1,EUR,0.0,55650,55.65,0.2,=J14*AF6,=1325*AF15*1.5,Devex_FEP!E5,7,2
+engine_pasted_20260925,15,,Land purchase price,Land,,2027-02-13,=BORA_Devex!$E$15,0,1,HUF,45600000,0.0,123.24324324324324,0.2,=38000000*0.2*6,=I15/$AF$6,Devex_FEP!E6,7,2
+engine_pasted_20260925,16,Grid connection plan,Design fee,Devex,,2028-08-11,=BORA_Devex!$E$16,1,0,HUF,59142857.142857134,0.0,159.84555984555982,0.2,=72000000/280*AF7*1.15,=I16/$AF$6,Devex_FEP!E7,25,2
+engine_pasted_20260925,17,,Administrative fee,Devex,,2028-08-11,=BORA_Devex!$E$17,1,0,HUF,750544,0.0,2.028497297297297,0.2,=187636*AF16,=I17/$AF$6,Devex_FEP!E8,25,2
+engine_pasted_20260925,20,Land contracting (additional land),"Legal fee, agent fee",Devex,,2026-10-01,=BORA_Devex!$E$20,1,0,MIXED,34500000,84000,177.24324324324326,0.2,=25*(1200000+180000)+3000*AF14*AF6,=I20/AF6,Devex_FEP!E9,3,2
+engine_pasted_20260925,21,Wind measurement,Met Masts,Devex,,2027-03-01,=BORA_Devex!$E$21,1,0,EUR,0.0,398000,398,0.2,=J21*AF6,=199000*2,Devex_FEP!E10,8,2
+engine_pasted_20260925,22,,Design fee,Devex,,2027-01-01,=BORA_Devex!$E$22,1,0,HUF,3600000,0.0,9.72972972972973,0.2,=1500000*2*1.2,=I22/AF6,Devex_FEP!E11,6,2
+engine_pasted_20260925,23,,EYA,Devex,,2028-06-28,=BORA_Devex!$E$23,1,0,EUR,0.0,4500,4.5,0.2,=J23*AF6,,Devex_FEP!E12,23,2
+engine_pasted_20260925,24,Land reclassification ,Administrative fee,Devex,,2027-12-25,=BORA_Devex!$E$24,1,0,HUF,960000,0.0,2.5945945945945947,0.2,=30000*(AF15+AF16),=I24/$AF$6,Devex_FEP!E13,17,2
+engine_pasted_20260925,25,,Report fee,Devex,,2027-07-28,=BORA_Devex!$E$25,1,0,HUF,8000000,0.0,21.62162162162162,0.2,=250000*(AF15+AF16),=I25/$AF$6,Devex_FEP!E14,12,2
+engine_pasted_20260925,26,Zoning plan modification ,Design fee,Devex,,2028-02-23,=BORA_Devex!$E$26,1,0,HUF,50000000,0.0,135.13513513513516,0.2,=5000000*AF17,=I26/$AF$6,Devex_FEP!E15,19,2
+engine_pasted_20260925,27,Municipality donation,Donation,Devex,,2028-02-23,=BORA_Devex!$E$27,1,0,HUF,35000000,0.0,94.5945945945946,0.2,=3500000*AF17,=I27/$AF$6,Devex_FEP!E16,19,2
+engine_pasted_20260925,28,Environmental assessment,Bird-bat monitoring,Devex,,2027-12-30,=BORA_Devex!$E$28,1,0,HUF,14832000,0.0,40.086486486486486,0.2,=12360000*1.2,=I28/$AF$6,Devex_FEP!E17,17,2
+engine_pasted_20260925,29,,Administrative fee,Devex,,2028-04-28,=BORA_Devex!$E$29,1,0,HUF,40000,0.0,0.10810810810810811,0.2,=10000*AF16,=I29/$AF$6,Devex_FEP!E18,21,2
+engine_pasted_20260925,30,,Assessment fee,Devex,,2028-03-29,=BORA_Devex!$E$30,1,0,HUF,32610000,0.0,88.13513513513513,0.2,=(7200000+10180000+4360000)*1.5,=I30/$AF$6,Devex_FEP!E19,20,2
+engine_pasted_20260925,31,Other project development ,Geotechnical assessment fee,Devex,,2027-07-28,=BORA_Devex!$E$31,1,0,HUF,8000000,0.0,21.62162162162162,0.2,=250000*(AF15+AF16),=I31/$AF$6,Devex_FEP!E20,12,2
+engine_pasted_20260925,32,,Archaeological,Devex,,2027-06-28,=BORA_Devex!$E$32,1,0,HUF,8000000,0.0,21.62162162162162,0.2,=250000*(AF15+AF16),=I32/$AF$6,Devex_FEP!E21,11,2
+engine_pasted_20260925,33,,Topography,Devex,,2027-06-28,=BORA_Devex!$E$33,1,0,HUF,8000000,0.0,21.62162162162162,0.2,=250000*(AF15+AF16),=I33/$AF$6,Devex_FEP!E22,11,2
+engine_pasted_20260925,34,Building permit - Turbines,Administrative fee,Devex,,2028-01-28,=BORA_Devex!$E$34,1,0,HUF,4590000,0.0,12.405405405405405,0.2,=1147500*AF16,=I34/$AF$6,Devex_FEP!E23,18,2
+engine_pasted_20260925,35,,Design fee,Devex,,2028-01-28,=BORA_Devex!$E$35,1,0,HUF,138000000,0.0,372.97297297297297,0.2,=30000000*AF16*1.15,=I35/$AF$6,Devex_FEP!E24,18,2
+engine_pasted_20260925,36,Cable right,Administrative fee,Devex,,2028-01-28,=BORA_Devex!$E$36,1,0,HUF,45000000,0.0,121.62162162162163,0.2,=150000*300,=I36/$AF$6,Devex_FEP!E25,18,2
+engine_pasted_20260925,37,,Design fee,Devex,,2028-01-28,=BORA_Devex!$E$37,1,0,HUF,74896683.6734694,0.0,202.42346938775512,0.2,=(I40+I33+38000000)/280*AF7*1.15,=I37/$AF$6,Devex_FEP!E26,18,2
+engine_pasted_20260925,38,,Compensation,Devex,,2027-11-29,=BORA_Devex!$E$38,1,0,HUF,15000000,0.0,40.54054054054054,0.2,=50000*300,=I38/$AF$6,Devex_FEP!E27,16,2
+engine_pasted_20260925,39,"Building permit - Substation, switching station",Administrative fee,Devex,,2028-01-28,=BORA_Devex!$E$39,1,0,HUF,6000000,0.0,16.216216216216218,0.2,=1500000*AF16,=I39/$AF$6,Devex_FEP!E28,18,2
+engine_pasted_20260925,40,,Design fee,Devex,,2028-01-28,=BORA_Devex!$E$40,1,0,HUF,45178571.428571425,0.0,122.1042471042471,0.2,=55000000/280*AF7*1.15,=I40/$AF$6,Devex_FEP!E29,18,2
+engine_pasted_20260925,41,Building permit - BESS,Administrative fee,Devex,,2028-01-28,=BORA_Devex!$E$41,1,0,HUF,4590000,0.0,12.405405405405405,0.2,=1147500*AF16,=I41/$AF$6,Devex_FEP!E30,18,2
+engine_pasted_20260925,42,,Design fee,Devex,,2028-01-28,=BORA_Devex!$E$42,1,0,HUF,35000000,0.0,94.5945945945946,0.2,=7000000/40*AF10,=I42/$AF$6,Devex_FEP!E31,18,2
+engine_pasted_20260925,43,HEPURA permit,Administrative fee,Devex,,2029-01-08,=BORA_Devex!$E$43,1,0,HUF,20000000,0.0,54.054054054054056,0.2,=2500000*AF16*2,=I43/$AF$6,Devex_FEP!E32,30,2
+engine_pasted_20260925,44,,Report fee,Devex,,2028-11-09,=BORA_Devex!$E$44,1,0,HUF,12000000,0.0,32.432432432432435,0.2,=1500000*AF16*2,=I44/$AF$6,Devex_FEP!E33,28,2
+engine_pasted_20260925,45,Legal costs,Legal costs,Devex,,2027-12-31,"=DATE(2027,12,31)",1,0,EUR,0.0,20000,20,0.2,=J45*$AF$6,,Devex_FEP!E34,17,2
+engine_pasted_20260925,46,Financial costs,Financial costs,Devex,,2027-12-31,"=DATE(2027,12,31)",1,0,EUR,0.0,80000,80,0.2,=J46*$AF$6,,Devex_FEP!E35,17,2
+engine_pasted_20260925,47,"Other costs (HR, car etc.) ","Other costs (HR, car etc.)",Excluded,,2027-12-31,"=DATE(2027,12,31)",0,0,EUR,0.0,50000,50,0.2,=J47*$AF$6,,Devex_FEP!E36,17,2
+engine_pasted_20260925,48,RtB ,Land purchase price,Land,,2029-03-24,=BORA_Devex!$E$48,0,1,HUF,91200000,0.0,246.48648648648648,0.2,=38000000*0.4*6,=I48/$AF$6,Devex_FEP!E37,32,2
+engine_pasted_20260925,49,Contingency,Contingency (% of FEP-borne devex incl. participation fee),Devex,,2028-12-31,"=DATE(2028,12,31)",1,0,MODEL,,,282.207661628573,0.2,,,Devex_FEP!E38,29,2
+devex_file_20261002,5,MEKH capacity  tender,Application fee,Fee,Cash,2026-10-30,,1,0,HUF,6000000,0.0,16.216216216216218,0.12,=V12*3000000,=I5/$V$5,BORA_Devex_20261002_BG!J5,,
+devex_file_20261002,6,,Application bond,Bond,Bank guarantee,2026-10-30,,1,0,HUF,1047800000,0.0,2831.891891891892,0.06,=V10*V6*0.005+V11*V9*0.005,=I6/$V$5,BORA_Devex_20261002_BG!J6,,
+devex_file_20261002,7,,Performance bond,Bond,Bank guarantee,2026-12-30,,1,0,HUF,6810700000,0.0,18407.2972972973,0.06,=((V10*V6*0.025+V11*V9*0.025)*1.5)-I6,=I7/$V$5,BORA_Devex_20261002_BG!J7,,
+devex_file_20261002,8,Capacity allocation process - Application,Application bond (TSO),Bond,Cash deposit,2026-12-30,,1,0,HUF,900000000,0.0,2432.4324324324325,0.12,=4500000*200,=I8/$V$5,BORA_Devex_20261002_BG!J8,,
+devex_file_20261002,9,Supplementary grid bond - 2027,Supplementary grid bond annual instalment for 2027,Bond,Bank guarantee,2027-04-23,,1,0,EUR,0.0,,0.0,,,,BORA_Devex_20261002_BG!J9,,
+devex_file_20261002,10,Supplementary grid bond - 2028,Supplementary grid bond annual instalment for 2028,Bond,Bank guarantee,2028-04-23,,1,0,EUR,0.0,,0.0,,,,BORA_Devex_20261002_BG!J10,,
+devex_file_20261002,11,Supplementary grid bond - refund,Supplementary grid bond refund after BP,Refund,Bank guarantee,2028-03-13,,1,0,EUR,0.0,,0.0,,,,BORA_Devex_20261002_BG!J11,,
+devex_file_20261002,12,Supplementary grid bond - 2029,Supplementary grid bond annual instalment for 2029,Bond,Bank guarantee,2029-04-23,,1,0,EUR,0.0,,0.0,,,,BORA_Devex_20261002_BG!J12,,
+devex_file_20261002,13,Supplementary grid bond - 2030,Supplementary grid bond annual instalment for 2030,Bond,Bank guarantee,2030-04-23,,1,0,EUR,0.0,,0.0,,,,BORA_Devex_20261002_BG!J13,,
+devex_file_20261002,14,Capacity allocation process - Awarding,Land reservation fee,Land,Cash,2027-02-13,,1,1,EUR,0.0,55650,55.65,0.2,=J14*V5,=1325*V14*1.5,BORA_Devex_20261002_BG!J14,,
+devex_file_20261002,15,,Land purchase price ,Land,Cash,2027-02-13,,1,1,HUF,45600000,0.0,123.24324324324324,0.2,=38000000*0.2*6,=I15/$V$5,BORA_Devex_20261002_BG!J15,,
+devex_file_20261002,16,Grid connection plan,Design fee ,Devex,Cash,2028-08-11,,1,0,HUF,76885714.28571427,0.0,207.79922779922776,0.2,=72000000/280*V6*1.15,=I16/$V$5,BORA_Devex_20261002_BG!J16,,
+devex_file_20261002,17,,Administrative fee,Devex,Cash,2028-08-11,,1,0,HUF,750544,0.0,2.028497297297297,0.2,=187636*V15,=I17/$V$5,BORA_Devex_20261002_BG!J17,,
+devex_file_20261002,18,Grid connection agreement ,Connection fee - Indirect,Connection fee,Cash,2029-01-08,,1,0,HUF,18098539560,0.0,48914.97178378379,0.12,=(73071306*V6)-I8,=I18/$V$5,BORA_Devex_20261002_BG!J18,,
+devex_file_20261002,19,,Connection fee - Direct,Connection fee,Cash,2029-01-08,,1,0,HUF,508345804,0.0,1373.9075783783785,0.12,=508345804,=I19/$V$5,BORA_Devex_20261002_BG!J19,,
+devex_file_20261002,20,Land contracting (additional land),"Legal fee, agent fee ",Devex,Cash,2026-10-01,,1,0,MIXED,34500000,84000,177.24324324324326,0.2,=25*(1200000+180000)+3000*V13*V5,=I20/V5,BORA_Devex_20261002_BG!J20,,
+devex_file_20261002,21,Wind measurement,Met Masts ,Devex,Cash,2027-03-01,,1,0,EUR,0.0,398000,398.0,0.2,=J21*V5,=199000*2,BORA_Devex_20261002_BG!J21,,
+devex_file_20261002,22,,Design fee ,Devex,Cash,2027-01-01,,1,0,HUF,3600000,0.0,9.72972972972973,0.2,=1500000*2*1.2,=I22/V5,BORA_Devex_20261002_BG!J22,,
+devex_file_20261002,23,,EYA ,Devex,Cash,2028-06-28,,1,0,EUR,0.0,4500,4.5,0.2,=J23*V5,,BORA_Devex_20261002_BG!J23,,
+devex_file_20261002,24,Land reclassification ,Administrative fee,Devex,Cash,2027-12-25,,1,0,HUF,960000,0.0,2.5945945945945947,0.2,=30000*(V14+V15),=I24/$V$5,BORA_Devex_20261002_BG!J24,,
+devex_file_20261002,25,,Report fee,Devex,Cash,2027-07-28,,1,0,HUF,8000000,0.0,21.62162162162162,0.2,=250000*(V14+V15),=I25/$V$5,BORA_Devex_20261002_BG!J25,,
+devex_file_20261002,26,Zoning plan modification ,Design fee ,Devex,Cash,2028-02-23,,1,0,HUF,50000000,0.0,135.13513513513516,0.2,=5000000*V16,=I26/$V$5,BORA_Devex_20261002_BG!J26,,
+devex_file_20261002,27,Municipality donation,Donation ,Devex,Cash,2028-02-23,,1,0,HUF,35000000,0.0,94.5945945945946,0.2,=3500000*V16,=I27/$V$5,BORA_Devex_20261002_BG!J27,,
+devex_file_20261002,28,Environmental assessment,Bird-bat monitoring,Devex,Cash,2027-12-30,,1,0,HUF,14832000,0.0,40.086486486486486,0.2,=12360000*1.2,=I28/$V$5,BORA_Devex_20261002_BG!J28,,
+devex_file_20261002,29,,Administrative fee ,Devex,Cash,2028-04-28,,1,0,HUF,40000,0.0,0.10810810810810811,0.2,=10000*V15,=I29/$V$5,BORA_Devex_20261002_BG!J29,,
+devex_file_20261002,30,,Assessment fee,Devex,Cash,2028-03-29,,1,0,HUF,32610000,0.0,88.13513513513513,0.2,=(7200000+10180000+4360000)*1.5,=I30/$V$5,BORA_Devex_20261002_BG!J30,,
+devex_file_20261002,31,Other project development ,Geotechnical assessment fee,Devex,Cash,2027-07-28,,1,0,HUF,8000000,0.0,21.62162162162162,0.2,=250000*(V14+V15),=I31/$V$5,BORA_Devex_20261002_BG!J31,,
+devex_file_20261002,32,,Archaeological,Devex,Cash,2027-06-28,,1,0,HUF,8000000,0.0,21.62162162162162,0.2,=250000*(V14+V15),=I32/$V$5,BORA_Devex_20261002_BG!J32,,
+devex_file_20261002,33,,Topography ,Devex,Cash,2027-06-28,,1,0,HUF,8000000,0.0,21.62162162162162,0.2,=250000*(V14+V15),=I33/$V$5,BORA_Devex_20261002_BG!J33,,
+devex_file_20261002,34,Building permit - Turbines,Administrative fee,Devex,Cash,2028-01-28,,1,0,HUF,4590000,0.0,12.405405405405405,0.2,=1147500*V15,=I34/$V$5,BORA_Devex_20261002_BG!J34,,
+devex_file_20261002,35,,Design fee,Devex,Cash,2028-01-28,,1,0,HUF,138000000,0.0,372.97297297297297,0.2,=30000000*V15*1.15,=I35/$V$5,BORA_Devex_20261002_BG!J35,,
+devex_file_20261002,36,Cable right,Administrative fee,Devex,Cash,2028-01-28,,1,0,HUF,45000000,0.0,121.62162162162163,0.2,=150000*300,=I36/$V$5,BORA_Devex_20261002_BG!J36,,
+devex_file_20261002,37,,Design fee,Devex,Cash,2028-01-28,,1,0,HUF,111838966.83673468,0.0,302.26747793712076,0.2,=(I40+I33+38000000)/280*V6*1.15,=I37/$V$5,BORA_Devex_20261002_BG!J37,,
+devex_file_20261002,38,,Compensation,Devex,Cash,2027-11-29,,1,0,HUF,15000000,0.0,40.54054054054054,0.2,=50000*300,=I38/$V$5,BORA_Devex_20261002_BG!J38,,
+devex_file_20261002,39,"Building permit - Substation, switching station",Administrative fee,Devex,Cash,2028-01-28,,1,0,HUF,6000000,0.0,16.216216216216218,0.2,=1500000*V15,=I39/$V$5,BORA_Devex_20261002_BG!J39,,
+devex_file_20261002,40,,Design fee,Devex,Cash,2028-01-28,,1,0,HUF,58732142.85714285,0.0,158.73552123552122,0.2,=55000000/280*V6*1.15,=I40/$V$5,BORA_Devex_20261002_BG!J40,,
+devex_file_20261002,41,Building permit - BESS,Administrative fee,Devex,Cash,2028-01-28,,1,0,HUF,4590000,0.0,12.405405405405405,0.2,=1147500*V15,=I41/$V$5,BORA_Devex_20261002_BG!J41,,
+devex_file_20261002,42,,Design fee,Devex,Cash,2028-01-28,,1,0,HUF,91000000,0.0,245.94594594594594,0.2,=7000000/40*V9,=I42/$V$5,BORA_Devex_20261002_BG!J42,,
+devex_file_20261002,43,HEPURA permit,Administrative fee,Devex,Cash,2029-01-08,,1,0,HUF,20000000,0.0,54.054054054054056,0.2,=2500000*V15*2,=I43/$V$5,BORA_Devex_20261002_BG!J43,,
+devex_file_20261002,44,,Report fee,Devex,Cash,2028-11-09,,1,0,HUF,12000000,0.0,32.432432432432435,0.2,=1500000*V15*2,=I44/$V$5,BORA_Devex_20261002_BG!J44,,
+devex_file_20261002,45,Legal costs,Legal costs,Devex,Cash,Continuous,,1,0,EUR,0.0,20000,20.0,0.2,=J45*$V$5,,BORA_Devex_20261002_BG!J45,,
+devex_file_20261002,46,Financial costs,Financial costs,Devex,Cash,Continuous,,1,0,EUR,0.0,80000,80.0,0.2,=J46*$V$5,,BORA_Devex_20261002_BG!J46,,
+devex_file_20261002,47,RtB ,Land purchase price ,Land,Cash,2029-03-24,,1,1,HUF,91200000,0.0,246.48648648648648,0.2,=38000000*0.4*6,=I47/$V$5,BORA_Devex_20261002_BG!J47,,
+devex_file_20261002,48,Contingency,Contingency,Devex,Cash,Continuous,,1,0,EUR,0.0,315763.47783232044,315.76347783232046,0.2,=0.1*(SUM(I5:I47)-I6-I7-I8-I18-I19-I9-I10-I11-I12-I13),=0.1*(SUM(J5:J47)-J6-J7-J8-J18-J19-J9-J10-J11-J12-J13),BORA_Devex_20261002_BG!J48,,

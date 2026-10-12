@@ -1,0 +1,1320 @@
+{
+ "meta": {
+  "source": "reference/Bora_scenarios_meeting.xlsx (read-only); values = LibreOffice recalculation with Calc!E10 = run code and the data table Calc!G306:DH330 cleared in a private copy (otherwise LibreOffice leaves some cells stale).",
+  "units": "k€ unless stated; mHUF = HUF million; dates ISO",
+  "runs": "run = strategy×5 + route (route 1 RtB, 2 COD-EU, 3 COD-CN, 4 HTM-EU, 5 HTM-CN; strategy 0=S1, 1=S2 BORA 1, 2=S3 BORA 2, 3=S4, 4=S0)"
+ },
+ "inputs": {
+  "Inputs!E11": {
+   "label": "EUR / HUF",
+   "unit": "HUF/EUR",
+   "value": 365.0,
+   "note": "Single FX for the whole model (also used for mHUF reporting outputs)."
+  },
+  "Inputs!E12": {
+   "label": "Hungary corporate income tax",
+   "unit": "%",
+   "value": 0.09,
+   "note": "Applied to positive cumulative profit at sale, less any gain exempted by the participation exemption (E14)."
+  },
+  "Inputs!E16": {
+   "label": "Gross capacity entered in tender",
+   "unit": "MW",
+   "value": 100.0,
+   "note": "Bid-stage items (participation fee, bid bond) scale with this."
+  },
+  "Inputs!E17": {
+   "label": "Conversion rate (capacity awarded and taken to RTB)",
+   "unit": "%",
+   "value": 1.0,
+   "note": "Post-award items and exit proceeds scale with successful capacity."
+  },
+  "Inputs!E21": {
+   "label": "BESS duration",
+   "unit": "Hours",
+   "value": 4.0,
+   "note": "Storage hours at rated power – linked to Tender J16 (active tender strategy; 4 h in every strategy, Munka1 0.25C)"
+  },
+  "Inputs!E24": {
+   "label": "Signing fee to current owners",
+   "unit": "k€",
+   "value": 250.0,
+   "note": "Paid at month 0."
+  },
+  "Inputs!E25": {
+   "label": "Transaction / DD costs to FEP",
+   "unit": "k€",
+   "value": 150.0,
+   "note": "Paid at month 0."
+  },
+  "Inputs!E26": {
+   "label": "Sale costs at exit",
+   "unit": "k€",
+   "value": 500.0,
+   "note": "Deducted from proceeds in the waterfall."
+  },
+  "Inputs!E27": {
+   "label": "Investment date (month 0)",
+   "unit": "Date",
+   "value": "2026-07-31",
+   "note": "Start of the monthly grid; every month steps by EOMONTH."
+  },
+  "Inputs!E28": {
+   "label": "Lag from RTB to sale",
+   "unit": "Months",
+   "value": 6.0,
+   "note": "RTB + 6 months = RtB sale (BORA Devex proposal; was 3). RTB 30/06/2029 → sale 31/12/2029"
+  },
+  "Inputs!E31": {
+   "label": "JV structure live (1 = 70/30 JV, 0 = FEP 100%)",
+   "unit": "Switch",
+   "value": 1.0,
+   "note": "Master switch. Also drives Assumptions!E8 on the HTM side."
+  },
+  "Inputs!E32": {
+   "label": "FEP share of net proceeds if JV",
+   "unit": "%",
+   "value": 0.7,
+   "note": ""
+  },
+  "Inputs!E33": {
+   "label": "FEP effective share of distributable proceeds",
+   "unit": "%",
+   "value": 0.7,
+   "note": ""
+  },
+  "Inputs!E34": {
+   "label": "Developer effective share",
+   "unit": "%",
+   "value": 0.30000000000000004,
+   "note": ""
+  },
+  "Inputs!E36": {
+   "label": "Developer success fee p.a.",
+   "unit": "k€/MW",
+   "value": 2.5,
+   "note": "DSA on installed MW per BORA_Devex – user 09-Oct-26: accrues pro rata to the sale on the installed wind MW (E29, BORA_Devex V37 = 2 500 €/MW × V6); settled at exit from proceeds (not funded to RTB). Cap E37 per the same MW."
+  },
+  "Inputs!E37": {
+   "label": "Success fee cap",
+   "unit": "k€/MW",
+   "value": 10.0,
+   "note": ""
+  },
+  "Inputs!E38": {
+   "label": "Success fee live",
+   "unit": "Switch",
+   "value": 1.0,
+   "note": "Fee only exists in the JV case."
+  },
+  "Inputs!E55": {
+   "label": "Months from investment to RTB",
+   "unit": "Months",
+   "value": 35.0,
+   "note": "Milestone sum, or derived from the COD override (Inputs row 298 ← Control Panel section c; Bora Sep-2031)"
+  },
+  "Inputs!E56": {
+   "label": "RTB date",
+   "unit": "Date",
+   "value": "2029-06-30",
+   "note": ""
+  },
+  "Inputs!E57": {
+   "label": "Sale month (grid index)",
+   "unit": "Months",
+   "value": 41.0,
+   "note": ""
+  },
+  "Inputs!E58": {
+   "label": "Sale date",
+   "unit": "Date",
+   "value": "2029-12-31",
+   "note": ""
+  },
+  "Inputs!E61": {
+   "label": "Recoverable loan interest (refundable securities)",
+   "unit": "% p.a.",
+   "value": 0.12,
+   "note": "Compounded monthly on the drawn balance."
+  },
+  "Inputs!E62": {
+   "label": "Unrecoverable (at-risk) loan interest",
+   "unit": "% p.a.",
+   "value": 0.2,
+   "note": "Compounded monthly."
+  },
+  "Inputs!E64": {
+   "label": "Interest pause start (no accrual after this date until the pause end, row 73)",
+   "unit": "Date",
+   "value": "2029-06-30",
+   "note": "Interest pause 30/06/2029 – 01/01/2030: no accrual in between (user 09-Oct-26)"
+  },
+  "Inputs!E65": {
+   "label": "Interest on bank-guaranteed securities (credited to FEP)",
+   "unit": "% p.a.",
+   "value": 0.06,
+   "note": "Accrues monthly-compounded on the guarantee-backed securities outstanding; paid to FEP (and Developer pro rata) from sale proceeds, like loan interest."
+  },
+  "Inputs!E69": {
+   "label": "Interest compounding: annual, BORA Devex convention (1) or monthly (0)",
+   "unit": "Switch",
+   "value": 1.0,
+   "note": "1 = effective monthly rate (1+r)^(1/12)−1, equivalent to annual compounding as in the Devex file. 0 = nominal r/12."
+  },
+  "Inputs!E70": {
+   "label": "DSA / developer success fee accrual start (signing)",
+   "unit": "Date",
+   "value": "2026-10-26",
+   "note": "Signing 26/10/2026. Fee accrues pro rata (30/360) from here to the sale date at E36, capped at E37."
+  },
+  "Inputs!E71": {
+   "label": "At-risk loan principal (devex) repaid from sale proceeds (1) or carried by FEP (0)",
+   "unit": "Switch",
+   "value": 0.0,
+   "note": "0 = FEP carries its devex (only the 2× return is paid from proceeds), as in the Devex file."
+  },
+  "Inputs!E73": {
+   "label": "Interest pause end (accrual resumes on this date; user 09-Oct-26)",
+   "unit": "Date",
+   "value": "2030-01-01",
+   "note": "Every interest / return accrual (securities 6 % / 12 %, participation fee, devex and land 20 % with the 2× minimum, shareholder-loan and guarantee interest) pauses from row 64 to here, then runs on to the exit date (RtB sale E58; COD sale E155). Not paused: success fee (BORA_Devex X37 = V37), bank guarantee fees. Exact while the pause ends on 1 January (each year keeps one stub); a pause ending mid-year splits that year into two simple stubs – cross-term r²·a·b/365², ≈ +0.8 % on a 20 % line for half a year each side – so a zero-length pause is not exactly the continuous accrual."
+  },
+  "Inputs!E75": {
+   "label": "Benchmark CAPEX – wind (csatlakozási díj alapdíj)",
+   "unit": "mHUF/MW",
+   "value": 406.0,
+   "note": "Wind leg of the %-driven security base. Matches the FEP workbook's 406 mHUF/MW."
+  },
+  "Inputs!E76": {
+   "label": "Bid bond rate (ajánlati biztosíték)",
+   "unit": "% of base",
+   "value": 0.005,
+   "note": "0.5% of the bid-stage base (E91), no uplift – matches BORA Devex I6 (606 mHUF)."
+  },
+  "Inputs!E77": {
+   "label": "Performance bond rate (teljesítési biztosíték)",
+   "unit": "% of base",
+   "value": 0.025,
+   "note": ""
+  },
+  "Inputs!E78": {
+   "label": "Supplementary security total rate (kiegészítő biztosíték)",
+   "unit": "% of base",
+   "value": 0.0,
+   "note": "0 – no supplementary security (kiegészítő biztosíték) in this procedure: GYIK 70 (user 09-Oct-26; removed 07-Oct-26, was 5 %). Deposits rows 13–17 stay at 0; the Bora reconciliation excludes the source's supplementary lines (Deposits E50)."
+  },
+  "Inputs!E79": {
+   "label": "Supplementary – 1st instalment share",
+   "unit": "%",
+   "value": 0.4,
+   "note": "2030 COD: first annual instalment is double."
+  },
+  "Inputs!E80": {
+   "label": "Supplementary – instalments 2–4 share (each)",
+   "unit": "%",
+   "value": 0.2,
+   "note": ""
+  },
+  "Inputs!E81": {
+   "label": "Participation fee (részvételi díj)",
+   "unit": "mHUF per bid",
+   "value": 3.0,
+   "note": "Final tender: HUF 3.0m per bid (draft was 2.0m). Source: MEKH kiírás 30-Aug-26 via palyazatok.org, https://palyazatok.org/szeleromu-palyazat/"
+  },
+  "Inputs!E82": {
+   "label": "Number of separate bids (fee is per bid)",
+   "unit": "#",
+   "value": 2.0,
+   "note": "IC paper: BORA = 6 SPVs (5 × 50 MW + 1 × 30 MW). Case 1 keeps 6 bids at 200 MW as a conservative fee count."
+  },
+  "Inputs!E83": {
+   "label": "Connection request security (igénybejelentési biztosíték)",
+   "unit": "mHUF/MW",
+   "value": 4.5,
+   "note": "Cash only – the TSO bond cannot be posted as a bank guarantee; credited against the indirect connection fee."
+  },
+  "Inputs!E84": {
+   "label": "Connection fee – direct (csatlakozási díj – közvetlen)",
+   "unit": "mHUF/MW",
+   "value": 5.08345804,
+   "note": "BORA_Devex_20261002_BG row 19 (unchanged since 25-Sep): direct connection fee 508,345,804 HUF (k€ 1,374 at 370 HUF/EUR in the example); expressed per MW so it scales with capacity. Paid on the connection fee date."
+  },
+  "Inputs!E85": {
+   "label": "Connection fee estimate (csatlakozási díj)",
+   "unit": "mHUF/MW",
+   "value": 73.071306,
+   "note": "BORA_Devex_20261002_BG row 18: 73,071,306 HUF/MW (unchanged), booked net of the TSO bond. The example applies it to its 260 MW wind capacity (V6; k€ 48,915); the model to the net MVA (Inputs E18) – Bora 200 MVA: k€ 37,573 at 365 HUF/EUR."
+  },
+  "Inputs!E89": {
+   "label": "Benchmark CAPEX – BESS",
+   "unit": "mHUF/MWh",
+   "value": 200.0,
+   "note": "BESS leg of the %-driven security base."
+  },
+  "Inputs!E95": {
+   "label": "Bid submission (pályázat benyújtása)",
+   "unit": "Date",
+   "value": "2026-10-30",
+   "note": "Final tender: window 4 Sep – 30 Oct 2026 (draft was 1–18 Sep). Source: MEKH kiírás 30-Aug-26 via Világgazdaság/Portfolio, https://www.portfolio.hu/gazdasag/20260831/meg-csak-most-irtak-ki-a-szeltendert-de-maris-bearnyekolja-a-hazai-szelenergia-celokat-859412"
+  },
+  "Inputs!E96": {
+   "label": "Award (eredményhirdetés)",
+   "unit": "Date",
+   "value": "2026-12-13",
+   "note": "Final tender: results by 13 Dec 2026 (draft was 2 Dec). Same source as above."
+  },
+  "Inputs!E97": {
+   "label": "Connection request (igénybejelentés)",
+   "unit": "Date",
+   "value": "2026-12-30",
+   "note": "Within 15 days of award (linked: award + 14 days)."
+  },
+  "Inputs!E98": {
+   "label": "MGT acceptance",
+   "unit": "Date",
+   "value": "2027-04-01",
+   "note": ""
+  },
+  "Inputs!E99": {
+   "label": "HCsSz signature (connection agreement)",
+   "unit": "Date",
+   "value": "2029-01-08",
+   "note": "Connection fee paid here."
+  },
+  "Inputs!E100": {
+   "label": "Building permit obtained (építési engedély)",
+   "unit": "Date",
+   "value": "2028-03-13",
+   "note": "Drives the 50% supplementary refund and the step-down of later instalments."
+  },
+  "Inputs!E101": {
+   "label": "COD – target (tender application)",
+   "unit": "Date",
+   "value": "2030-12-31",
+   "note": "TARGET, not a deadline. The binding dates are the earliest connection date (E237) and the COD deadline (E238), checked on E240 and E241. Slipping past this target is not a breach."
+  },
+  "Inputs!E102": {
+   "label": "Performance bond payment deadline after award",
+   "unit": "Days",
+   "value": 17.0,
+   "note": ""
+  },
+  "Inputs!E103": {
+   "label": "Supplementary security April payment day",
+   "unit": "Day",
+   "value": 23.0,
+   "note": ""
+  },
+  "Inputs!E104": {
+   "label": "First April payment after MGT acceptance (dates the supplementary instalments – nil, GYIK 70)",
+   "unit": "Date",
+   "value": "2027-04-23",
+   "note": ""
+  },
+  "Inputs!E107": {
+   "label": "Bid bond credited into performance bond (1 = yes)",
+   "unit": "Switch",
+   "value": 1.0,
+   "note": "Only the top-up is a new cash outflow; the bid bond is not released separately."
+  },
+  "Inputs!E108": {
+   "label": "Supplementary security refund / step-down ratio at building permit",
+   "unit": "%",
+   "value": 0.5,
+   "note": ""
+  },
+  "Inputs!E109": {
+   "label": "Include instalments falling due after the sale in FEP cash flows (1 = yes)",
+   "unit": "Switch",
+   "value": 0.0,
+   "note": "Default 0: instalments after exit are the buyer's obligation. Set 1 to stress."
+  },
+  "Inputs!E110": {
+   "label": "Bid bond on failed capacity refunded at award (1 = yes)",
+   "unit": "Switch",
+   "value": 1.0,
+   "note": "Per tender rules the bid bond is refunded if the bid is unsuccessful."
+  },
+  "Inputs!E111": {
+   "label": "Bank guarantee margin (all-in over EURIBOR)",
+   "unit": "%",
+   "value": 0.03,
+   "note": "Reference cost: EURIBOR + 3.00% margin. Used only when E114 = 0."
+  },
+  "Inputs!E113": {
+   "label": "Assumed all-in guarantee rate – guarantee-backed securities",
+   "unit": "% p.a.",
+   "value": 0.06,
+   "note": "Applied rate for guarantee-backed lines. Overrides EURIBOR + margin when E114 = 1."
+  },
+  "Inputs!E114": {
+   "label": "Use assumed all-in rate (1) or EURIBOR + margin (0)",
+   "unit": "Switch",
+   "value": 1.0,
+   "note": "1 = cost guarantees at E113 flat; 0 = cost at the selected EURIBOR curve (E112) + E111 margin."
+  },
+  "Inputs!E117": {
+   "label": "Részvételi díj",
+   "unit": "Switch",
+   "value": 1.0,
+   "note": "Fee – cash only; guarantee not applicable."
+  },
+  "Inputs!E118": {
+   "label": "Ajánlati biztosíték",
+   "unit": "Switch",
+   "value": 0.0,
+   "note": ""
+  },
+  "Inputs!E119": {
+   "label": "Teljesítési biztosíték",
+   "unit": "Switch",
+   "value": 0.0,
+   "note": ""
+  },
+  "Inputs!E120": {
+   "label": "Igénybejelentési biztosíték",
+   "unit": "Switch",
+   "value": 1.0,
+   "note": ""
+  },
+  "Inputs!E121": {
+   "label": "Csatlakozási díj – közvetlen",
+   "unit": "Switch",
+   "value": 1.0,
+   "note": ""
+  },
+  "Inputs!E122": {
+   "label": "Kiegészítő biztosíték 1. részlet",
+   "unit": "Switch",
+   "value": 0.0,
+   "note": ""
+  },
+  "Inputs!E123": {
+   "label": "Kiegészítő biztosíték 2. részlet",
+   "unit": "Switch",
+   "value": 0.0,
+   "note": ""
+  },
+  "Inputs!E124": {
+   "label": "Kiegészítő biztosíték 3. részlet",
+   "unit": "Switch",
+   "value": 0.0,
+   "note": ""
+  },
+  "Inputs!E125": {
+   "label": "Kiegészítő biztosíték 4. részlet",
+   "unit": "Switch",
+   "value": 0.0,
+   "note": ""
+  },
+  "Inputs!E126": {
+   "label": "Csatlakozási díj",
+   "unit": "Switch",
+   "value": 1.0,
+   "note": ""
+  },
+  "Inputs!E152": {
+   "label": "NTP / FID lag after RTB",
+   "unit": "Months",
+   "value": 3.0,
+   "note": "RTB 30/06/2029 (E56) → NTP 30/09/2029 after this lag."
+  },
+  "Inputs!E153": {
+   "label": "Construction duration (NTP → COD)",
+   "unit": "Months",
+   "value": 24.0,
+   "note": "Two build seasons; 132 kV connection works (Szombathely OVIT node) on the critical path."
+  },
+  "Inputs!E154": {
+   "label": "NTP / construction start date",
+   "unit": "Date",
+   "value": "2029-09-30",
+   "note": ""
+  },
+  "Inputs!E155": {
+   "label": "COD (derived)",
+   "unit": "Date",
+   "value": "2031-09-30",
+   "note": "Compare with tender COD target in E101 – HTM check on the HTM sheet."
+  },
+  "Inputs!E156": {
+   "label": "First full operating year",
+   "unit": "Year",
+   "value": 2032.0,
+   "note": "COD is a month-end, so the first full calendar year is always the year after COD. The COD year itself is a partial year (HTM row 10). Fixed 25-Sep-26: previously the COD year was flagged as a full year AND a partial year (150%)."
+  },
+  "Inputs!E157": {
+   "label": "Operating life",
+   "unit": "Years",
+   "value": 30.0,
+   "note": "Measured from COD (partial first and last calendar years). 30 years = grid-connection life constraint; 35 years is the usual wind assumption."
+  },
+  "Inputs!E158": {
+   "label": "Last operating year (COD year + operating life; partial unless COD is in December)",
+   "unit": "Year",
+   "value": 2061.0,
+   "note": ""
+  },
+  "Inputs!E162": {
+   "label": "Turbine supply incl. transport (6.x MW class)",
+   "unit": "k€/MW",
+   "value": 950.0,
+   "note": "ESTIMATE – base = European turbine 950 k€/MW (user decision 02-Oct-26, ≥80% EU-equipment tender points). IC: all-in ~1,500 k€/MW (Nordex 6.8 MW). Replace with turbine tender quote."
+  },
+  "Inputs!E163": {
+   "label": "Turbine installation and erection",
+   "unit": "k€/MW",
+   "value": 80.0,
+   "note": "ESTIMATE."
+  },
+  "Inputs!E164": {
+   "label": "Foundations",
+   "unit": "k€/MW",
+   "value": 90.0,
+   "note": "ESTIMATE."
+  },
+  "Inputs!E165": {
+   "label": "Balance of plant – civil (roads, crane pads, drainage)",
+   "unit": "k€/MW",
+   "value": 70.0,
+   "note": "ESTIMATE."
+  },
+  "Inputs!E166": {
+   "label": "Balance of plant – electrical (MV cabling, internal grid)",
+   "unit": "k€/MW",
+   "value": 60.0,
+   "note": "ESTIMATE."
+  },
+  "Inputs!E167": {
+   "label": "On-site substation and 132 kV bay (lump sum, portfolio)",
+   "unit": "k€",
+   "value": 12000.0,
+   "note": "ESTIMATE. 132 kV connection works and substation incl. generator transformer – route length to be confirmed. Chinese cases (3 / 8): non-EU transformer, lower by Tender E29 (10%)."
+  },
+  "Inputs!E168": {
+   "label": "BESS capex – all-in (capex only: no BESS revenue or opex modelled)",
+   "unit": "k€/MW BESS",
+   "value": 200.0,
+   "note": "ESTIMATE. Applied to BESS connection capacity (E20), not wind MW. No contingency applied. The BESS earns nothing in HTM – revenue and opex are not modelled, so HTM returns are understated by whatever the battery would earn."
+  },
+  "Inputs!E169": {
+   "label": "Owner's costs, engineering, PM, construction insurance",
+   "unit": "k€/MW",
+   "value": 40.0,
+   "note": "ESTIMATE."
+  },
+  "Inputs!E170": {
+   "label": "Land purchase / easements at NTP",
+   "unit": "k€/MW",
+   "value": 15.0,
+   "note": "ESTIMATE. Land is leased; this covers rights-of-way and buy-outs."
+  },
+  "Inputs!E171": {
+   "label": "Contingency on the lines above",
+   "unit": "%",
+   "value": 0.05,
+   "note": "ESTIMATE."
+  },
+  "Inputs!E175": {
+   "label": "Decommissioning cost net of scrap (end of life)",
+   "unit": "k€/MW",
+   "value": 30.0,
+   "note": "ESTIMATE."
+  },
+  "Inputs!E176": {
+   "label": "Terminal value at end of life",
+   "unit": "k€/MW",
+   "value": 0.0,
+   "note": "Conservative: nil. Enter a repowering / land value if wanted."
+  },
+  "Inputs!E179": {
+   "label": "Net equivalent hours P50 (after wake, availability and electrical losses)",
+   "unit": "MWh/MW/yr",
+   "value": 2460.0,
+   "note": "IC paper: NCF 28.07%, P50 2,460 h. Already net of losses."
+  },
+  "Inputs!E180": {
+   "label": "Additional availability / loss haircut",
+   "unit": "%",
+   "value": 0.0,
+   "note": "Zero because the hours above are already net."
+  },
+  "Inputs!E181": {
+   "label": "Curtailment / grid constraint",
+   "unit": "%",
+   "value": 0.02,
+   "note": "ESTIMATE."
+  },
+  "Inputs!E182": {
+   "label": "Annual degradation",
+   "unit": "% p.a.",
+   "value": 0.003,
+   "note": "ESTIMATE. Compounding from first operating year."
+  },
+  "Inputs!E183": {
+   "label": "Yield sensitivity factor (1.00 = P50)",
+   "unit": "x",
+   "value": 1.0,
+   "note": "Set to P90/P50 ratio for a P90 case (typically ~0.85–0.88)."
+  },
+  "Inputs!E184": {
+   "label": "Merchant power price sensitivity factor (1.00 = Aurora curve as selected)",
+   "unit": "x",
+   "value": 1.0,
+   "note": "Scales the Aurora wind capture price used in HTM row 42 (tornado ±10%). Keep at 1.00."
+  },
+  "Inputs!E186": {
+   "label": "Price source (1 = Aurora curve on Curves, 2 = flat estimate below)",
+   "unit": "Switch",
+   "value": 1.0,
+   "note": "1 = Aurora Q2 2026 Central (Curves E16) converted to nominal (Curves E19); 2 = flat estimate below (kept for reference / fallback)."
+  },
+  "Inputs!E187": {
+   "label": "Estimate: baseload price in first operating year",
+   "unit": "EUR/MWh",
+   "value": 100.0,
+   "note": "ESTIMATE, nominal. Replace with Aurora."
+  },
+  "Inputs!E188": {
+   "label": "Estimate: baseload escalation",
+   "unit": "% p.a.",
+   "value": 0.02,
+   "note": "ESTIMATE."
+  },
+  "Inputs!E189": {
+   "label": "Estimate: wind capture rate vs baseload",
+   "unit": "%",
+   "value": 0.85,
+   "note": "ESTIMATE. Hungarian wind cannibalisation is modest at low penetration."
+  },
+  "Inputs!E190": {
+   "label": "Merchant share of output",
+   "unit": "%",
+   "value": 0.0,
+   "note": "Balance sold under the PPA / CfD below."
+  },
+  "Inputs!E191": {
+   "label": "PPA / CfD strike in first operating year",
+   "unit": "EUR/MWh",
+   "value": 91.6,
+   "note": "ESTIMATE."
+  },
+  "Inputs!E192": {
+   "label": "PPA / CfD strike escalation",
+   "unit": "% p.a.",
+   "value": 0.01,
+   "note": ""
+  },
+  "Inputs!E193": {
+   "label": "PPA / CfD tenor from first operating year",
+   "unit": "Years",
+   "value": 10.0,
+   "note": "Merchant thereafter."
+  },
+  "Inputs!E194": {
+   "label": "Balancing / BRP cost",
+   "unit": "EUR/MWh",
+   "value": 4.0,
+   "note": "ESTIMATE. IC flags balancing charges as material."
+  },
+  "Inputs!E195": {
+   "label": "Grid use-of-system and system-operator charges",
+   "unit": "EUR/MWh",
+   "value": 1.0,
+   "note": "ESTIMATE."
+  },
+  "Inputs!E196": {
+   "label": "MEKH supervisory fee",
+   "unit": "% of revenue",
+   "value": 0.001,
+   "note": ""
+  },
+  "Inputs!E197": {
+   "label": "Robin Hood tax (energy suppliers' income tax) applies (1 = yes)",
+   "unit": "Switch",
+   "value": 0.0,
+   "note": "FLAG – default 0: each SPV is ≤ 50 MW, so the 31% levy on generators > 50 MW should not bite. Switch on the Control Panel (section c). Confirm with tax adviser."
+  },
+  "Inputs!E198": {
+   "label": "Robin Hood tax rate",
+   "unit": "%",
+   "value": 0.31,
+   "note": ""
+  },
+  "Inputs!E199": {
+   "label": "Aurora price scenario (1 = Low, 2 = Central, 3 = High)",
+   "unit": "Switch",
+   "value": 2.0,
+   "note": "Drives Curves!E16 (scenario in use). Per-case so the European / Chinese cases and tornado can flex Aurora Low / High."
+  },
+  "Inputs!E201": {
+   "label": "O&M full-service contract (turbines)",
+   "unit": "k€/MW/yr",
+   "value": 12.0,
+   "note": "ESTIMATE. Long-term FSA assumed for the full 30-year operating life (user decision 02-Oct-26) – no post-FSA uplift."
+  },
+  "Inputs!E202": {
+   "label": "Balance of plant maintenance",
+   "unit": "k€/MW/yr",
+   "value": 3.0,
+   "note": "ESTIMATE."
+  },
+  "Inputs!E203": {
+   "label": "Land lease",
+   "unit": "k€/MW/yr",
+   "value": 3.0,
+   "note": "ESTIMATE. Replace with signed lease terms (38 turbines contracted)."
+  },
+  "Inputs!E204": {
+   "label": "Operational insurance",
+   "unit": "k€/MW/yr",
+   "value": 2.5,
+   "note": "ESTIMATE."
+  },
+  "Inputs!E205": {
+   "label": "Asset and commercial management",
+   "unit": "k€/MW/yr",
+   "value": 1.5,
+   "note": "ESTIMATE."
+  },
+  "Inputs!E206": {
+   "label": "Property tax (építményadó)",
+   "unit": "k€/MW/yr",
+   "value": 3.0,
+   "note": "ESTIMATE. Municipal; varies by settlement."
+  },
+  "Inputs!E207": {
+   "label": "Administration, audit, compliance (portfolio)",
+   "unit": "k€/yr",
+   "value": 150.0,
+   "note": "ESTIMATE."
+  },
+  "Inputs!E208": {
+   "label": "Opex contingency",
+   "unit": "%",
+   "value": 0.05,
+   "note": "ESTIMATE."
+  },
+  "Inputs!E209": {
+   "label": "Opex escalation",
+   "unit": "% p.a.",
+   "value": 0.025,
+   "note": "ESTIMATE. EUR-denominated, single index (no double indexation)."
+  },
+  "Inputs!E210": {
+   "label": "HIPA local business tax",
+   "unit": "% of revenue",
+   "value": 0.02,
+   "note": "Base approximated as revenue (conservative – actual base deducts materials and subcontractors)."
+  },
+  "Inputs!E213": {
+   "label": "Tax depreciation period (straight-line from COD)",
+   "unit": "Years",
+   "value": 20.0,
+   "note": "Hungarian tax rate for power-generation assets to be confirmed."
+  },
+  "Inputs!E214": {
+   "label": "Loss carry-forward usable per year (cap on taxable income)",
+   "unit": "%",
+   "value": 0.5,
+   "note": "Hungarian rule: losses offset up to 50% of the year's pre-loss tax base."
+  },
+  "Inputs!E35": {
+   "label": "Developer funds pro rata (1 = yes)",
+   "unit": "Switch",
+   "value": 0.0,
+   "note": "If on, the developer funds its share of both shareholder loans on the same terms."
+  },
+  "Inputs!E229": {
+   "label": "A.RES share of gross RTB proceeds (cash paid out at RTB)",
+   "unit": "%",
+   "value": 0.2213175,
+   "note": "Memo only: splits the deemed exit charge into cash actually paid to A.RES and the balance FEP effectively pays itself. Applied to gross RTB proceeds. The FEP waterfall is not linear in the exit price, so this percentage is exact only at 150 k€/MW."
+  },
+  "Inputs!E230": {
+   "label": "Sale at COD – enterprise price (blank / 0 = no COD sale)",
+   "unit": "k€ per gross MW",
+   "value": 0.0,
+   "note": "Cases 7 / 8: price per GROSS installed MW (Inputs E29), user 07-Oct-26; linked to Tender J46:J47 (active strategy, net of the clipping estimate). HTM row 340 adds the post-COD promise price adjustment (Tender E219); senior debt and sale costs (E26) are deducted from the price."
+  },
+  "Inputs!E256": {
+   "label": "Részvételi díj",
+   "unit": "%",
+   "value": 0.0,
+   "note": "ESTIMATE pending BORA_Devex_20260921_FEP classification. Different from section J (reimbursed by the BUYER at exit). Sunk fee."
+  },
+  "Inputs!E257": {
+   "label": "Ajánlati biztosíték",
+   "unit": "%",
+   "value": 0.0,
+   "note": "Credited into the performance bond at award; forfeited if the project fails afterwards."
+  },
+  "Inputs!E258": {
+   "label": "Teljesítési biztosíték",
+   "unit": "%",
+   "value": 0.0,
+   "note": "Forfeited if COD / tender obligations are missed."
+  },
+  "Inputs!E259": {
+   "label": "Igénybejelentési biztosíték",
+   "unit": "%",
+   "value": 1.0,
+   "note": "REFUNDED if the project fails (user correction 29-Sep-26, BORA Devex row 8). Cash deposit → funded on the 12% recoverable loan. Credited against the indirect connection fee; buyer reimburses at RtB exit."
+  },
+  "Inputs!E260": {
+   "label": "Csatlakozási díj – közvetlen",
+   "unit": "%",
+   "value": 1.0,
+   "note": "Connection fee – agreed at 12% ('connection fee not at risk', BORA_Devex_20260921_FEP). Buyer reimburses at exit (section J)."
+  },
+  "Inputs!E261": {
+   "label": "Kiegészítő biztosíték 1. részlet",
+   "unit": "%",
+   "value": 1.0,
+   "note": "REFUNDED if the project fails (user correction 29-Sep-26, BORA Devex rows 9–13). Bank-guaranteed (Inputs row 122–125 = 0), so no cash is funded; flag = 1 keeps it on the 12% basis if switched to cash. Only the guarantee fee and guarantee interest are at risk."
+  },
+  "Inputs!E262": {
+   "label": "Kiegészítő biztosíték 2. részlet",
+   "unit": "%",
+   "value": 1.0,
+   "note": "REFUNDED if the project fails (user correction 29-Sep-26, BORA Devex rows 9–13). Bank-guaranteed (Inputs row 122–125 = 0), so no cash is funded; flag = 1 keeps it on the 12% basis if switched to cash. Only the guarantee fee and guarantee interest are at risk."
+  },
+  "Inputs!E263": {
+   "label": "Kiegészítő biztosíték 3. részlet",
+   "unit": "%",
+   "value": 1.0,
+   "note": "REFUNDED if the project fails (user correction 29-Sep-26, BORA Devex rows 9–13). Bank-guaranteed (Inputs row 122–125 = 0), so no cash is funded; flag = 1 keeps it on the 12% basis if switched to cash. Only the guarantee fee and guarantee interest are at risk."
+  },
+  "Inputs!E264": {
+   "label": "Kiegészítő biztosíték 4. részlet",
+   "unit": "%",
+   "value": 1.0,
+   "note": "REFUNDED if the project fails (user correction 29-Sep-26, BORA Devex rows 9–13). Bank-guaranteed (Inputs row 122–125 = 0), so no cash is funded; flag = 1 keeps it on the 12% basis if switched to cash. Only the guarantee fee and guarantee interest are at risk."
+  },
+  "Inputs!E265": {
+   "label": "Csatlakozási díj",
+   "unit": "%",
+   "value": 1.0,
+   "note": "Connection fee – agreed at 12% ('connection fee not at risk', BORA_Devex_20260921_FEP). Buyer reimburses at exit (section J)."
+  },
+  "Inputs!E217": {
+   "label": "Gearing – debt as % of total capex incl. connection fee",
+   "unit": "%",
+   "value": 0.6,
+   "note": "ESTIMATE. Merchant-heavy Hungarian wind may gear lower."
+  },
+  "Inputs!E218": {
+   "label": "All-in interest rate (fixed)",
+   "unit": "%",
+   "value": 0.05,
+   "note": "ESTIMATE. ~2.5% swap + 250 bps margin."
+  },
+  "Inputs!E219": {
+   "label": "Upfront and arrangement fees",
+   "unit": "% of debt",
+   "value": 0.0175,
+   "note": "ESTIMATE."
+  },
+  "Inputs!E220": {
+   "label": "Tenor from the first full operating year (annuity repayment)",
+   "unit": "Years",
+   "value": 10.0,
+   "note": "ESTIMATE. 10-year annuity from the first full operating year. Proxy for a sculpted loan with an early cash sweep (annual model, near-flat generation)."
+  },
+  "Inputs!E221": {
+   "label": "Interest during construction capitalised (1 = yes, 0 = paid by equity)",
+   "unit": "Switch",
+   "value": 1.0,
+   "note": ""
+  },
+  "Inputs!E222": {
+   "label": "Commitment fee on undrawn senior debt (construction)",
+   "unit": "% p.a.",
+   "value": 0.009,
+   "note": "ESTIMATE ~0.9% p.a. (≈35% of margin), charged quarterly on the undrawn facility NTP → COD; added 02-Oct-26 (Open_Items #14). Paid in cash from equity, part of HTM financing costs."
+  },
+  "Inputs!E224": {
+   "label": "Discount rate – unlevered project NPV",
+   "unit": "%",
+   "value": 0.08,
+   "note": "Linked to the single discount rate (Inputs row 253 ← Control Panel section c), per decision 02-Oct-26 (Open_Items #10). Previously 7% typed."
+  },
+  "Inputs!E225": {
+   "label": "Discount rate – equity NPV",
+   "unit": "%",
+   "value": 0.08,
+   "note": "Linked to the single discount rate (Inputs row 253 ← Control Panel section c), per decision 02-Oct-26 (Open_Items #10). Previously 10% typed."
+  },
+  "Inputs!E226": {
+   "label": "Include Stage 1 development-phase costs (devex, fees, securities) in HTM",
+   "unit": "Switch",
+   "value": 1.0,
+   "note": "1 = full-cycle FEP returns; 0 = project-only from RTB."
+  },
+  "Inputs!E227": {
+   "label": "Developer success fee paid in cash at COD when the JV is live (superseded by the deemed exit)",
+   "unit": "Switch",
+   "value": 0.0,
+   "note": "No sale proceeds in HTM, so the fee is settled from equity at COD."
+  },
+  "Inputs!E228": {
+   "label": "Charge HTM a deemed exit at RTB (1 = yes, 0 = historic cost)",
+   "unit": "Switch",
+   "value": 1.0,
+   "note": "1 = HTM is charged the net sale proceeds it gives up by not selling at RTB, so its IRR measures the incremental value of building versus selling. 0 = HTM carries the project at FEP's historic cost and is not comparable with the RTB case."
+  },
+  "Inputs!E231": {
+   "label": "Sale at COD – tax the FEP gain (1) or participation exemption as at RTB (0)",
+   "unit": "Switch",
+   "value": 0.0,
+   "note": "0 = gain on the SPV share sale exempt (same treatment as the RTB exit, E14); 1 = gain taxed at the CIT rate (E12)."
+  },
+  "Inputs!E233": {
+   "label": "One-off municipal contribution commitment (scoring: points above 10, max at 50)",
+   "unit": "k€/MW",
+   "value": 50.0,
+   "note": "BID OFFERING – FEP's intended commitment, not an estimate. Paid to host municipalities in the COD year and capitalised into capex (HTM row 29). Not borne by the sell-at-RTB case: a buyer at RTB inherits the obligation. Sits at the bottom of the scoring band (points start above 10 k€/MW)."
+  },
+  "Inputs!E234": {
+   "label": "Annual community contribution on energy fed in (scoring: points above 2, max at 3)",
+   "unit": "€/MWh",
+   "value": 3.0,
+   "note": "BID OFFERING – FEP's intended commitment, not an estimate. Charged as an opex line on net generation in every operating year, not escalated (HTM row 59). Sits at the bottom of the scoring band (points start above 2 €/MWh), so it scores nothing – raising it towards 3 €/MWh buys points at roughly 15 m€ of lifetime cost per €/MWh."
+  },
+  "Inputs!E236": {
+   "label": "Final building permit to be evidenced by",
+   "unit": "Date",
+   "value": "2030-01-01",
+   "note": "Hard deadline; performance bond at risk. Model permit date E100 is well inside."
+  },
+  "Inputs!E237": {
+   "label": "Earliest grid connection date",
+   "unit": "Date",
+   "value": "2030-09-30",
+   "note": "Model COD (E155) must not be earlier than this – see check E240."
+  },
+  "Inputs!E238": {
+   "label": "Commercial operation deadline (all nodes)",
+   "unit": "Date",
+   "value": "2032-09-30",
+   "note": "Miss = loss of connection right and performance bond (pro rata on partial COD)."
+  },
+  "Inputs!E253": {
+   "label": "Discount rate for NPV / Equity (all NPV / Equity metrics)",
+   "unit": "%",
+   "value": 0.08,
+   "note": "Per review 27-Sep-26: 8%, kept as a variable. Drives MOIC G185:G188 and row 229-230, HTM G136:G139, buyer NPV / Equity (HTM G214) and gearing block 15 NPV columns."
+  },
+  "Inputs!E268": {
+   "label": "DSRA – months of next year's scheduled debt service",
+   "unit": "months",
+   "value": 6.0,
+   "note": "MARKET STANDARD: 6-month DSRA funded at COD by equity, released as debt amortises. 0 = off."
+  },
+  "Inputs!E269": {
+   "label": "Cash sweep – share of cash after scheduled debt service",
+   "unit": "%",
+   "value": 0.5,
+   "note": "Merchant wind without offtake: lenders typically sweep 50–100% of excess cash in early years. Applied as prepayment (shortens tenor). 0 = off."
+  },
+  "Inputs!E270": {
+   "label": "Cash sweep – applies in operating years 1 to",
+   "unit": "years",
+   "value": 5.0,
+   "note": "Sweep window from the first full operating year."
+  },
+  "Inputs!E298": {
+   "label": "COD override (timeline moved forward)",
+   "unit": "Date",
+   "value": "2031-09-30",
+   "note": "Blank = RTB from milestones (E49:E54). If set, E55 = months so that RTB + E152 + E153 lands on this COD."
+  }
+ },
+ "case_values": {
+  "2": {
+   "Inputs!E162": 950.0,
+   "Inputs!E167": 12000.0,
+   "Inputs!E190": 0.0,
+   "Inputs!E217": 0.6,
+   "Inputs!E228": 1.0
+  },
+  "3": {
+   "Inputs!E162": 500.0,
+   "Inputs!E167": 10800.0,
+   "Inputs!E190": 0.0,
+   "Inputs!E217": 0.5,
+   "Inputs!E228": 1.0
+  },
+  "7": {
+   "Inputs!E162": 950.0,
+   "Inputs!E167": 12000.0,
+   "Inputs!E190": 0.0,
+   "Inputs!E217": 0.6,
+   "Inputs!E228": 0.0
+  },
+  "8": {
+   "Inputs!E162": 500.0,
+   "Inputs!E167": 10800.0,
+   "Inputs!E190": 0.0,
+   "Inputs!E217": 0.5,
+   "Inputs!E228": 0.0
+  },
+  "_note": "Case 2 = HTM-EU, 3 = HTM-CN, 7 = COD-EU, 8 = COD-CN. Only these Inputs differ between the four build cases (checked cell by cell over Inputs!E6:E298 in LibreOffice). Inputs!E230 (COD price per gross MW) is derived from Calc!E133/E134 × (1 − Tender J45); E173/E174 are derived capex sums."
+ },
+ "strategies": {
+  "S1": {
+   "name": "Current bid",
+   "bora_sheet_col": "E",
+   "tender_col": "E",
+   "municipal_keur_per_mw": 20.0,
+   "community_eur_per_mwh": 2.0,
+   "overbuild": 0.3,
+   "bess_ratio": 0.3,
+   "bess_hours": 4.0,
+   "pb_uplift": 1.5,
+   "bess_basis_installed": 0.0,
+   "installed_mw_check": 130.0,
+   "bess_mw_check": 30.0
+  },
+  "S2": {
+   "name": "BORA 1",
+   "bora_sheet_col": "F",
+   "tender_col": "F",
+   "municipal_keur_per_mw": 50.0,
+   "community_eur_per_mwh": 3.0,
+   "overbuild": 0.51,
+   "bess_ratio": 0.51,
+   "bess_hours": 4.0,
+   "pb_uplift": 1.0,
+   "bess_basis_installed": 0.0,
+   "installed_mw_check": 151.0,
+   "bess_mw_check": 51.0
+  },
+  "S3": {
+   "name": "BORA 2",
+   "bora_sheet_col": "G",
+   "tender_col": "G",
+   "municipal_keur_per_mw": 50.0,
+   "community_eur_per_mwh": 2.0,
+   "overbuild": 0.4,
+   "bess_ratio": 0.4,
+   "bess_hours": 4.0,
+   "pb_uplift": 1.0,
+   "bess_basis_installed": 0.0,
+   "installed_mw_check": 140.0,
+   "bess_mw_check": 40.0
+  },
+  "S4": {
+   "name": "Maximum score",
+   "bora_sheet_col": "H",
+   "tender_col": "H",
+   "municipal_keur_per_mw": 50.0,
+   "community_eur_per_mwh": 3.0,
+   "overbuild": 0.51,
+   "bess_ratio": 0.51,
+   "bess_hours": 4.0,
+   "pb_uplift": 2.1,
+   "bess_basis_installed": 0.0,
+   "installed_mw_check": 151.0,
+   "bess_mw_check": 51.0
+  },
+  "S0": {
+   "name": "Zero bid",
+   "bora_sheet_col": "D",
+   "tender_col": "I",
+   "municipal_keur_per_mw": 0.0,
+   "community_eur_per_mwh": 0.0,
+   "overbuild": 0.0,
+   "bess_ratio": 0.0,
+   "bess_hours": 4.0,
+   "pb_uplift": 1.0,
+   "bess_basis_installed": 0.0,
+   "installed_mw_check": 100.0,
+   "bess_mw_check": 0.0
+  }
+ },
+ "tender_and_calc": {
+  "Calc!E74": {
+   "label": "Net grid connection capacity – requested MVA",
+   "unit": "MVA",
+   "value": 100.0
+  },
+  "Calc!E133": {
+   "label": "Sale at COD price – European turbine, before the grid-bottleneck loss (Bora!N6)",
+   "unit": "k€/gross MW",
+   "value": 2450.0
+  },
+  "Calc!E134": {
+   "label": "Sale at COD price – Chinese turbine, before the grid-bottleneck loss (Bora!N7)",
+   "unit": "k€/gross MW",
+   "value": 2100.0
+  },
+  "Tender!E27": {
+   "label": "Generation lost on the overbuilt capacity only (grid bottleneck – Bora N18)",
+   "unit": "%",
+   "value": 0.05
+  },
+  "Tender!E29": {
+   "label": "Chinese routes: substation and 132 kV bay capex reduction (non-EU transformer)",
+   "unit": "%",
+   "value": 0.1
+  },
+  "Tender!E30": {
+   "label": "Pass-through of the promises' PV into the exit price (RtB and sale at COD)",
+   "unit": "%",
+   "value": 1.0
+  },
+  "Tender!E31": {
+   "label": "Performance security held after COD (buyer's guarantee fee, RtB price effect)",
+   "unit": "months",
+   "value": 6.0
+  },
+  "Tender!J48": {
+   "label": "RtB exit route available",
+   "unit": "1/0",
+   "value": 1.0
+  },
+  "Tender!E370": {
+   "label": "Community purchase right – live share (Tender!E370 via HTM!F382; off)",
+   "unit": "%",
+   "value": 0.0
+  }
+ },
+ "interface": {
+  "_note": "Read from the RtB engine (MOIC, Devex_FEP, Deposits) as LibreOffice live values; the shadow takes them as given.",
+  "MOIC!H5:BP5 (month-end dates)": [
+   "2026-07-31",
+   "2026-08-31",
+   "2026-09-30",
+   "2026-10-31",
+   "2026-11-30",
+   "2026-12-31",
+   "2027-01-31",
+   "2027-02-28",
+   "2027-03-31",
+   "2027-04-30",
+   "2027-05-31",
+   "2027-06-30",
+   "2027-07-31",
+   "2027-08-31",
+   "2027-09-30",
+   "2027-10-31",
+   "2027-11-30",
+   "2027-12-31",
+   "2028-01-31",
+   "2028-02-29",
+   "2028-03-31",
+   "2028-04-30",
+   "2028-05-31",
+   "2028-06-30",
+   "2028-07-31",
+   "2028-08-31",
+   "2028-09-30",
+   "2028-10-31",
+   "2028-11-30",
+   "2028-12-31",
+   "2029-01-31",
+   "2029-02-28",
+   "2029-03-31",
+   "2029-04-30",
+   "2029-05-31",
+   "2029-06-30",
+   "2029-07-31",
+   "2029-08-31",
+   "2029-09-30",
+   "2029-10-31",
+   "2029-11-30",
+   "2029-12-31",
+   "2030-01-31",
+   "2030-02-28",
+   "2030-03-31",
+   "2030-04-30",
+   "2030-05-31",
+   "2030-06-30",
+   "2030-07-31",
+   "2030-08-31",
+   "2030-09-30",
+   "2030-10-31",
+   "2030-11-30",
+   "2030-12-31",
+   "2031-01-31",
+   "2031-02-28",
+   "2031-03-31",
+   "2031-04-30",
+   "2031-05-31",
+   "2031-06-30",
+   "2031-07-31"
+  ],
+  "MOIC!H18:BP18 devex (k€)": [
+   0.0,
+   0.0,
+   0.0,
+   177.24324324324326,
+   0.0,
+   0.0,
+   9.72972972972973,
+   0.0,
+   398.0,
+   0.0,
+   0.0,
+   43.24324324324324,
+   43.24324324324324,
+   0.0,
+   0.0,
+   0.0,
+   40.54054054054054,
+   142.6810810810811,
+   954.7439327082184,
+   229.72972972972974,
+   88.13513513513513,
+   0.10810810810810811,
+   0.0,
+   4.5,
+   0.0,
+   161.8740571428571,
+   0.0,
+   0.0,
+   32.432432432432435,
+   282.20766162857296,
+   54.054054054054056,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "MOIC!H20:BP20 land paid by FEP (k€)": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   178.89324324324323,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   246.48648648648648,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "MOIC!G280 devex/land return to the COD sale (k€)": 3216.708633896133,
+  "deemed_exit": {
+   "S1": {
+    "as_used_in_HTM (MOIC under case 2/3)": {
+     "G182": 6528.408381307723,
+     "G154": 2266.518869336201,
+     "G151": -1033.6805555555554,
+     "G143": 15000.0
+    },
+    "RtB_route (MOIC under case 1)": {
+     "G182": 6528.408381307723,
+     "G154": 2266.518869336201,
+     "G151": -1033.6805555555554,
+     "G143": 15000.0
+    }
+   },
+   "S2": {
+    "as_used_in_HTM (MOIC under case 2/3)": {
+     "G182": -1046.7488937579765,
+     "G154": -989.821473084916,
+     "G151": -1200.6597222222222,
+     "G143": 4175.685655037654
+    },
+    "RtB_route (MOIC under case 1)": {
+     "G182": -1220.2542142119419,
+     "G154": -1064.180896136616,
+     "G151": -1200.6597222222222,
+     "G143": 3927.820911531988
+    }
+   },
+   "S3": {
+    "as_used_in_HTM (MOIC under case 2/3)": {
+     "G182": 3355.7944111460492,
+     "G154": 887.3198641766203,
+     "G151": -1113.1944444444443,
+     "G143": 10200.22109217872
+    },
+    "RtB_route (MOIC under case 1)": {
+     "G182": 3273.172829977495,
+     "G154": 851.910615104382,
+     "G151": -1113.1944444444443,
+     "G143": 10082.190261937925
+    }
+   }
+  }
+ }
+}
