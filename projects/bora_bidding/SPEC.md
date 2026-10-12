@@ -48,6 +48,19 @@ v2 (12-Oct-2026) replaces v1. It adds the logic recovered from the old engine (`
     - A.RES: DSA plus 30 %;
     - total.
     Show each in € m and in k€ per installed (committed) wind MW, the devex file's basis.
+14. **The bid at the very top** of the Dashboard, right under the header: the commitments per bid with their points and impacts.
+    "Returns at a glance" follows it.
+15. **RtB impact per commitment.** Add Δ FEP RtB profit (vs the zero bid) to the impact block, so that the extra deposits of more BESS or
+    overbuild show on the RtB route as well. In the RtB section, show FEP's result as a build-up:
+    - receipts at the exit;
+    - less cash posted and devex;
+    - less signing/DD;
+    - less guarantee fees (the 6 % carry on the bonds);
+    - less tax;
+    - = profit.
+    The interest cost is visible there.
+16. **Remove the RtB price PV row.** The price is fixed, so discounting it adds nothing.
+17. **Per-MW label.** "per installed wind MW (151 / 140)", not "committed".
 12. **Inputs (user):** BESS capex 240 k€/MW; BORA 2 community contribution 2.01 €/MWh (scores ÖSZ-2 points, 68.25 total).
 
 ## 1. Decision
