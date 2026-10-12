@@ -43,6 +43,7 @@ v2 (12-Oct-2026) replaces v1. It adds the logic recovered from the old engine (`
     Line detail stays below it, without duplicate rows.
 11. **Deposits as one input block.** Every security and fee input (rate or amount, basis, posting date, release, form) sits together
     in one "Deposits and fees" block on Inputs, in the order of the timeline. No new mechanics.
+12. **Inputs (user):** BESS capex 240 k€/MW; BORA 2 community contribution 2.01 €/MWh (scores ÖSZ-2 points, 68.25 total).
 
 ## 1. Decision
 The IC is asked to approve the tender commitments for two 100 MVA capacity bids at the Szombathely OVIT node,
