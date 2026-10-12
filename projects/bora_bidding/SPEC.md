@@ -61,6 +61,26 @@ v2 (12-Oct-2026) replaces v1. It adds the logic recovered from the old engine (`
     The interest cost is visible there.
 16. **Remove the RtB price PV row.** The price is fixed, so discounting it adds nothing.
 17. **Per-MW label.** "per installed wind MW (151 / 140)", not "committed".
+18. **Total commitment excludes the overbuild penalty** (a call on the PB already counted). The penalty stays visible on its own line.
+    Part of it may in practice be deducted from the RtB price: say so in the text, but do not model it.
+19. **Deck and email: streamlined.** Use the FEP IC paper design (`reference/Bora_IC_RtB_strategies.pptx` via the template).
+    About 7 slides, only what the decision needs:
+    1. cover;
+    2. recommendation and key numbers (bid, points, returns vs the zero bid, total commitment);
+    3. why these commitments: one table per commitment with points, Δ RtB profit, Δ COD IRR, Δ HTM IRR, Δ securities,
+       plus one line of logic each (municipal: many points, no cash before COD; overbuild: points, not built, penalty only;
+       BESS: pairs with the overbuild; PB above the minimum: no, it ties up guarantee for few points; others: no burden);
+    4. securities and cash to the RtB exit, with the RtB build-up and the FEP / A.RES split;
+    5. COD and HTM returns vs the zero bid, and the commitment overview;
+    6. risks:
+       - FAQ Q72 full call vs pro rata, with both penalty amounts and a note that part may be priced into the RtB sale;
+       - the 3-year group exclusion;
+       - the connection right lost pro rata;
+       - the 100 MVA cap for two bids;
+       - ÖSZ-4 on installed wind (GYIK Q20);
+       - BESS capex only;
+    7. approval requested and next steps (bid deadline 30-Oct-2026).
+    The email is the same storyline in ≈ 250–350 words, EN and HU.
 12. **Inputs (user):** BESS capex 240 k€/MW; BORA 2 community contribution 2.01 €/MWh (scores ÖSZ-2 points, 68.25 total).
 
 ## 1. Decision
