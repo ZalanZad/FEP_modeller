@@ -6,9 +6,10 @@ Attribute VB_Name = "Scenarios"
 Option Explicit
 
 Public Sub RunAllScenarios()
-    Dim original As Variant, i As Long, r As Long, n As Long
+    Dim original As Variant, i As Long, r As Long, n As Long, errNo As Long, errMsg As String
     original = Range("Scenario_Name").Value
     n = Range("Scenario_Names").Columns.Count
+    On Error GoTo Failed
     For i = 1 To n
         Range("Scenario_Name").Value = Range("Scenario_Names").Cells(1, i).Value
         RunSolvers
@@ -18,6 +19,16 @@ Public Sub RunAllScenarios()
     Next i
     Range("Scenario_Name").Value = original
     RunSolvers
+    Exit Sub
+Failed:
+    errNo = Err.Number
+    errMsg = Err.Description
+    On Error Resume Next
+    Range("Scenario_Name").Value = original
+    Application.Calculate
+    Application.ScreenUpdating = True
+    On Error GoTo 0
+    Err.Raise errNo, "RunAllScenarios", errMsg & " (original scenario restored)"
 End Sub
 
 Public Sub RunSolvers()

@@ -755,7 +755,7 @@ def build_model(out: Path) -> Path:
         for ws in m.calc.sheets:
             ws[f"{col}{m.calc.rows[key].r}"].number_format = FMT.get(f, f)
     m.wb.save(xlsx)
-    xlsm = package(xlsx, out / f"{NAME}.xlsm", run=["BoraImpact.RunCommitmentImpact", "Scenarios.RunAllScenarios"])
+    xlsm = package(xlsx, out / f"{NAME}.xlsm", run=["BoraImpact.RefreshAll"])
     xlsx.unlink()
     return xlsm
 
