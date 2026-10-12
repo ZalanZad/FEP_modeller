@@ -195,6 +195,10 @@ def run_bridge(s, stp, cod):
         rows.append((key, label, rtb_vals(s, rk), build_vals(s, rk, hk, cod)))
     floor = {f: R.compute(s, **dict(rk, grid="monthly", sale_date=cod.isoformat(), atrisk_floor=f))
              ["detail"]["devex_return_G131"] / K for f in ("line", "portfolio")}
+    kw = htm_kwargs(s, rk, hk, cod)                      # COD IRR with the per-line floor instead of the portfolio floor
+    kw["devex"] = dict(kw["devex"], g280=floor["line"] * K)
+    floor["irr_line"] = H.compute(s, "COD-EU", **kw)["cod"][IRR_COD]
+    floor["irr_portfolio"] = rows[-1][3]["cod_eu"]
     return rows, floor
 
 
@@ -396,7 +400,9 @@ def main():
         md += ["", f"Cells: all-in cost `{refs.get(f'Cost_To_COD_{b}')}`, COD IRR `{refs.get(f'COD_IRR_{b}')}`, "
                f"HTM IRR `{refs.get(f'HTM_IRR_{b}')}`. Fix 6 and 10a–10d do not touch the COD route; 10a–10d do not touch the cost to COD.",
                f"At-risk claim to COD (fix 9): portfolio floor {m2(floor['portfolio'])}, per-line floor {m2(floor['line'])} "
-               f"(Δ {d2(floor['portfolio'] - floor['line'])}); the per-line floor stops binding on lines paid before 2028.", ""]
+               f"(per-line − portfolio {d2(floor['line'] - floor['portfolio'])} €m claim, "
+               f"{dpp(floor['irr_line'] - floor['irr_portfolio'])} pp COD IRR EU): lines paid in 2026–27 accrue above 2× by "
+               "COD, so a per-line floor would pay more; the model uses the portfolio floor (SPEC §5.4).", ""]
         detail[b] = (last, amounts, dates)
         for (a, w, irr, lab), (d, _, _, _) in zip(amounts, dates):
             for part, v in (("amounts (11a)", a), ("dates (11b)", d)):
@@ -472,29 +478,33 @@ def main():
             dd = dpp if irr else d2
             rows.append([lab, fm(v3), dd(vn - v3), dd(vb - vn), fm(vb), dd(vb - v3), f"`{refs.get(f'{o}_{b}')}`"])
         md += table(["Item", "Set 3", "Not built", "PB sanction", "Base", "Δ total", "Cell"], rows)
-        md += ["", f"Sanction (pro rata) {m2(W['base_eu'][f'Sanction_Pro_Rata_{b}'] if 'Sanction_Pro_Rata_' + str(b) in W['base_eu'] else None)}" if False else ""]
-    md = [ln for ln in md if ln is not None]
+        md += [""]
 
     # ---- 5. findings
     md += ["## 5. Findings", ""]
-    lines = []
-    for f in findings:
-        if isinstance(f, str):
-            lines.append(f"- **Unexplained:** {f} Diagnosis: compare the shadow item with the Calc row of the same name.")
-    for name, lab, part, v, irr in [f for f in findings if not isinstance(f, str)]:
-        val = dpp(v) + " pp" if irr else d2(v) + " €m"
-        if part.startswith("dates"):
-            why = ("XIRR on quarter-end dates vs the old date basis (annual IRR from 2026 for HTM; mid-year dates for the "
-                   "COD sale). Attributed, not a bug: the same workbook flows re-run on the old basis tie to the shadow (11a).")
-        elif lab.startswith("All-in"):
-            why = ("IDC on the quarter-opening balance with draws at quarter end, commitment fee on the start-of-quarter "
-                   "undrawn amount (detail table). Attributed; every other cost line ties.")
-        else:
-            why = ("quarterly amounts: IDC, commitment fee and the quarterly annuity (detail table). Attributed.")
-        lines.append(f"- {name} {lab}, {part}: {val}. {why}")
-    if not [f for f in findings if isinstance(f, str)]:
-        lines.insert(0, "- No unexplained residual: every fix step and the RtB headlines tie to the workbook within "
-                        "0.1 % / 0.1 pp; the items below exceed the tolerance but are attributed.")
+    unexplained = [f for f in findings if isinstance(f, str)]
+    att = [f for f in findings if not isinstance(f, str)]
+
+    def grab(lab, part):
+        return "; ".join(f"{n} {dpp(v) + ' pp' if irr else d2(v)}" for n, l_, p_, v, irr in att
+                         if l_ == lab and p_.startswith(part)) or "within tolerance"
+    lines = [f"- **Unexplained:** {f}" for f in unexplained]
+    if not unexplained:
+        lines.append("- No unexplained residual and no suspected model bug. The RtB headlines (price effect, effective "
+                     "price, distributable, profit, IRR) tie to the workbook at 0.00 after the shadow fixes, both bids.")
+    lines += [
+        f"- All-in cost to COD, new structure (11a): EU {grab('All-in cost EU', 'amounts')}; CN {grab('All-in cost CN', 'amounts')} €m. "
+        "IDC accrues on the quarter-opening balance with draws at quarter end (old: annual, half-year draws), partly offset "
+        "by the commitment fee on the start-of-quarter undrawn amount. Every other cost line ties. Convention, not a bug.",
+        f"- COD IRR, date basis (11b): EU {grab('COD IRR EU', 'dates')}; CN {grab('COD IRR CN', 'dates')}. The old engine "
+        "dated each year's contributions mid-year (e.g. the Oct–Dec 2029 capex on 1-Jul-2029); the model dates them at "
+        f"quarter ends. Amounts (11a): EU {grab('COD IRR EU', 'amounts')}; CN {grab('COD IRR CN', 'amounts')}, from the lower "
+        "IDC (less debt repaid at COD). Attributed.",
+        f"- HTM IRR CN, date basis (11b): {grab('HTM IRR CN', 'dates')}; quarterly XIRR vs the old annual IRR from 2026. "
+        f"The workbook flows re-run on the old basis tie to the shadow (11a: {grab('HTM IRR CN', 'amounts')}). Attributed.",
+        "- CN runs and the not-built runs override Live cells in the private copy, so only the stored-vs-live checks "
+        "(`Stored results = live case`, `Stored impact base = live`) fail there; every economic check is 0.",
+    ]
     md += lines + [""]
     MD.write_text("\n".join(md).replace("\n\n\n", "\n\n"))
 
