@@ -86,21 +86,26 @@ Number formats:
    else is a named constant (`Thousand`, `Million`, `Days_In_Year`, `Months_In_Year`, `Months_Per_Period`,
    `Tolerance`), defined once on `Inputs`.
 2. **One formula per row**, copied unchanged across the whole timeline. Column E/F/I formulas may differ from the timeline.
-3. **Short formulas.** At most ~2 nested functions; split longer logic into named intermediate rows.
-4. **Direction:** refer upward, leftward or to earlier sheets. Use `$E`/`$F` for row constants and `J$` for header rows.
-5. **Flags are multiplied, not wrapped in IF:**
+3. **Short formulas.** At most 2 nested functions and about 100 characters. Split longer logic into a row that means
+   something on its own, never into throwaway helper rows.
+4. **No chains.** A link points straight at the original source (the input, or the cell where the calculation
+   happens), never at another link. No row that only copies another row. A reader should reach the source in one step.
+5. **Streamlined.** Only the sheets the SPEC lists. Notes are short source references ("Kiírás XII.2",
+   "Devex file row 18", max 60 characters), not explanations. No text blocks, no spare helper columns.
+6. **Direction:** refer upward, leftward or to earlier sheets. Use `$E`/`$F` for row constants and `J$` for header rows.
+7. **Flags are multiplied, not wrapped in IF:**
    - Window share: `=MAX(0,(MIN($F r,J$4)-MAX($E r,J$3)+1)/J$5)`
    - Event: `=N(AND(J$3<=$E r,J$4>=$E r))`
    - Cumulative: `=MIN(1,SUM($J r:J r))`
-6. **Corkscrews** for every balance: opening `=I closing` (the previous column), movements, then closing `=SUM(opening:last movement)`.
-7. **Waterfalls** pay in order with `=MIN(cash available, amount due)`, then show "cash available after X" as a subtotal.
-8. **Indexation:** index row `=IF(J$7=Base_Year,1,I r*(1+rate))`; nominal = real × index.
-9. **Signs:** inflows positive, outflows negative, consistently from Calc to Summary. Labels never carry the sign.
-10. **Returns:**
+8. **Corkscrews** for every balance: opening `=I closing` (the previous column), movements, then closing `=SUM(opening:last movement)`.
+9. **Waterfalls** pay in order with `=MIN(cash available, amount due)`, then show "cash available after X" as a subtotal.
+10. **Indexation:** index row `=IF(J$7=Base_Year,1,I r*(1+rate))`; nominal = real × index.
+11. **Signs:** inflows positive, outflows negative, consistently from Calc to Summary. Labels never carry the sign.
+12. **Returns:**
     - IRR: `=XIRR(cash flow row, J$4:<last>$4)` on a clean row that starts at the investment date. Never nudge with
       epsilon constants. If a flow may lack a sign change, wrap the result in `IFERROR(...,"n/a")` and flag it in Checks.
     - MOIC: `=SUMIF(row,">0")/-SUMIF(row,"<0")`. NPV: `=XNPV(rate, row, dates)` with the rate taken from Inputs.
-11. **No** OFFSET, INDIRECT, data tables, iterative calculation, external links or merged cells.
+13. **No** OFFSET, INDIRECT, data tables, iterative calculation, external links or merged cells.
 
 ## 7. Values that must be stored → macros
 

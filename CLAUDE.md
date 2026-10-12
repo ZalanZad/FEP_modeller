@@ -17,8 +17,9 @@ Working language: English (code, workbooks, decks, docs). Chat replies to the us
    in some columns.
 4. Flow: Inputs → Timing → Calculations → Outputs → Checks. Formulas only refer to the left or upward,
    or to earlier sheets. No circular references with iterative calculation on.
-5. Keep it lean and readable, the way a human modeller would build it: no helper clutter,
-   no mega-formulas (split anything over ~2 nested functions into rows), and no feature the decision does not need.
+5. Keep it lean and readable, the way a human modeller would build it: only the sheets the SPEC lists, no helper
+   clutter, no formulas over 2 nested functions or ~100 characters, no link-to-a-link chains (point at the source),
+   short source notes instead of explanations, and no feature the decision does not need.
 6. Each model has a Checks sheet that rolls up into one master check, which must equal 0.
 7. Every figure in a deck is read from the recalculated workbook and carries its cell reference.
    Never retype a number into a slide.
