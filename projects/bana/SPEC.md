@@ -31,7 +31,9 @@ turbine adds 12 tender points but needs a permit amendment. Both turbine routes 
 ## 3. Simplifications vs Bora (user: "even simpler")
 - One project, one bid. No RtB exit, no JV / developer (FEP 100 %), so no claims, no waterfall, no DSA.
 - No zero-bid case and no commitment-impact macro.
-- No BESS and no brownfield: ÖSZ-4 and ÖSZ-7 are not offered and not modelled.
+- **BESS (user, 13-Oct-2026): 20 % of MVA (10 MW, 4 h, 40 MWh), built**, as in Bora: ÖSZ-4 scored on net MVA,
+  capex 240 k€/MW only (no BESS revenue or opex, not in the COD price), MWh × 200 mHUF in the security base,
+  shortfall tested separately from wind. Brownfield (ÖSZ-7) is not available.
 - **Overbuild (user, 13-Oct-2026): bid 20 % (ÖSZ-3, 60 MW committed), build 10 % (55 MW).** The 8.3 % shortfall is
   inside the 10 % tolerance, so the pro-rata reading (GYIK 28/30) calls nothing; the full-call reading (Kiírás XIII.17,
   GYIK 72) loses the whole PB 6 months after COD. Bora's sanction block and grid-bottleneck loss (5 % of the
@@ -54,15 +56,16 @@ period-end dates, NPV discounted to the first period end at `In_Discount_Rate` (
 ## 5. Dashboard levers (one column per turbine route)
 | Lever | European | Chinese | Range |
 |---|---|---|---|
-| ÖSZ-1 municipal one-off, k€/MW | 35 | 35 | 0 or 10–50 |
-| ÖSZ-2 community contribution, €/MWh | 2.5 | 2.5 | 0 or 2–3 |
+| ÖSZ-1 municipal one-off, k€/MW (user, 13-Oct-2026) | 50 | 50 | 0 or 10–50 |
+| ÖSZ-2 community contribution, €/MWh (user, 13-Oct-2026) | 3 | 3 | 0 or 2–3 |
 | ÖSZ-3 overbuild committed (built: `In_Overbuild_Built` 10 %) | 20 % | 20 % | ≥ 0 % |
+| ÖSZ-4 BESS power, share of MVA; duration 4 h | 20 % | 20 % | ≤ wind MW, ≥ 4 h |
 | ÖSZ-6 performance security multiple | 1.0 | 1.0 | ≥ 1.0 |
 | ÖSZ-5 partial award accepted | 0 | 0 | 0 / 1 |
 | ÖSZ-8 shared connection | 0 | 0 | 0 / 1 |
 | ÖSZ-9 European turbines ≥ 80 % (also sets the turbine route) | 1 | 0 | 0 / 1 |
 | ÖSZ-9 European transformers ≥ 80 % | 0 | 0 | 0 / 1 |
-Points: 34 European / 22 Chinese (Bana deck p4 bid 29 / 17 plus 5 for ÖSZ-3). The ÖSZ-9 turbine lever drives the turbine price, substation,
+Points: 59.5 European / 47.5 Chinese (20 + 15 + 5 + 7.5 + 12 European turbine). The ÖSZ-9 turbine lever drives the turbine price, substation,
 COD price and gearing cap of its column, so the commitment and the cost cannot diverge.
 
 ## 6. Calc blocks (each Calc sheet)
@@ -79,7 +82,7 @@ debt tenor window, tax-depreciation share, devex window (closing → NTP), opera
   DD 150 k€ at the bid date. Devex 500 k€ evenly closing → NTP.
 - Participation fee 3 mHUF (cash, bid date). Bid security 0.5 % × base (guarantee, bid date → PB posting).
   PB 2.5 % × ÖSZ-6 × base (guarantee, decision received 31-Jan-2027 (GYIK Q68) + 15 days → `In_PB_Release` 31-Mar-2033 on the hold route; the
-  buyer takes it over at the sale). Base = committed wind MW × 406 mHUF/MW.
+  buyer takes it over at the sale). Base = committed wind MW × 406 mHUF/MW + BESS MWh × 200 mHUF/MWh.
 - TSO security 4.5 mHUF/MVA (cash, decision + 15 days, Kiírás XIII.6), credited to the indirect fee.
 - Direct connection fee 460 mHUF per connection point; indirect fee 54.830209 mHUF/MVA × 50 − TSO security;
   both cash at HCSSZ (08-Jan-2029). Bana v3 Inputs E288/E289 (MEKH Annex 1).

@@ -43,6 +43,8 @@ RESIDUAL = [
     "Opex: the new model adds the 0.3 % innovation contribution on the HIPA base.",
     "Overbuild: the old bid had none (50 MW); the new bid commits 20 % and builds 10 % (55 MW, user 13-Oct-2026), "
     "which adds capex, generation, the COD price on the extra MW and a larger security base.",
+    "Bid and BESS: the old bid was municipal 35 k€/MW and community 2.5 €/MWh with no BESS; the new bid is 50 and 3 "
+    "with a 10 MW / 4 h BESS at capex only (user, 13-Oct-2026).",
 ]
 
 

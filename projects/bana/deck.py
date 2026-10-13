@@ -49,6 +49,10 @@ def n1(v):
     return fmt_num(v, 1)
 
 
+def pt(v):                       # tender points: 59.5, 12
+    return f"{v:.0f}" if float(v).is_integer() else f"{v:.1f}"
+
+
 def dp1(v):
     return f"{v:.1f}"
 
@@ -94,7 +98,7 @@ def build_deck(xlsm: Path, out: Path) -> Path:
         return d.bind(sheet, f"{col}{row}", fmt)
 
     def pts(key, i):             # points of one commitment: grid column I (EU route) or J (CN route)
-        return lever(key, i, n0, grid="IJ"[i - 1])
+        return lever(key, i, pt, grid="IJ"[i - 1])
 
     sets = [c.value for row in d.wb["Inputs"][next(names["Scenario_Names"].destinations)[1]] for c in row]
 
@@ -103,7 +107,7 @@ def build_deck(xlsm: Path, out: Path) -> Path:
             b("Dashboard!E6", lambda v: f"{v.day} {v:%B %Y}"))
 
     # ---- 2 Executive summary -----------------------------------------------------------------------------------
-    cod, htm, eq, p = o("COD_IRR", pct), o("HTM_IRR", pct), o("Equity_COD", eur), o("Points", n0)
+    cod, htm, eq, p = o("COD_IRR", pct), o("HTM_IRR", pct), o("Equity_COD", eur), o("Points", pt)
     s = d.content("Executive summary", f(
         "At €{pp}m, Bana returns {a} (European) / {c} (Chinese) on a sale at COD and {h} / {h2} if held",
         pp=b("In_Purchase_Price", k_to_m), a=cod[0], c=cod[1], h=htm[0], h2=htm[1]), f(
@@ -163,14 +167,17 @@ def build_deck(xlsm: Path, out: Path) -> Path:
     s = d.content("Technical overview and tender bid", f(
         "{mw} MW producing {g} GWh a year; the bid scores {p1} points with European turbines and {p2} with Chinese",
         mw=b("Out_Wind_Built_1", n0), g=b("Out_Gen_Year1_1", n1), p1=p[0], p2=p[1]), f(
-        "The bid commits {o} overbuild ({c} MW, {op} points) and FEP builds {w} MW, inside the tolerance; European "
-        "turbines add {t} points but need a permit amendment.", o=lever("Overbuild", 1, pct0),
-        c=b("Out_Wind_MW_1", n0), op=pts("Overbuild", 1), w=b("Out_Wind_Built_1", n0), t=pts("EU_Turbine", 1)),
+        "Overbuild {o} ({op} points, {w} of {c} MW built, inside the tolerance) and BESS {bs} of MVA ({bp} points); "
+        "European turbines add {t} points but need a permit amendment.", o=lever("Overbuild", 1, pct0),
+        c=b("Out_Wind_MW_1", n0), op=pts("Overbuild", 1), w=b("Out_Wind_Built_1", n0), bs=lever("BESS", 1, pct0),
+        bp=pts("BESS", 1), t=pts("EU_Turbine", 1)),
         title_lines=2)
     rows = [["Site and grid", ""],
             ["Grid node", "Ács Katódgyár (BAMO B 132.00)"],
             ["Connection / wind committed / built", f("{a} MVA / {c} MW / {w} MW", a=b("In_MVA", n0),
                                                       c=b("Out_Wind_MW_1", n0), w=b("Out_Wind_Built_1", n0))],
+            ["BESS committed and built", f("{m} MW / {h} MWh at {c} k€/MW", m=b("Out_BESS_MW_1", n0),
+                                           h=b("Out_BESS_MWh_1", n0), c=b("In_BESS_Capex", n0))],
             ["Energy yield and price", ""],
             ["Net P50 equivalent hours", f("{h} h", h=b("In_P50_Hours", n0))],
             ["Curtailment / degradation", f("{c} / {g} p.a.", c=b("In_Curtailment", pct),
@@ -185,7 +192,7 @@ def build_deck(xlsm: Path, out: Path) -> Path:
             ["Acquisition", ""],
             ["Purchase price / DD / devex", f("€{p}m / €{dd}m / €{dv}m", p=b("In_Purchase_Price", k_to_m),
                                              dd=b("In_DD", k_to_m), dv=b("In_Devex", k_to_m))]]
-    s.table(["Item", "Assumption"], rows, sections={0, 3, 8, 11}, top=TOP, width=8.1, height=0.59 + 13 * 0.55,
+    s.table(["Item", "Assumption"], rows, sections={0, 4, 9, 12}, top=TOP, width=8.1, height=0.59 + 14 * 0.52,
             col_widths=[3.9, 4.2], align="LL", unit_col=None)
     rows = [["ÖSZ-1 municipal one-off", f("{a} k€/MW (€{m}m)", a=lever("Municipal", 1, n0),
                                           m=b("Out_Uses_Municipal_1", lambda v: fmt_eur_m(v, 2))),
@@ -194,6 +201,8 @@ def build_deck(xlsm: Path, out: Path) -> Path:
              pts("Community", 1), pts("Community", 2)],
             ["ÖSZ-3 overbuild", f("{a} of MVA; {w} built", a=lever("Overbuild", 1, pct0),
                                   w=b("In_Overbuild_Built", pct0)), pts("Overbuild", 1), pts("Overbuild", 2)],
+            ["ÖSZ-4 BESS power", f("{a} of MVA, {h} h; built", a=lever("BESS", 1, pct0),
+                                   h=lever("BESS_Hours", 1, n0)), pts("BESS", 1), pts("BESS", 2)],
             ["ÖSZ-6 performance security", f("{a} of the minimum", a=lever("PB_Mult", 1, x1)),
              pts("PB_Mult", 1), pts("PB_Mult", 2)],
             ["ÖSZ-9 European turbines ≥ 80 %", "European route only", pts("EU_Turbine", 1), pts("EU_Turbine", 2)],
@@ -201,10 +210,11 @@ def build_deck(xlsm: Path, out: Path) -> Path:
              f("{a} / {b} / {c}", a=pts("Partial", 1), b=pts("Shared", 1), c=pts("EU_Transformer", 1)),
              f("{a} / {b} / {c}", a=pts("Partial", 2), b=pts("Shared", 2), c=pts("EU_Transformer", 2))],
             ["Total score", "", *p]]
-    s.table(["Tender bid", "Commitment", "European", "Chinese"], rows, key_rows={6}, left=13.35, top=TOP,
-            width=6.55, height=0.59 + 7 * 0.62, col_widths=[2.35, 1.9, 1.15, 1.15], align="LLRR", unit_col=None)
-    s.footnote(f("Points are the model's own score on the MEKH 2026 bands (Kiírás Annex 3-4). BESS (ÖSZ-4) and "
-                 "brownfield (ÖSZ-7) are not available at Bana. Build shortfall {sh} against the commitment, inside the "
+    s.table(["Tender bid", "Commitment", "European", "Chinese"], rows, key_rows={7}, left=13.35, top=TOP,
+            width=6.55, height=0.59 + 8 * 0.6, col_widths=[2.35, 1.9, 1.15, 1.15], align="LLRR", unit_col=None)
+    s.footnote(f("Points are the model's own score on the MEKH 2026 bands (Kiírás Annex 3-4). ÖSZ-4 is scored on net "
+                 "MVA (as Bora); BESS at capex only, no revenue or opex, not in the COD price. Brownfield (ÖSZ-7) is "
+                 "not available. Build shortfall {sh} against the commitment, inside the "
                  "{t} tolerance (GYIK 28/30). The municipal one-off is paid at COD.",
                  sh=b("Out_Shortfall_1", pct), t=b("In_Tolerance_Cap", pct0)))
 

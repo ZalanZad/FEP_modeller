@@ -67,10 +67,14 @@ def inputs(m):
     a("MVA", "Net connection capacity", "MVA", 50, source="MEKH Annex 1; Bana v3 Inputs E281", fmt="money")
     a("Overbuild_Built", "Overbuild built, share of MVA (bid: Dashboard)", "%", 0.10, source="User 13-Oct-26")
     a("Bottleneck_Loss", "Energy lost on overbuilt MW", "%", 0.05, source="Bora!N18 (as Bora)")
+    a("BESS_Built", "BESS built (1 = yes)", "flag", 1, source="User 13-Oct-26 (as Bora)")
+    a("Min_Hours", "Minimum BESS duration for ÖSZ-4", "h", 4, source="Kiírás Annex 8; GYIK Q5", fmt="money1")
     a("Tolerance_Cap", "Build shortfall tolerated without sanction", "%", 0.10, source="GYIK 28, 30")
     a("Sanction_Regime", "Sanction regime (1 pro rata, 2 full PB call)", "flag", 1, {6: 2},
       source="GYIK 28/30 (1); Kiírás XIII.17, GYIK 72 (2)")
     a("Sanction_Lag", "Sanction paid after COD", "months", 6, source="Kiírás XIII.17", fmt="int")
+    a("Bench_BESS", "Security base: benchmark investment, BESS", "mHUF/MWh", 200, source="Kiírás Annex 2",
+      fmt="money")
     a("Bench_Wind", "Security base: benchmark investment, wind", "mHUF/MW", 406, source="Kiírás Annex 2",
       fmt="money")
     a("Part_Fee", "Participation fee (cash, not refunded)", "mHUF", 3, source="Kiírás VI.4", fmt="money1")
@@ -93,6 +97,7 @@ def inputs(m):
     a("Substation", "Substation and 132 kV bay, EU", "EUR k", 12000, source="Bana v3 Inputs E167")
     a("Substation_CN", "Substation and 132 kV bay, CN transformer", "EUR k", 10800, source="Bana v3 Inputs I167")
     a("Capex_Contingency", "Contingency on wind and substation capex", "%", 0.05, source="Bana v3 Inputs E171")
+    a("BESS_Capex", "BESS capex, all-in (no BESS revenue or opex)", "EUR k/MW", 240, source="User 12-Oct-26 (Bora)")
 
     i.section("Operations")
     a("P50_Hours", "Net P50 hours", "h/yr", 2460, {4: 2214}, source="Bana v3 Inputs E179", fmt="money")
@@ -133,6 +138,8 @@ TENDER = {  # lower bound, lower bound included, inner points (first entry = bel
         [0, 10, 20, 30, 40, 55, 70, 80, 90, 100], 0.20, (10, 50)),
     2: ("ÖSZ-2 community contribution", "EUR/MWh", [2, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3],
         [0] * 10 + [1], [0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100], 0.15, (2, 3)),
+    4: ("ÖSZ-4 BESS ratio", "%", [x / 100 for x in (2, 5, 10, 15, 20, 25, 30, 35, 40, 50)], [0] + [1] * 8 + [0],
+        list(range(0, 101, 10)), 0.15, (0.05, None)),
     3: ("ÖSZ-3 overbuild", "%", [x / 100 for x in (2, 5, 10, 15, 20, 25, 30, 35, 40, 50)], [0] + [1] * 8 + [0],
         list(range(0, 101, 10)), 0.10, None),
     6: ("ÖSZ-6 performance security multiple", "x", [1.0, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0],
@@ -171,7 +178,7 @@ def curves(m):
     cv.r += 1
     for k, (label, unit, lb, inc, pts, w, rng) in TENDER.items():
         mn = (f"Osz{k}_Min", rng[0]) if rng else None
-        mx = (f"Osz{k}_Max", rng[1]) if rng else None
+        mx = (f"Osz{k}_Max", rng[1]) if rng and rng[1] is not None else None
         line(f"{label} – lower bound", unit, lb, f"Osz{k}_LB", "general", e=mn, f=mx)
         line(f"{label} – lower bound included", "flag", inc, f"Osz{k}_Incl", "flag")
         line(f"{label} – inner points (below, bands)", "points", pts, f"Osz{k}_Pts", "int",
@@ -211,9 +218,12 @@ def calc(m):
 
     c.section("Capacity (E: committed in the bid, F: built)")
     c.row("wind", "Wind", "MW", e=f"In_MVA*(1+{lev('Overbuild')})", f="In_MVA*(1+In_Overbuild_Built)", ef_fmt="money1")
+    c.row("bess", "BESS power", "MW", e=f"{lev('BESS')}*In_MVA", f="{self.E}*In_BESS_Built", ef_fmt="money1")
+    c.row("mwh", "BESS energy", "MWh", e="{bess.E}*" + lev("BESS_Hours"), ef_fmt="money1")
     c.row("loss", "Grid-bottleneck loss on built wind", "%", e="({wind.F}-In_MVA)/{wind.F}*In_Bottleneck_Loss",
           ef_fmt="0.000%")
-    c.row("short", "Build shortfall vs commitment", "%", e="MAX(0,1-{wind.F}/{wind.E})", ef_fmt="pct")
+    c.row("short", "Build shortfall vs commitment (E: wind, F: BESS)", "%", e="MAX(0,1-{wind.F}/{wind.E})",
+          f="(1-In_BESS_Built)*({bess.E}>0)", ef_fmt="pct")
 
     c.section("Tender points (E: commitment, F: weighted points)")
     band = lambda k: (f"INDEX(Osz{k}_Pts,1+SUMPRODUCT((Osz{k}_LB<{{self.E}})+(Osz{k}_LB={{self.E}})"  # noqa: E731
@@ -222,26 +232,29 @@ def calc(m):
     c.row("osz1", "ÖSZ-1 municipal one-off", "EUR k/MW", e=lev("Municipal"), f=band(1), ef_fmt="money2")
     c.row("osz2", "ÖSZ-2 community contribution", "EUR/MWh", e=lev("Community"), f=band(2), ef_fmt="money2")
     c.row("osz3", "ÖSZ-3 overbuild", "%", e=lev("Overbuild"), f=band(3), ef_fmt="money2")
+    c.row("osz4", "ÖSZ-4 BESS power, share of MVA", "%", e=lev("BESS"), f=band(4) + "*({self.E}>=Osz4_Min)",
+          ef_fmt="money2")
     c.row("osz5", "ÖSZ-5 partial award", "flag", e=lev("Partial"), f=yes(5, 5), ef_fmt="money2")
     c.row("osz6", "ÖSZ-6 performance security multiple", "x", e=lev("PB_Mult"), f=band(6), ef_fmt="money2")
     c.row("osz8", "ÖSZ-8 shared connection", "flag", e=lev("Shared"), f=yes(8, 8), ef_fmt="money2")
     c.row("osz9a", "ÖSZ-9 EU turbines (1 = European turbine route)", "flag", e=lev("EU_Turbine"), f=yes("9a", 9),
           ef_fmt="money2")
     c.row("osz9b", "ÖSZ-9 EU transformers", "flag", e=lev("EU_Transformer"), f=yes("9b", 9), ef_fmt="money2")
-    for k, f in (("osz3", "pct"), ("osz5", "flag"), ("osz6", "mult"), ("osz8", "flag"), ("osz9a", "flag"), ("osz9b", "flag")):
+    for k, f in (("osz3", "pct"), ("osz4", "pct"), ("osz5", "flag"), ("osz6", "mult"), ("osz8", "flag"), ("osz9a", "flag"), ("osz9b", "flag")):
         fmt(k, "E", f)
     c.row("pts", "Points total", "points", e="ROUND(SUM({osz1.F}:{osz9b.F}),Points_Decimals)", ef_fmt="money2",
           bold=True)
-    c.row("valid", "Failed range tests (E: ÖSZ-1 and -2, F: ÖSZ-6)", "#",
+    c.row("valid", "Failed tests (E: ÖSZ-1 and -2 range, F: ÖSZ-6, BESS ≤ wind, 4 h)", "#",
           e="({osz1.E}<>0)*({osz1.E}<Osz1_Min)+({osz1.E}>Osz1_Max)+({osz2.E}<>0)*({osz2.E}<Osz2_Min)"
-            "+({osz2.E}>Osz2_Max)", f="N({osz6.E}<1)", ef_fmt="int")
+            "+({osz2.E}>Osz2_Max)", f="N({osz6.E}<1)+N({bess.E}>{wind.E})+N({mwh.E}<{bess.E}*In_Min_Hours)",
+          ef_fmt="int")
 
     c.section("Development, securities and fees (E: amount, F: date)")
     line = "=-{self.E}*" + EVENT
     c.row("buy", "Purchase price", "EUR k", line, e="In_Purchase_Price", f="In_Closing")
     c.row("dd", "Transaction and DD costs", "EUR k", line, e="In_DD", f="In_Bid_Date")
     c.row("devex", "Devex", "EUR k", "=-In_Devex*{devex_w}")
-    c.row("pb_base", "Security base", "mHUF", e="{wind.E}*In_Bench_Wind", ef_fmt="money")
+    c.row("pb_base", "Security base", "mHUF", e="{wind.E}*In_Bench_Wind+{mwh.E}*In_Bench_BESS", ef_fmt="money")
     c.row("fee", "Participation fee (cash)", "EUR k", line, e="In_Part_Fee*Thousand/In_FX", f="In_Bid_Date")
     c.row("bid", "Bid security outstanding (guarantee)", "EUR k",
           "={self.E}*MAX(0,(MIN(In_Decision_Date+In_PB_Days-1,{end})-MAX({self.F},{start})+1)/{days})",
@@ -259,8 +272,11 @@ def calc(m):
     c.row("conn", "Connection fees", "EUR k", "={direct}+{indirect}")
     c.row("gfee", "Guarantee fees (E: to COD)", "EUR k", "=-({bid}+{pb})*In_Guarantee_Fee*{days}/Days_In_Year",
           e=TO_COD)
+    c.row("pbp", "Performance security by technology (E: wind, F: BESS)", "EUR k",
+          e="{pb.E}*{wind.E}*In_Bench_Wind/{pb_base.E}", f="{pb.E}-{self.E}")
     c.row("sanc", "PB call (E: pro rata above the tolerance, F: full call)", "EUR k",
-          e="({short.E}>In_Tolerance_Cap)*{short.E}*{pb.E}", f="({short.E}>0)*{pb.E}")
+          e="({short.E}>In_Tolerance_Cap)*{short.E}*{pbp.E}+({short.F}>In_Tolerance_Cap)*{short.F}*{pbp.F}",
+          f="({short.E}+{short.F}>0)*{pb.E}")
     c.row("sanction", "PB call paid, selected regime (E: date)", "EUR k",
           "=-CHOOSE(In_Sanction_Regime,{sanc.E},{sanc.F})*N(AND({start}<={self.E},{end}>={self.E}))",
           e="EDATE(In_COD,In_Sanction_Lag)")
@@ -272,7 +288,7 @@ def calc(m):
     c.row("subst", "Substation and 132 kV bay, this route", "EUR k",
           e="IF({osz9a.E}=1,In_Substation,In_Substation_CN)")
     c.row("capex", "Capex (E: total)", "EUR k", "=-{self.E}*{constr}",
-          e="(({tur.E}+In_Other_Wind)*{wind.F}+{subst.E})*(1+In_Capex_Contingency)")
+          e="(({tur.E}+In_Other_Wind)*{wind.F}+{subst.E})*(1+In_Capex_Contingency)+In_BESS_Capex*{bess.F}")
     c.row("municipal", "Municipal one-off at COD", "EUR k", "=-{self.E}*{cod}", e="{osz1.E}*In_MVA")
     c.row("cost", "Construction cost (E: compounded to COD at the debt rate)", "EUR k",
           "={capex}+{conn}+{municipal}", e="SUMPRODUCT({self.all}/{idx.all})*{idx.E}", bold=True)
@@ -340,7 +356,7 @@ def calc(m):
     c.section("Funding to COD (E: uses and sources)")
     c.row("f_dev", "Purchase price, DD and devex", "EUR k", e="-({buy.I}+{dd.I}+{devex.I})")
     c.row("f_sec", "Participation fee, TSO security, guarantee fees", "EUR k", e="-({fee.I}+{tso.I}+{gfee.E})")
-    c.row("f_capex", "Construction capex", "EUR k", e="-{capex.I}")
+    c.row("f_capex", "Construction capex (wind, substation, BESS)", "EUR k", e="-{capex.I}")
     c.row("f_conn", "Connection fees, net of TSO security", "EUR k", e="-{conn.I}")
     c.row("f_mun", "Municipal one-off", "EUR k", e="-{municipal.I}")
     c.row("f_fin", "Capitalised interest and debt fees", "EUR k", e="{d_idc.I}-{d_up.I}-{d_cf.I}")
@@ -391,9 +407,11 @@ def checks(m):
 
 # =========================================================================================== dashboard
 LEVERS = [  # key, label, unit, European / Chinese, offerable range, points row, list options, format
-    ("Municipal", "Municipal one-off (ÖSZ-1)", "EUR k/MW", [35, 35], "0 or 10–50", "osz1", None, "money"),
-    ("Community", "Community contribution (ÖSZ-2)", "EUR/MWh", [2.5, 2.5], "0 or 2–3", "osz2", None, "money2"),
+    ("Municipal", "Municipal one-off (ÖSZ-1)", "EUR k/MW", [50, 50], "0 or 10–50", "osz1", None, "money"),
+    ("Community", "Community contribution (ÖSZ-2)", "EUR/MWh", [3, 3], "0 or 2–3", "osz2", None, "money2"),
     ("Overbuild", "Overbuild committed (ÖSZ-3)", "%", [0.20, 0.20], "≥ 0 %", "osz3", None, "pct"),
+    ("BESS", "BESS power, share of MVA (ÖSZ-4)", "%", [0.20, 0.20], "≤ wind MW", "osz4", None, "pct"),
+    ("BESS_Hours", "BESS duration", "h", [4, 4], "≥ 4 h", None, None, "money1"),
     ("PB_Mult", "Performance security multiple (ÖSZ-6)", "x", [1.0, 1.0], "≥ 1.0", "osz6", None, "mult"),
     ("Partial", "Partial award accepted (ÖSZ-5)", "flag", [0, 0], "0 / 1", "osz5", [0, 1], "flag"),
     ("Shared", "Shared connection (ÖSZ-8)", "flag", [0, 0], "0 / 1", "osz8", [0, 1], "flag"),
@@ -408,14 +426,17 @@ def dashboard(m):
 
     d.section("The bid: commitments and points", ["Offerable range", "Points EU", "Points CN"])
     for key, label, unit, vals, rng, pkey, opts, f in LEVERS:
-        d.input(key, label, unit, vals, fmt=f, options=opts, extra=[rng] + [f"={c.ref(pkey, 'F', s)}" for s in S])
+        d.input(key, label, unit, vals, fmt=f, options=opts, extra=[rng] + ([f"={c.ref(pkey, 'F', s)}" for s in S] if pkey else []))
     d.link("Points total", "points", "{pts.E}", out="Points", fmt=m2, bold=True)
     d.status("Commitments within the offerable range", "{valid.E}+{valid.F}")
 
-    d.section("Overbuild: committed vs built")
+    d.section("Capacity: committed vs built")
     d.link("Wind committed in the bid", "MW", "{wind.E}", out="Wind_MW", fmt="money1")
     d.link("Wind built", "MW", "{wind.F}", out="Wind_Built", fmt="money1")
-    d.link("Build shortfall vs commitment", "%", "{short.E}", out="Shortfall", fmt="pct")
+    d.link("BESS committed", "MW", "{bess.E}", out="BESS_MW", fmt="money1")
+    d.link("BESS energy committed", "MWh", "{mwh.E}", out="BESS_MWh", fmt="money1")
+    d.link("BESS built", "MW", "{bess.F}", out="BESS_Built", fmt="money1")
+    d.link("Wind build shortfall vs commitment", "%", "{short.E}", out="Shortfall", fmt="pct")
     d.link("Grid-bottleneck energy loss", "%", "{loss.E}", out="Bottleneck_Loss", fmt="0.00%")
     d.link("PB call if the pro-rata rule applies (GYIK 28/30)", "EUR m", "{sanc.E}", scale="Thousand",
            out="PB_Call_ProRata", fmt=m2)
@@ -440,7 +461,7 @@ def dashboard(m):
     for t, label, out, bold in [
             ("{f_dev.E}", "Purchase price, DD and devex", "Uses_Development", False),
             ("{f_sec.E}", "Participation fee, TSO security, guarantee fees", "Uses_Securities", False),
-            ("{f_capex.E}", "Construction capex", "Uses_Capex", False),
+            ("{f_capex.E}", "Construction capex (wind, substation, BESS)", "Uses_Capex", False),
             ("{f_conn.E}", "Connection fees, net of TSO security", "Uses_Connection", False),
             ("{f_mun.E}", "Municipal one-off", "Uses_Municipal", False),
             ("{f_fin.E}", "Capitalised interest and debt fees", "Uses_Financing", False),
