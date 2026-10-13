@@ -128,7 +128,7 @@ MEKH 0.1 %, HIPA 2 % and innovation contribution 0.3 % of revenue; community con
 - COD sale: the buyer takes the SPV with its debt and funds the DSRA.
 
 ## 7. Key-assumption sets (blank = base)
-1 Base · 2 COD price −10 % · 3 Turbine price +10 % · 4 Yield −10 % · 5 PPA price −10 % · 6 Full PB call (GYIK 72) ·
+1 Base · 2 COD price −10 % · 3 Turbine price +10 % · 4 Yield −10 % · 5 PPA price +10 % · 6 Full PB call (GYIK 72) ·
 7 Debt rate +1 pp · 8 Tenor 10 years (old engine; the gearing cap binds at 18 years, so this set tests the DSCR sizing). `RunAllScenarios` (with the tax solver) stores per set and route:
 points, peak equity, COD IRR and MOIC, HTM IRR and MOIC, debt at COD, min DSCR.
 
@@ -144,3 +144,7 @@ securities). 6. Returns: sale at COD vs hold, with debt and tax. 7. Sensitivitie
 ## 10. Deliverables
 `out/Bana_Model.xlsm` (+ `_recalc.xlsx`), `out/Bana_IC.pptx`, `out/deck_bindings.csv`, `out/reconciliation.md`
 (old engine vs new, with the reasons), `build.py`, `deck.py`.
+
+## 11. User corrections (13-Oct-2026, Bana_Model_2.xlsm)
+EU turbine 950 k€/MW (set 3: 1,045); net P50 2,600 h (set 4: 2,340); debt-share cap 55 % EU / 50 % CN;
+set 5 = PPA +10 % (99 €/MWh). Deck slide 2: narrative 16 pt plus the COD-price sentence (bound to `In_COD_Price`).

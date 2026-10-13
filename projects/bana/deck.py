@@ -114,7 +114,7 @@ def build_deck(xlsm: Path, out: Path) -> Path:
         "FEP funds €{e1}m of equity to COD (€{e2}m Chinese) and bids {p1} points ({p2} Chinese) into the "
         "{bd} tender; the European route needs a permit amendment.",
         e1=eq[0], e2=eq[1], p1=p[0], p2=p[1], bd=b("In_Bid_Date", day)), title_lines=2)
-    s.text("Narrative", "\n".join([
+    s.text("Narrative", f("\n".join([
         "GEI has been developing a wind project near the Huayou Cobalt plant in Bana, first as a behind-the-meter "
         "supply. It holds a building permit for 6 turbines, is close to RtB and is for sale.",
         "",
@@ -130,8 +130,11 @@ def build_deck(xlsm: Path, out: Path) -> Path:
         "The seller asks a near-RtB price, so an RtB exit is not modelled: value comes from building and selling at "
         "COD or holding the asset.",
         "",
-        "FEP asks the IC to approve the purchase price and to give its view on buying and developing the project."]),
-        4.92, TOP, 7.6, 7.9, size=15)
+        "FEP asks the IC to approve the purchase price and to give its view on buying and developing the project.",
+        "",
+        "We are assuming a COD sale price of €{pe}m/MW with EU turbines and €{pc}m/MW with Chinese turbines"]),
+        pe=b("In_COD_Price", lambda v: f"{v / 1000:.2f}"), pc=b("In_COD_Price_CN", lambda v: f"{v / 1000:.2f}")),
+        4.92, TOP, 7.6, 6.29, size=16)
     rows = [["Tender points", "points", *p],
             ["FEP equity to COD", "€ m", *eq],
             ["Sale at COD", "", "", ""],
@@ -310,9 +313,9 @@ def build_deck(xlsm: Path, out: Path) -> Path:
         return d.stored(key, k, fmt)
 
     s = d.content("Sensitivities", f(
-        "A lower COD price is the largest risk to the sale ({c}); yield and PPA price drive the hold "
-        "({y} / {pp})", c=st("COD_IRR_1", sets.index("COD price −10%") + 1, pct),
-        y=st("HTM_IRR_1", sets.index("Yield −10%") + 1, pct), pp=st("HTM_IRR_1", sets.index("PPA −10%") + 1, pct)),
+        "A lower COD price is the largest risk to the sale ({c}); the hold moves with yield ({y} if lower) and PPA "
+        "price ({pp} if higher)", c=st("COD_IRR_1", sets.index("COD price −10%") + 1, pct),
+        y=st("HTM_IRR_1", sets.index("Yield −10%") + 1, pct), pp=st("HTM_IRR_1", sets.index("PPA +10%") + 1, pct)),
         "FEP IRR by key-assumption set, each change on its own; the sale at COD does not depend on yield or PPA price "
         "because its price is fixed per MW.", title_lines=2)
     rows = [[name, *[st(k, i, x2 if "DSCR" in k else pct) for k in
@@ -333,7 +336,8 @@ def build_deck(xlsm: Path, out: Path) -> Path:
         ("COD price: ", "an estimate per MW, not a bid; test it with buyers before NTP."),
         ("PPA: ", f("{p} €/MWh for the whole life is an assumption; no offtake is signed.",
                     p=b("In_PPA_Price", n0))),
-        ("Debt: ", f("a {t}-year tenor makes the DSCR bind and cuts the European hold IRR to {h}.",
+        ("Debt: ", f("a {t}-year tenor lowers the European minimum DSCR to {ds} and the hold IRR to {h}.",
+                     ds=st("Min_DSCR_1", sets.index("Tenor 10 years") + 1, x2),
                      t=b(f"Inputs!O{next(names['In_Debt_Tenor'].destinations)[1].split('$')[-1]}", n0),
                      h=st("HTM_IRR_1", sets.index("Tenor 10 years") + 1, pct)))],
         left=15.45, top=TOP, width=4.45, height=5.4)

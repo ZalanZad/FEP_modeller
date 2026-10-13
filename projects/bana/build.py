@@ -18,7 +18,7 @@ from fepm.xl.styles import FMT, apply
 HERE = Path(__file__).resolve().parent
 NAME = "Bana_Model"
 D = dt.date
-SETS = ["Base", "COD price −10%", "Turbine +10%", "Yield −10%", "PPA −10%", "Full PB call", "Rate +1 pp",
+SETS = ["Base", "COD price −10%", "Turbine +10%", "Yield −10%", "PPA +10%", "Full PB call", "Rate +1 pp",
         "Tenor 10 years"]
 TO_COD = 'SUMIF({end.all},"<="&In_COD,{self.all})'          # amount to COD
 EVENT = "N(AND({start}<={self.F},{end}>={self.F}))"           # line paid on its date in F
@@ -90,7 +90,7 @@ def inputs(m):
     a("Guarantee_Fee", "Bank guarantee fee on guarantees outstanding", "%", 0.06, source="Bana v3 Inputs E113")
 
     i.section("Capex")
-    a("Turbine", "Turbine supply, EU", "EUR k/MW", 600, {3: 660}, source="User 12-Oct-26 (Bora SPEC v2.1)")
+    a("Turbine", "Turbine supply, EU", "EUR k/MW", 950, {3: 1045}, source="User 13-Oct-26 (Bana v3 E162)")
     a("Turbine_CN", "Turbine supply, CN", "EUR k/MW", 500, {3: 550}, source="Bana v3 Inputs I162")
     a("Other_Wind", "Other wind capex (install, foundations, BoP, owner, land)", "EUR k/MW", 355,
       source="Bana v3 Inputs E163:E166, E169:E170")
@@ -100,10 +100,10 @@ def inputs(m):
     a("BESS_Capex", "BESS capex, all-in (no BESS revenue or opex)", "EUR k/MW", 240, source="User 12-Oct-26 (Bora)")
 
     i.section("Operations")
-    a("P50_Hours", "Net P50 hours", "h/yr", 2460, {4: 2214}, source="Bana v3 Inputs E179", fmt="money")
+    a("P50_Hours", "Net P50 hours", "h/yr", 2600, {4: 2340}, source="User 13-Oct-26", fmt="money")
     a("Curtailment", "Curtailment", "%", 0.02, source="Bana v3 Inputs E181")
     a("Degradation", "Degradation per year", "%", 0.003, source="Bana v3 Inputs E182", fmt="0.00%")
-    a("PPA_Price", "PPA price at COD, whole life, 100 % of output", "EUR/MWh", 90, {5: 81},
+    a("PPA_Price", "PPA price at COD, whole life, 100 % of output", "EUR/MWh", 90, {5: 99},
       source="User 13-Oct-26", fmt="money1")
     a("PPA_Esc", "PPA escalation", "%", 0.01, source="Bana v3 Inputs E192")
     a("Var_Opex", "Variable opex (balancing 4, grid 1)", "EUR/MWh", 5, source="Bana v3 Inputs E194:E195",
@@ -120,8 +120,8 @@ def inputs(m):
       fmt="0.00%")
 
     i.section("Senior debt")
-    a("Gearing", "Debt share cap of construction cost, EU", "%", 0.80, source="Rock Assumptions G547")
-    a("Gearing_CN", "Debt share cap of construction cost, CN", "%", 0.70, source="Rock G547 less 10 pp (Bana v3 CN)")
+    a("Gearing", "Debt share cap of construction cost, EU", "%", 0.55, source="User 13-Oct-26")
+    a("Gearing_CN", "Debt share cap of construction cost, CN", "%", 0.50, source="User 13-Oct-26")
     a("DSCR", "Target DSCR for sizing and sculpting", "x", 1.20, source="Rock Assumptions G549",
       fmt="mult")
     a("Debt_Tenor", "Tenor from COD", "years", 18, {8: 10}, source="Rock G540; set 8: Bana v3 E220", fmt="int")

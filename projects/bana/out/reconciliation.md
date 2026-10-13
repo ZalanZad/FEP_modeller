@@ -6,20 +6,20 @@ Old engine: `reference/Bana_IC_model_v3.xlsm`, figures as shown in `reference/Ba
 
 | Step | Total uses to COD | FEP equity to COD | FEP profit – sale at COD | FEP IRR – sale at COD | FEP MOIC – sale at COD | FEP IRR – hold to maturity | FEP MOIC – hold to maturity | Minimum DSCR |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| New model, base | 92.25 | 24.58 | 41.39 | 62.4% | 2.68x | 12.0% | 6.17x | 1.55x |
-| + EU turbine 950 k€/MW | 113.65 | 29.09 | 19.99 | 34.9% | 1.69x | 8.1% | 4.46x | 1.26x |
-| + Debt share cap 60 % EU / 50 % CN | 112.14 | 48.72 | 21.50 | 29.5% | 1.44x | 7.5% | 3.36x | 1.67x |
-| + Tenor 10 years | 111.74 | 53.91 | 21.89 | 28.4% | 1.41x | 6.9% | 3.41x | 1.20x |
+| New model, base | 111.76 | 53.63 | 21.87 | 28.4% | 1.41x | 8.3% | 3.54x | 1.94x |
+| + EU turbine 950 k€/MW | 111.76 | 53.63 | 21.87 | 28.4% | 1.41x | 8.3% | 3.54x | 1.94x |
+| + Debt share cap 60 % EU / 50 % CN | 112.14 | 48.72 | 21.50 | 29.5% | 1.44x | 8.5% | 3.73x | 1.78x |
+| + Tenor 10 years | 112.01 | 50.39 | 21.62 | 29.1% | 1.43x | 7.8% | 3.89x | 1.20x |
 | **Old engine (deck 09-Oct-2026)** | 101.75 | 44.23 | 20.25 | 26.4% | 1.46x | 9.2% | 5.64x | 1.09x |
 
 ## Chinese turbine
 
 | Step | Total uses to COD | FEP equity to COD | FEP profit – sale at COD | FEP IRR – sale at COD | FEP MOIC – sale at COD | FEP IRR – hold to maturity | FEP MOIC – hold to maturity | Minimum DSCR |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| New model, base | 84.25 | 30.19 | 30.23 | 47.4% | 2.00x | 12.6% | 5.74x | 1.93x |
-| + EU turbine 950 k€/MW | 84.25 | 30.19 | 30.23 | 47.4% | 2.00x | 12.6% | 5.74x | 1.93x |
-| + Debt share cap 60 % EU / 50 % CN | 83.14 | 44.53 | 31.33 | 41.9% | 1.70x | 11.2% | 4.46x | 2.68x |
-| + Tenor 10 years | 83.14 | 44.53 | 31.33 | 41.9% | 1.70x | 10.3% | 4.61x | 1.76x |
+| New model, base | 83.14 | 44.53 | 31.33 | 41.9% | 1.70x | 12.2% | 4.85x | 2.86x |
+| + EU turbine 950 k€/MW | 83.14 | 44.53 | 31.33 | 41.9% | 1.70x | 12.2% | 4.85x | 2.86x |
+| + Debt share cap 60 % EU / 50 % CN | 83.14 | 44.53 | 31.33 | 41.9% | 1.70x | 12.2% | 4.85x | 2.86x |
+| + Tenor 10 years | 83.14 | 44.53 | 31.33 | 41.9% | 1.70x | 11.3% | 5.01x | 1.88x |
 | **Old engine (deck 09-Oct-2026)** | 75.15 | 40.32 | 29.35 | 37.7% | 1.73x | 12.1% | 7.09x | 1.77x |
 
 ## Step sources
