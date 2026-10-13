@@ -74,9 +74,9 @@ debt tenor window, tax-depreciation share, devex window (closing → NTP), opera
 - Purchase price 4,500 k€ paid at closing (`In_Closing` 31-Dec-2026: closing after the award, deck p2);
   DD 150 k€ at the bid date. Devex 500 k€ evenly closing → NTP.
 - Participation fee 3 mHUF (cash, bid date). Bid security 0.5 % × base (guarantee, bid date → PB posting).
-  PB 2.5 % × ÖSZ-6 × base (guarantee, award + 15 days → `In_PB_Release` 31-Mar-2033 on the hold route; the
+  PB 2.5 % × ÖSZ-6 × base (guarantee, decision received 31-Jan-2027 (GYIK Q68) + 15 days → `In_PB_Release` 31-Mar-2033 on the hold route; the
   buyer takes it over at the sale). Base = installed MW × 406 mHUF/MW.
-- TSO security 4.5 mHUF/MVA (cash, 30-Dec-2026), credited to the indirect fee.
+- TSO security 4.5 mHUF/MVA (cash, decision + 15 days, Kiírás XIII.6), credited to the indirect fee.
 - Direct connection fee 460 mHUF per connection point; indirect fee 54.830209 mHUF/MVA × 50 − TSO security;
   both cash at HCSSZ (08-Jan-2029). Bana v3 Inputs E288/E289 (MEKH Annex 1).
 - Guarantee fee 6 % × outstanding guarantees × days/365.
@@ -89,12 +89,12 @@ debt tenor window, tax-depreciation share, devex window (closing → NTP), opera
 **6.5 Senior debt (Rock / Alpha pattern, lean).** One term loan, fixed all-in 5 %.
 - Draws = debt share k × each period's construction cost (capex + connection fees + municipal); IDC capitalised.
 - Debt capacity = PV at the debt rate (to COD) of CFADS ÷ target DSCR over the tenor (18 years from COD,
-  Rock), CFADS = EBITDA − tax (tax from the PASTE row).
+  Rock), CFADS = EBITDA − guarantee fees − tax after COD (tax from the PASTE row).
 - k = MIN(gearing cap, capacity ÷ Σ cost × IDC growth to COD). Gearing cap 80 % EU (Rock leverage cap) /
   70 % CN (the old engine's 10 pp haircut for Chinese turbines). Target DSCR 1.20x (Rock, contracted).
 - Repayment sculpted: debt service = CFADS ÷ DSCR × MIN(1, debt at COD ÷ capacity); principal = service −
   interest. The loan amortises to zero at the tenor end by construction (check).
-- Fees: upfront 1.75 % of the facility at first draw, commitment 0.9 % p.a. on undrawn (Bana v3 E219/E222),
+- Fees: upfront 1.75 % of the facility (debt at COD incl. capitalised interest) at first draw, commitment 0.9 % p.a. on undrawn (Bana v3 E219/E222),
   equity-funded. DSRA = 6 months of debt service, equity-funded at COD, released at the tenor end.
 - COD sale: the buyer takes the SPV with its debt; FEP's price is EV − debt outstanding − sale costs.
 
@@ -108,7 +108,7 @@ MEKH 0.1 %, HIPA 2 % and innovation contribution 0.3 % of revenue; community con
   purchase price, DD and devex; straight line over 20 years from COD (Bana v3 E213, to confirm).
 - Period costs expensed: participation fee, guarantee fees, debt fees, pre-COD lease, interest after COD.
 - Tax losses carried forward, used up to 50 % of the year's positive tax base (Tao. 17. §; Rock row 653).
-  The 5-year expiry is not modelled; a check confirms the loss balance is nil 5 years after COD.
+  Losses still unused 5 years after the NTP lapse (most losses arise from NTP; conservative for 2029–2030 losses).
 - Interest limitation (30 % EBITDA, 3 bn HUF safe harbour) not binding at this size; Robin Hood tax not applied
   (≤ 50 MW, Bana v3 E197). Both are notes, not rows.
 - Circularity (tax ↔ interest ↔ debt size) broken with COPY/PASTE (`Tax_1`, `Tax_2`, Solver.bas).
@@ -117,7 +117,8 @@ MEKH 0.1 %, HIPA 2 % and innovation contribution 0.3 % of revenue; community con
 **6.8 Returns.**
 - Sale at COD: FEP flows = development + equity share of construction + fees to COD, and the net proceeds at COD.
   FEP profit, IRR, MOIC, NPV; peak equity.
-- HTM: FEP equity flows (100 %), IRR, MOIC, NPV; project IRR (pre-financing, post-tax); min and average DSCR.
+- HTM: FEP equity flows (100 %), IRR, MOIC, NPV; project IRR (before financing, with the actual tax); min DSCR.
+- COD sale: the buyer takes the SPV with its debt and funds the DSRA.
 
 ## 7. Key-assumption sets (blank = base)
 1 Base · 2 COD price −10 % · 3 Turbine price +10 % · 4 Yield −10 % · 5 PPA price −10 % · 6 Purchase price +10 % ·
@@ -125,8 +126,8 @@ MEKH 0.1 %, HIPA 2 % and innovation contribution 0.3 % of revenue; community con
 points, peak equity, COD IRR and MOIC, HTM IRR and MOIC, debt at COD, min DSCR.
 
 ## 8. Checks
-Levers in range; debt repaid by the tenor end; sources = uses to COD; sale proceeds = price − debt − costs;
-tax losses used within 5 years; solver deltas = 0; stored = live; XIRR returned numbers.
+Levers in range; debt within the DSCR capacity and repaid by the tenor end; DSCR ≥ target; sources = uses to COD;
+solver deltas = 0; stored = live; XIRR returned numbers. The checks result is stored for every key-assumption set.
 
 ## 9. Deck (`out/Bana_IC.pptx`, FEP template, ~7 slides, every figure bound)
 1. Cover. 2. Executive summary (narrative from the deck, condensed, plus key numbers). 3. Risks and mitigants

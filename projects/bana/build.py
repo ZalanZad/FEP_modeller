@@ -33,8 +33,9 @@ def inputs(m):
     a("Bid_Date", "Bid submission: fee paid, bid security posted, DD", "date", D(2026, 10, 30),
       source="Kiírás VI.5")
     a("Award_Date", "Award decision", "date", D(2026, 12, 13), source="Bana v3 Inputs E96")
-    a("PB_Days", "Performance security posted after award", "days", 15, source="Kiírás XII.5", fmt="int")
-    a("TSO_Date", "Connection request: TSO security posted", "date", D(2026, 12, 30), source="Bana v3 Inputs E97")
+    a("Decision_Date", "Award decision received", "date", D(2027, 1, 31), source="GYIK Q68")
+    a("PB_Days", "PB posted, TSO security paid after the decision", "days", 15, source="Kiírás XII.5, XIII.6",
+      fmt="int")
     a("Closing", "Closing of the rights transfer: price paid", "date", D(2026, 12, 31),
       source="Bana deck p2: closing after the award")
     a("NTP", "Notice to proceed", "date", D(2028, 9, 30), source="Bana v3 Inputs E154")
@@ -229,13 +230,13 @@ def calc(m):
     c.row("pb_base", "Security base", "mHUF", e="In_Wind_MW*In_Bench_Wind", ef_fmt="money")
     c.row("fee", "Participation fee (cash)", "EUR k", line, e="In_Part_Fee*Thousand/In_FX", f="In_Bid_Date")
     c.row("bid", "Bid security outstanding (guarantee)", "EUR k",
-          "={self.E}*MAX(0,(MIN(In_Award_Date+In_PB_Days-1,{end})-MAX({self.F},{start})+1)/{days})",
+          "={self.E}*MAX(0,(MIN(In_Decision_Date+In_PB_Days-1,{end})-MAX({self.F},{start})+1)/{days})",
           e="In_Bid_Rate*{pb_base.E}*Thousand/In_FX", f="In_Bid_Date", total="none")
     c.row("pb", "Performance security outstanding (guarantee)", "EUR k",
           "={self.E}*MAX(0,(MIN(In_PB_Release,{end})-MAX({self.F},{start})+1)/{days})",
-          e="In_PB_Rate*{osz6.E}*{pb_base.E}*Thousand/In_FX", f="In_Award_Date+In_PB_Days", total="none")
+          e="In_PB_Rate*{osz6.E}*{pb_base.E}*Thousand/In_FX", f="In_Decision_Date+In_PB_Days", total="none")
     c.row("tso", "TSO connection-request security (cash)", "EUR k", line,
-          e="In_TSO_Security*In_MVA*Thousand/In_FX", f="In_TSO_Date")
+          e="In_TSO_Security*In_MVA*Thousand/In_FX", f="In_Decision_Date+In_PB_Days")
     c.row("direct", "Direct connection fee (cash)", "EUR k", line, e="In_Direct_Fee*Thousand/In_FX", f="In_HCSSZ_Date")
     c.row("indirect", "Indirect connection fee, net of TSO security", "EUR k", line,
           e="(In_Indirect_Fee-In_TSO_Security)*In_MVA*Thousand/In_FX", f="In_HCSSZ_Date")
@@ -276,7 +277,8 @@ def calc(m):
 
     c.section("Debt sizing on CFADS")
     c.paste("Tax", "Corporate income tax", "EUR k")
-    c.row("cfads", "CFADS (EBITDA less tax, after COD)", "EUR k", "=({ebitda}+{tax_paste})*({end}>In_COD)")
+    c.row("cfads", "CFADS (EBITDA, guarantee fees, tax; after COD)", "EUR k",
+          "=({ebitda}+{gfee}+{tax_paste})*({end}>In_COD)")
     c.row("ds_cap", "Debt service at target DSCR (E: PV at COD = capacity)", "EUR k", "={cfads}/In_DSCR*{tenor}",
           e="SUMPRODUCT({self.all}/{idx.all})*{idx.E}")
     c.row("gcap", "Debt share cap, this route", "%", e="IF({osz9a.E}=1,In_Gearing,In_Gearing_CN)", ef_fmt="pct")
@@ -292,14 +294,14 @@ def calc(m):
     c.row("d_rep", "Repayment", "EUR k", "={d_ds}-{d_int}")
     c.row("d_close", "Closing balance (E: at COD)", "EUR k", "=SUM({d_open}:{d_rep})",
           e="SUMIF({end.all},In_COD,{self.all})", total="seed", bold=True)
-    c.row("d_up", "Upfront fee", "EUR k", "=-In_Upfront_Fee*{d_draw.I}*({d_open}=0)*({d_draw}>0)")
+    c.row("d_up", "Upfront fee", "EUR k", "=-In_Upfront_Fee*{d_close.E}*({d_open}=0)*({d_draw}>0)")
     c.row("d_cf", "Commitment fee", "EUR k",
           "=-In_Commitment_Fee*({d_draw.I}-SUM({d_draw.todate})+{d_draw})*{yf}*({constr}>0)")
     c.row("dsra", "DSRA funded at COD, released at the end (E: balance)", "EUR k",
           "={self.E}*({tenor_end}-{cod})",
           e='-SUMIFS({d_ds.all},{end.all},">"&In_COD,{end.all},"<="&EDATE(In_COD,In_DSRA_Months))')
-    c.row("dscr", "DSCR (E: minimum, F: average)", "x", '=IF({d_ds}<0,{cfads}/-{d_ds},"")',
-          e="MIN({self.all})", f="AVERAGE({self.all})", total="none", fmt="mult", ef_fmt="mult")
+    c.row("dscr", "DSCR (E: minimum)", "x", '=IF({d_ds}<0,{cfads}/-{d_ds},"")', e="MIN({self.all})",
+          total="none", fmt="mult", ef_fmt="mult")
 
     c.section("Tax")
     c.row("tax_dep", "Tax depreciation (E: base)", "EUR k", "=-{self.E}*{dep}",
@@ -308,9 +310,11 @@ def calc(m):
     c.row("lcf_open", "Tax losses: opening", "EUR k", "={lcf_close@prev}", total="none")
     c.row("lcf_add", "Losses added", "EUR k", "=MAX(0,-{taxable})")
     c.row("lcf_use", "Losses used (capped)", "EUR k", "=-MIN({lcf_open},In_Loss_Cap*MAX(0,{taxable}))")
-    c.row("lcf_close", "Tax losses: closing (E: at the end of the carry-forward period)", "EUR k",
-          "=SUM({lcf_open}:{lcf_use})", e="SUMIF({end.all},EDATE(In_COD,In_Loss_Years*Months_In_Year),{self.all})",
-          total="seed")
+    c.row("lcf_lapse", "Losses lapsed (E: date, the NTP year + carry-forward period)", "EUR k",
+          "=-({lcf_open}+{lcf_add}+{lcf_use})*N(AND({start}<={self.E},{end}>={self.E}))",
+          e="EDATE(In_NTP,In_Loss_Years*Months_In_Year)")
+    fmt("lcf_lapse", "E", "date")
+    c.row("lcf_close", "Tax losses: closing", "EUR k", "=SUM({lcf_open}:{lcf_lapse})", total="seed")
     c.copy("Tax", "Corporate income tax", "EUR k", "=-In_CIT*(MAX(0,{taxable})+{lcf_use})")
 
     c.section("Funding to COD (E: uses and sources)")
@@ -341,9 +345,9 @@ def calc(m):
     c.xnpv("cod_npv", "FEP NPV – sale at COD", "In_Discount_Rate", "cod_cf")
 
     c.section("Hold to maturity")
-    c.row("proj_cf", "Project cash flow before financing (actual tax)", "EUR k",
+    c.row("proj_cf", "Project cash flow before financing, with actual tax", "EUR k",
           "={dev_cf}+{cost}+{ebitda}+{tax_copy}")
-    c.xirr("proj_irr", "Project IRR, post-tax", "proj_cf")
+    c.xirr("proj_irr", "Project IRR, actual tax, before financing", "proj_cf")
     c.row("htm_cf", "FEP equity cash flow – hold to maturity", "EUR k",
           "={dev_cf}+{cost}+{d_draw}+{d_up}+{d_cf}+{ebitda}+{d_ds}+{dsra}+{tax_copy}", bold=True)
     c.xirr("htm_irr", "FEP IRR – hold to maturity", "htm_cf")
@@ -360,9 +364,6 @@ def checks(m):
     k.add_check("Debt repaid by the end of the tenor", "=N(({end}>={tenor.F})*ABS({d_close})>Tolerance)")
     k.add_check("DSCR not below target", "=N({dscr.E}<In_DSCR-Tolerance)", per_period=False)
     k.add_check("Sources = uses to COD", "=N(ABS({f_uses.E}+{cod_contrib.I}-{d_close.E})>Tolerance)",
-                per_period=False)
-    k.add_check("Tax losses used within the carry-forward period",
-                "=N({lcf_close.E}>Tolerance)",
                 per_period=False)
     k.add_check("XIRR returned a number on every route",
                 "=N(ISERROR({cod_irr.E}))+N(ISERROR({htm_irr.E}))+N(ISERROR({proj_irr.E}))", per_period=False)
@@ -400,7 +401,7 @@ def dashboard(m):
             ("FEP IRR – hold to maturity", "%", "{htm_irr.E}", None, "HTM_IRR"),
             ("FEP MOIC – hold to maturity", "x", "{htm_moic.E}", None, "HTM_MOIC"),
             ("FEP NPV – hold to maturity", "EUR m", "{htm_npv.E}", "Thousand", "HTM_NPV"),
-            ("Project IRR, post-tax, before financing", "%", "{proj_irr.E}", None, "Project_IRR")]:
+            ("Project IRR, actual tax, before financing", "%", "{proj_irr.E}", None, "Project_IRR")]:
         d.link(label, unit, t, scale=scale, out=out, fmt="pct" if unit == "%" else (m2 if scale else None),
                bold=out in ("COD_IRR", "HTM_IRR"))
 
@@ -426,7 +427,7 @@ def dashboard(m):
             ("fee", "Participation fee", "cash", "=In_Bid_Date", "–"),
             ("bid", "Bid security", "guarantee", "=In_Bid_Date", pb_date),
             ("pb", "Performance security", "guarantee", pb_date, "=In_PB_Release"),
-            ("tso", "TSO connection-request security", "cash", "=In_TSO_Date", "credited"),
+            ("tso", "TSO connection-request security", "cash", pb_date, "credited"),
             ("direct", "Direct connection fee", "cash", "=In_HCSSZ_Date", "–"),
             ("indirect", "Indirect connection fee, net", "cash", "=In_HCSSZ_Date", "–")]:
         r = d.link(label, "EUR m", "{%s.E}" % key, scale="Thousand", fmt="0.000", out=f"Sec_{key}",
@@ -449,15 +450,17 @@ def dashboard(m):
     d.link("Share of the DSCR capacity used", "%", "{k.F}", out="Capacity_Used", fmt="pct")
     d.link("DSRA funded at COD", "EUR m", "{dsra.E}", scale="Thousand", out="DSRA", fmt=m2)
     d.link("Minimum DSCR", "x", "{dscr.E}", out="Min_DSCR")
-    d.link("Average DSCR", "x", "{dscr.F}", out="Avg_DSCR")
     d.link("Net generation, first full year", "GWh", "{gen.E}", scale="Thousand", out="Gen_Year1", fmt="money1")
     d.link("Revenue, first full year", "EUR m", "{rev.E}", scale="Thousand", out="Revenue_Year1", fmt=m2)
     d.link("EBITDA, first full year", "EUR m", "{ebitda.E}", scale="Thousand", out="EBITDA_Year1", fmt=m2)
     d.link("Lifetime revenue", "EUR m", "{rev.I}", scale="Thousand", out="Revenue_Life", fmt=m2)
     d.link("Lifetime EBITDA", "EUR m", "{ebitda.I}", scale="Thousand", out="EBITDA_Life", fmt=m2)
     d.link("Lifetime corporate income tax", "EUR m", "SUM({tax_copy.all})", scale="Thousand", out="Tax_Life", fmt=m2)
+    d.link("Tax losses lapsed", "EUR m", "-{lcf_lapse.I}", scale="Thousand", out="Tax_Losses_Lapsed", fmt=m2)
+    d.link("Checks failed in this set (0 = OK)", "#", "Model_Checks", out="Checks", fmt="int")
 
-    d.scenario_results(outs=["Equity_COD", "COD_IRR", "COD_MOIC", "HTM_IRR", "HTM_MOIC", "Debt_COD", "Min_DSCR"])
+    d.scenario_results(outs=["Equity_COD", "COD_IRR", "COD_MOIC", "HTM_IRR", "HTM_MOIC", "Debt_COD", "Min_DSCR",
+                              "Checks"])
 
     d.panel_section("Key-assumption set")
     d.selector()

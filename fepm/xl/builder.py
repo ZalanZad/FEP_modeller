@@ -693,10 +693,16 @@ class Checks:
                 _write(ws, r, 6, m.render(formula, None, None, "Checks", sheet), fmt="flag")
             _write(ws, r, 5, _status(f"F{r}"))
             self.rows.append((label, r))
+        if len(self.rows) > 1 and self.rows[-1][0] == STORED_CHECK[0]:
+            r += 2      # every check but stored = live: a scenario macro can store it per set without a circularity
+            ws.cell(r, 3, "Checks excluding stored = live")
+            _write(ws, r, 6, f"=SUMPRODUCT(ABS(F{first}:F{r - 3}))", "total", "flag")
+            m.define("Model_Checks", f"Checks!$F${r}")
         r += 2
         ws.cell(r, 3, "Master check")
         ws.cell(r, 3).font = Font(name=styles.FONT, size=styles.SIZE, bold=True)
-        _write(ws, r, 6, f"=SUMPRODUCT(ABS(F{first}:F{r - 2}))", "total", "flag")
+        last = self.rows[-1][1]
+        _write(ws, r, 6, f"=SUMPRODUCT(ABS(F{first}:F{last}))", "total", "flag")
         _write(ws, r, 5, _status(f"F{r}"), "total")
         m.define("Master_Check", f"Checks!$F${r}")
         _ok_format(ws, f"E{first}:E{r}")

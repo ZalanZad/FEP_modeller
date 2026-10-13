@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import copy
 import csv
+import re
 import datetime as dt
 from pathlib import Path
 
@@ -236,8 +237,8 @@ class Deck:
             for b in parts:
                 self.bindings.extend(self._entries(slide_no, shape, b))
             return
-        for t, refs in self._bound.items():
-            if t and t in text:
+        for t, refs in self._bound.items():      # whole figures only: "6" does not match inside "2026"
+            if t and re.search(r"(?<![\d.,])" + re.escape(t) + r"(?![\d.,])", text):
                 for ref, value in sorted(refs, key=str):
                     self.bindings.append((slide_no, shape, t, ref, value, ""))
 

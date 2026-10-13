@@ -89,8 +89,8 @@ def run():
     lines += ["## Step sources", ""] + [f"- {label}: {src}." for label, _, src in STEPS]
     lines += ["", "## What the steps do not reproduce (change of method, by design)", ""]
     lines += [f"- {t}" for t in RESIDUAL]
-    lines += ["", "The turbine step only moves the European route. At the old inputs the European route breaches the "
-                  "new model's 5-year tax-loss check, which is a finding for that case, not for the base.", ""]
+    lines += ["", "The turbine step only moves the European route. Tax losses still unused 5 years after the NTP lapse "
+                  "in every step (Tao. 17. §), so the steps carry no tax shield the rule would not allow.", ""]
     (OUT / "reconciliation.md").write_text("\n".join(lines))
     return OUT / "reconciliation.md"
 
