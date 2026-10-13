@@ -35,7 +35,7 @@ def _calls(run) -> list[tuple[str, str]]:
 SOLVER_MODULES = ("Solver", "GoalSeek")     # embedded only when the workbook defines Solver_Topics
 
 
-def package(xlsx, xlsm, run=("Scenarios", "RunAllScenarios"), vba_dir: Path = VBA_DIR) -> Path:
+def package(xlsx, xlsm, run=("Scenarios", "RunAllScenarios"), vba_dir: Path = VBA_DIR, include=None) -> Path:
     """Embed vba_dir/*.bas, run the macros in order, recalc and save as .xlsm.
 
     Solver.bas and GoalSeek.bas are embedded only if the workbook has the `Solver_Topics` name (Inputs
@@ -43,10 +43,13 @@ def package(xlsx, xlsm, run=("Scenarios", "RunAllScenarios"), vba_dir: Path = VB
     calls them late-bound, so it runs with or without them.
 
     `run`: one ("Module", "Sub") / "Module.Sub", a list of them (e.g. ["BoraImpact.RunCommitmentImpact",
-    "Scenarios.RunAllScenarios"]), or None."""
+    "Scenarios.RunAllScenarios"]), or None. `include`: module names to embed (default: every vba/*.bas); the solver
+    modules follow the Solver_Topics rule either way."""
     calls = _calls(run)
     with Office(xlsx) as lo:
         mods = modules(vba_dir)
+        if include is not None:
+            mods = {k: v for k, v in mods.items() if k in set(include) | set(SOLVER_MODULES)}
         if not lo.doc.NamedRanges.hasByName("Solver_Topics"):
             mods = {k: v for k, v in mods.items() if k not in SOLVER_MODULES}
         lo.add_vba_modules(mods)
