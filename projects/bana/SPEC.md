@@ -31,8 +31,11 @@ turbine adds 12 tender points but needs a permit amendment. Both turbine routes 
 ## 3. Simplifications vs Bora (user: "even simpler")
 - One project, one bid. No RtB exit, no JV / developer (FEP 100 %), so no claims, no waterfall, no DSA.
 - No zero-bid case and no commitment-impact macro.
-- No overbuild and no BESS (50 MW installed on 50 MVA, Bana v3 Inputs E297/E282): ÖSZ-3, ÖSZ-4 and ÖSZ-7 are
-  not offered and not modelled; no sanction block.
+- No BESS and no brownfield: ÖSZ-4 and ÖSZ-7 are not offered and not modelled.
+- **Overbuild (user, 13-Oct-2026): bid 20 % (ÖSZ-3, 60 MW committed), build 10 % (55 MW).** The 8.3 % shortfall is
+  inside the 10 % tolerance, so the pro-rata reading (GYIK 28/30) calls nothing; the full-call reading (Kiírás XIII.17,
+  GYIK 72) loses the whole PB 6 months after COD. Bora's sanction block and grid-bottleneck loss (5 % of the
+  overbuilt MW's energy, Bora!N18) apply.
 - No COD price effect: the COD price is per installed MW (old Bana engine had no adjustment at the base bid).
 - Devex: one budget (500 k€ incl. contingency, Bana v3 Inputs E292) spread evenly from closing to NTP.
 
@@ -53,12 +56,13 @@ period-end dates, NPV discounted to the first period end at `In_Discount_Rate` (
 |---|---|---|---|
 | ÖSZ-1 municipal one-off, k€/MW | 35 | 35 | 0 or 10–50 |
 | ÖSZ-2 community contribution, €/MWh | 2.5 | 2.5 | 0 or 2–3 |
+| ÖSZ-3 overbuild committed (built: `In_Overbuild_Built` 10 %) | 20 % | 20 % | ≥ 0 % |
 | ÖSZ-6 performance security multiple | 1.0 | 1.0 | ≥ 1.0 |
 | ÖSZ-5 partial award accepted | 0 | 0 | 0 / 1 |
 | ÖSZ-8 shared connection | 0 | 0 | 0 / 1 |
 | ÖSZ-9 European turbines ≥ 80 % (also sets the turbine route) | 1 | 0 | 0 / 1 |
 | ÖSZ-9 European transformers ≥ 80 % | 0 | 0 | 0 / 1 |
-Points: 29 European / 17 Chinese (Bana deck p4). The ÖSZ-9 turbine lever drives the turbine price, substation,
+Points: 34 European / 22 Chinese (Bana deck p4 bid 29 / 17 plus 5 for ÖSZ-3). The ÖSZ-9 turbine lever drives the turbine price, substation,
 COD price and gearing cap of its column, so the commitment and the cost cannot diverge.
 
 ## 6. Calc blocks (each Calc sheet)
@@ -75,7 +79,7 @@ debt tenor window, tax-depreciation share, devex window (closing → NTP), opera
   DD 150 k€ at the bid date. Devex 500 k€ evenly closing → NTP.
 - Participation fee 3 mHUF (cash, bid date). Bid security 0.5 % × base (guarantee, bid date → PB posting).
   PB 2.5 % × ÖSZ-6 × base (guarantee, decision received 31-Jan-2027 (GYIK Q68) + 15 days → `In_PB_Release` 31-Mar-2033 on the hold route; the
-  buyer takes it over at the sale). Base = installed MW × 406 mHUF/MW.
+  buyer takes it over at the sale). Base = committed wind MW × 406 mHUF/MW.
 - TSO security 4.5 mHUF/MVA (cash, decision + 15 days, Kiírás XIII.6), credited to the indirect fee.
 - Direct connection fee 460 mHUF per connection point; indirect fee 54.830209 mHUF/MVA × 50 − TSO security;
   both cash at HCSSZ (08-Jan-2029). Bana v3 Inputs E288/E289 (MEKH Annex 1).
@@ -121,7 +125,7 @@ MEKH 0.1 %, HIPA 2 % and innovation contribution 0.3 % of revenue; community con
 - COD sale: the buyer takes the SPV with its debt and funds the DSRA.
 
 ## 7. Key-assumption sets (blank = base)
-1 Base · 2 COD price −10 % · 3 Turbine price +10 % · 4 Yield −10 % · 5 PPA price −10 % · 6 Purchase price +10 % ·
+1 Base · 2 COD price −10 % · 3 Turbine price +10 % · 4 Yield −10 % · 5 PPA price −10 % · 6 Full PB call (GYIK 72) ·
 7 Debt rate +1 pp · 8 Tenor 10 years (old engine; the gearing cap binds at 18 years, so this set tests the DSCR sizing). `RunAllScenarios` (with the tax solver) stores per set and route:
 points, peak equity, COD IRR and MOIC, HTM IRR and MOIC, debt at COD, min DSCR.
 

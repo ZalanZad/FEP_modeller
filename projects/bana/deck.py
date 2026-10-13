@@ -99,7 +99,7 @@ def build_deck(xlsm: Path, out: Path) -> Path:
     sets = [c.value for row in d.wb["Inputs"][next(names["Scenario_Names"].destinations)[1]] for c in row]
 
     # ---- 1 Cover -------------------------------------------------------------------------------------------
-    d.cover("Project Bana", f("{mw} MW wind development project opportunity", mw=b("In_Wind_MW", n0)),
+    d.cover("Project Bana", f("{mw} MW wind development project opportunity", mw=b("Out_Wind_Built_1", n0)),
             b("Dashboard!E6", lambda v: f"{v.day} {v:%B %Y}"))
 
     # ---- 2 Executive summary -----------------------------------------------------------------------------------
@@ -162,13 +162,15 @@ def build_deck(xlsm: Path, out: Path) -> Path:
     # ---- 4 Technical overview and tender bid ---------------------------------------------------------------------
     s = d.content("Technical overview and tender bid", f(
         "{mw} MW producing {g} GWh a year; the bid scores {p1} points with European turbines and {p2} with Chinese",
-        mw=b("In_Wind_MW", n0), g=b("Out_Gen_Year1_1", n1), p1=p[0], p2=p[1]), f(
-        "European turbines add {t} points but need a permit amendment; the PB stays at the minimum and partial "
-        "award, shared connection and EU transformers are not offered.", t=pts("EU_Turbine", 1)), title_lines=2)
+        mw=b("Out_Wind_Built_1", n0), g=b("Out_Gen_Year1_1", n1), p1=p[0], p2=p[1]), f(
+        "The bid commits {o} overbuild ({c} MW, {op} points) and FEP builds {w} MW, inside the tolerance; European "
+        "turbines add {t} points but need a permit amendment.", o=lever("Overbuild", 1, pct0),
+        c=b("Out_Wind_MW_1", n0), op=pts("Overbuild", 1), w=b("Out_Wind_Built_1", n0), t=pts("EU_Turbine", 1)),
+        title_lines=2)
     rows = [["Site and grid", ""],
             ["Grid node", "Ács Katódgyár (BAMO B 132.00)"],
-            ["Net connection capacity / installed wind", f("{a} MVA / {w} MW", a=b("In_MVA", n0),
-                                                           w=b("In_Wind_MW", n0))],
+            ["Connection / wind committed / built", f("{a} MVA / {c} MW / {w} MW", a=b("In_MVA", n0),
+                                                      c=b("Out_Wind_MW_1", n0), w=b("Out_Wind_Built_1", n0))],
             ["Energy yield and price", ""],
             ["Net P50 equivalent hours", f("{h} h", h=b("In_P50_Hours", n0))],
             ["Curtailment / degradation", f("{c} / {g} p.a.", c=b("In_Curtailment", pct),
@@ -190,6 +192,8 @@ def build_deck(xlsm: Path, out: Path) -> Path:
              pts("Municipal", 1), pts("Municipal", 2)],
             ["ÖSZ-2 community contribution", f("{a} €/MWh", a=lever("Community", 1, dp1)),
              pts("Community", 1), pts("Community", 2)],
+            ["ÖSZ-3 overbuild", f("{a} of MVA; {w} built", a=lever("Overbuild", 1, pct0),
+                                  w=b("In_Overbuild_Built", pct0)), pts("Overbuild", 1), pts("Overbuild", 2)],
             ["ÖSZ-6 performance security", f("{a} of the minimum", a=lever("PB_Mult", 1, x1)),
              pts("PB_Mult", 1), pts("PB_Mult", 2)],
             ["ÖSZ-9 European turbines ≥ 80 %", "European route only", pts("EU_Turbine", 1), pts("EU_Turbine", 2)],
@@ -197,10 +201,12 @@ def build_deck(xlsm: Path, out: Path) -> Path:
              f("{a} / {b} / {c}", a=pts("Partial", 1), b=pts("Shared", 1), c=pts("EU_Transformer", 1)),
              f("{a} / {b} / {c}", a=pts("Partial", 2), b=pts("Shared", 2), c=pts("EU_Transformer", 2))],
             ["Total score", "", *p]]
-    s.table(["Tender bid", "Commitment", "European", "Chinese"], rows, key_rows={5}, left=13.35, top=TOP,
-            width=6.55, height=0.59 + 6 * 0.62, col_widths=[2.35, 1.9, 1.15, 1.15], align="LLRR", unit_col=None)
-    s.footnote("Points are the model's own score on the MEKH 2026 bands (Kiírás Annex 3-4). Overbuild (ÖSZ-3), "
-               "BESS (ÖSZ-4) and brownfield (ÖSZ-7) are not available at Bana. The municipal one-off is paid at COD.")
+    s.table(["Tender bid", "Commitment", "European", "Chinese"], rows, key_rows={6}, left=13.35, top=TOP,
+            width=6.55, height=0.59 + 7 * 0.62, col_widths=[2.35, 1.9, 1.15, 1.15], align="LLRR", unit_col=None)
+    s.footnote(f("Points are the model's own score on the MEKH 2026 bands (Kiírás Annex 3-4). BESS (ÖSZ-4) and "
+                 "brownfield (ÖSZ-7) are not available at Bana. Build shortfall {sh} against the commitment, inside the "
+                 "{t} tolerance (GYIK 28/30). The municipal one-off is paid at COD.",
+                 sh=b("Out_Shortfall_1", pct), t=b("In_Tolerance_Cap", pct0)))
 
     # ---- 5 Funding to COD ------------------------------------------------------------------------------------------
     debt, uses = o("Debt_COD", eur), o("Uses_Total", eur)
@@ -282,9 +288,10 @@ def build_deck(xlsm: Path, out: Path) -> Path:
                     l=b("In_Loss_Cap", pct0), ly=b("In_Loss_Years", n0),
                     e=b("In_Sale_Gain_Taxed", lambda v: "exempt" if v == 0 else "taxed")))],
         left=15.45, top=6.25, width=4.45, height=3.9)
-    s.footnote(f("Sale price {pe} / {pc} k€ per MW; the buyer takes the SPV with its debt and funds the DSRA. Hold: PPA {ppa} €/MWh, {life}-year life; DSRA of {dsra} months "
+    s.footnote(f("Sale price {pe} / {pc} k€ per built MW, less the {bl} bottleneck loss; the buyer takes the SPV with its debt and funds the DSRA. Hold: PPA {ppa} €/MWh, {life}-year life; DSRA of {dsra} months "
                  "funded at COD. HIPA {hipa} and the innovation contribution on revenue. NPV at {r}.",
                  pe=b("In_COD_Price", n0), pc=b("In_COD_Price_CN", n0), ppa=b("In_PPA_Price", n0),
+                 bl=b("Out_Bottleneck_Loss_1", lambda v: fmt_pct(v, 2)),
                  life=b("In_Life", n0), dsra=b("In_DSRA_Months", n0), hipa=b("In_HIPA", pct0),
                  r=b("In_Discount_Rate", pct0)))
 
@@ -307,13 +314,19 @@ def build_deck(xlsm: Path, out: Path) -> Path:
     s.card("What to watch", [
         ("Turbine choice: ", "the permits name Goldwind; European turbines need a permit amendment and carry the "
                              "most capex risk."),
+        ("Overbuild: ", f("{w} MW built against {c} MW committed. Pro rata (GYIK 28/30) there is no PB call; if the "
+                          "full-call reading (GYIK 72) applies, the €{pb}m PB is lost: COD IRR {ci}, hold IRR {hi} "
+                          "(European).", w=b("Out_Wind_Built_1", n0), c=b("Out_Wind_MW_1", n0),
+                          pb=b("Out_PB_Call_Full_1", lambda v: fmt_eur_m(v, 2)),
+                          ci=st("COD_IRR_1", sets.index("Full PB call") + 1, pct),
+                          hi=st("HTM_IRR_1", sets.index("Full PB call") + 1, pct))),
         ("COD price: ", "an estimate per MW, not a bid; test it with buyers before NTP."),
         ("PPA: ", f("{p} €/MWh for the whole life is an assumption; no offtake is signed.",
                     p=b("In_PPA_Price", n0))),
         ("Debt: ", f("a {t}-year tenor makes the DSCR bind and cuts the European hold IRR to {h}.",
                      t=b(f"Inputs!O{next(names['In_Debt_Tenor'].destinations)[1].split('$')[-1]}", n0),
                      h=st("HTM_IRR_1", sets.index("Tenor 10 years") + 1, pct)))],
-        left=15.45, top=TOP, width=4.45, height=6.6)
+        left=15.45, top=TOP, width=4.45, height=5.4)
     s.footnote(f("Each set changes one input, as named; tenor {t} years. Stored by the scenario macro with the tax "
                  "solver; base = live model. Model checks in every set: {ck}.",
                  t=b(f"Inputs!O{next(names['In_Debt_Tenor'].destinations)[1].split('$')[-1]}", n0),

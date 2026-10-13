@@ -41,6 +41,8 @@ RESIDUAL = [
     "Tax: old 50 % loss cap with devex expensed and decommissioning at 30 k€/MW; new capitalises the purchase price, "
     "DD and devex into the 20-year depreciation base and has no decommissioning (immaterial at 8 % over 30 years).",
     "Opex: the new model adds the 0.3 % innovation contribution on the HIPA base.",
+    "Overbuild: the old bid had none (50 MW); the new bid commits 20 % and builds 10 % (55 MW, user 13-Oct-2026), "
+    "which adds capex, generation, the COD price on the extra MW and a larger security base.",
 ]
 
 
