@@ -23,7 +23,7 @@ turbine adds 12 tender points but needs a permit amendment. Both turbine routes 
 2. `reference/Bana_IC_20260109_vDSz.pptx` (IC deck, 09-Oct-2026): bid (ÖSZ-1 35 k€/MW, ÖSZ-2 2.5 €/MWh, ÖSZ-6 at
    the minimum), executive-summary narrative and the Dentons DD risk table (qualitative, kept as written).
 3. `projects/bora_bidding` (SPEC v2.2, build.py): structure, securities method, user decisions that apply to every
-   project (EU turbine 600 k€/MW, PPA 90 €/MWh for the whole life with 1 %/yr escalation).
+   project (PPA 90 €/MWh for the whole life with 1 %/yr escalation).
 4. Project Rock (`reference/Project_Rock_-_Financial_Model_2.1.xlsm`, Assumptions rows 533–653) and Project Alpha:
    debt sizing on CFADS / DSCR with a leverage cap, sculpted repayment, DSRA, tax-loss rules, COPY/PASTE tax.
 5. `docs/domain/tender_2026_rules.md`: scoring bands, securities, PB validity.
@@ -89,7 +89,7 @@ debt tenor window, tax-depreciation share, devex window (closing → NTP), opera
 - Guarantee fee 6 % × outstanding guarantees × days/365.
 
 **6.4 Build** (Bana v3 Inputs J; EU turbine price per Bora user decision):
-- Turbine EU 600 / CN 500 k€/MW; other wind 355 k€/MW (installation 80, foundations 90, BoP 130, owner's 40,
+- Turbine EU 950 (user, 13-Oct-2026) / CN 500 k€/MW; other wind 355 k€/MW (installation 80, foundations 90, BoP 130, owner's 40,
   land 15); substation 12,000 k€ EU / 10,800 k€ CN; 5 % contingency on all of these. Phased by construction share.
 - Municipal one-off = ÖSZ-1 × MVA, paid at COD. Connection fees from 6.3.
 
@@ -97,15 +97,15 @@ debt tenor window, tax-depreciation share, devex window (closing → NTP), opera
 - Draws = debt share k × each period's construction cost (capex + connection fees + municipal); IDC capitalised.
 - Debt capacity = PV at the debt rate (to COD) of CFADS ÷ target DSCR over the tenor (18 years from COD,
   Rock), CFADS = EBITDA − guarantee fees − tax after COD (tax from the PASTE row).
-- k = MIN(gearing cap, capacity ÷ Σ cost × IDC growth to COD). Gearing cap 80 % EU (Rock leverage cap) /
-  70 % CN (the old engine's 10 pp haircut for Chinese turbines). Target DSCR 1.20x (Rock, contracted).
+- k = MIN(gearing cap, capacity ÷ Σ cost × IDC growth to COD). Gearing cap 55 % EU /
+  50 % CN (user, 13-Oct-2026). Target DSCR 1.20x (Rock, contracted).
 - Repayment sculpted: debt service = CFADS ÷ DSCR × MIN(1, debt at COD ÷ capacity); principal = service −
   interest. The loan amortises to zero at the tenor end by construction (check).
 - Fees: upfront 1.75 % of the facility (debt at COD incl. capitalised interest) at first draw, commitment 0.9 % p.a. on undrawn (Bana v3 E219/E222),
   equity-funded. DSRA = 6 months of debt service, equity-funded at COD, released at the tenor end.
 - COD sale: the buyer takes the SPV with its debt; FEP's price is EV − debt outstanding − sale costs.
 
-**6.6 Operations.** Generation = 50 MW × 2,460 h × (1 − 2 % curtailment) × degradation 0.3 %/yr.
+**6.6 Operations.** Generation = 55 MW built × 2,600 h (user, 13-Oct-2026) × (1 − bottleneck loss) × (1 − 2 % curtailment) × degradation 0.3 %/yr.
 Revenue = PPA 90 €/MWh × 1.01^(year − COD year) on 100 % of output for the whole life (user). Opex as Bora:
 variable 5 €/MWh, fixed 22 k€/MW + admin 150 k€, lease 3 k€/MW from NTP, contingency 5 %, escalation 2.5 %;
 MEKH 0.1 %, HIPA 2 % and innovation contribution 0.3 % of revenue; community contribution (ÖSZ-2 €/MWh).
@@ -146,5 +146,5 @@ securities). 6. Returns: sale at COD vs hold, with debt and tax. 7. Sensitivitie
 (old engine vs new, with the reasons), `build.py`, `deck.py`.
 
 ## 11. User corrections (13-Oct-2026, Bana_Model_2.xlsm)
-EU turbine 950 k€/MW (set 3: 1,045); net P50 2,600 h (set 4: 2,340); debt-share cap 55 % EU / 50 % CN;
+EU turbine 950 k€/MW (set 3: base × (1 + `Sens_Step` 10 %)); net P50 2,600 h (set 4: base × (1 − `Sens_Step`)); debt-share cap 55 % EU / 50 % CN;
 set 5 = PPA +10 % (99 €/MWh). Deck slide 2: narrative 16 pt plus the COD-price sentence (bound to `In_COD_Price`).

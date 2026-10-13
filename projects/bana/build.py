@@ -30,6 +30,7 @@ PATCH = {}                                                  # (calc key, column)
 def inputs(m):
     i = m.inputs
     a = i.add_input
+    i.add_constant("Sens_Step", "Sensitivity step for the turbine and yield sets", "%", 0.1, "User 13-Oct-26")
     a("Bid_Date", "Bid submission: fee paid, bid security posted, DD", "date", D(2026, 10, 30),
       source="Kiírás VI.5")
     a("Award_Date", "Award decision", "date", D(2026, 12, 13), source="Bana v3 Inputs E96")
@@ -90,7 +91,7 @@ def inputs(m):
     a("Guarantee_Fee", "Bank guarantee fee on guarantees outstanding", "%", 0.06, source="Bana v3 Inputs E113")
 
     i.section("Capex")
-    a("Turbine", "Turbine supply, EU", "EUR k/MW", 950, {3: 1045}, source="User 13-Oct-26 (Bana v3 E162)")
+    a("Turbine", "Turbine supply, EU", "EUR k/MW", 950, {3: f"=H{i.r}*(1+Sens_Step)"}, source="User 13-Oct-26 (Bana v3 E162)")
     a("Turbine_CN", "Turbine supply, CN", "EUR k/MW", 500, {3: 550}, source="Bana v3 Inputs I162")
     a("Other_Wind", "Other wind capex (install, foundations, BoP, owner, land)", "EUR k/MW", 355,
       source="Bana v3 Inputs E163:E166, E169:E170")
@@ -100,7 +101,7 @@ def inputs(m):
     a("BESS_Capex", "BESS capex, all-in (no BESS revenue or opex)", "EUR k/MW", 240, source="User 12-Oct-26 (Bora)")
 
     i.section("Operations")
-    a("P50_Hours", "Net P50 hours", "h/yr", 2600, {4: 2340}, source="User 13-Oct-26", fmt="money")
+    a("P50_Hours", "Net P50 hours", "h/yr", 2600, {4: f"=H{i.r}*(1-Sens_Step)"}, source="User 13-Oct-26", fmt="money")
     a("Curtailment", "Curtailment", "%", 0.02, source="Bana v3 Inputs E181")
     a("Degradation", "Degradation per year", "%", 0.003, source="Bana v3 Inputs E182", fmt="0.00%")
     a("PPA_Price", "PPA price at COD, whole life, 100 % of output", "EUR/MWh", 90, {5: 99},
