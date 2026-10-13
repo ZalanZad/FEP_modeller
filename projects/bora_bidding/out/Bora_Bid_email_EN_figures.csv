@@ -1,38 +1,27 @@
 section,figure_text,name_or_cell,sheet_cell,value,format
-,12-Oct-2026,Dashboard!E6,Dashboard!E6,2026-10-12 00:00:00,date
 ,85,Out_Points_1,Dashboard!E25,85,points (2 dp if fractional)
-,68.25,Out_Points_2,Dashboard!F25,68.25,points (2 dp if fractional)
 ,30-Oct-2026,In_Bid_Date,Inputs!F52,2026-10-30 00:00:00,date
 ,50,Dashboard!E12,Dashboard!E12,50,0 dp
 ,20,Dashboard!I12,Dashboard!I12,20,points (2 dp if fractional)
 ,−0.4,Dashboard!O12,Dashboard!O12,-0.00426661763368345,pp 1 dp
 ,51%,Dashboard!E14,Dashboard!E14,0.51,% 0 dp
-,40%,Dashboard!F14,Dashboard!F14,0.4,% 0 dp
 ,10,Dashboard!I14,Dashboard!I14,10,points (2 dp if fractional)
-,9,Dashboard!J14,Dashboard!J14,9,points (2 dp if fractional)
 ,(0.5),Dashboard!K14,Dashboard!K14,-0.472016523939481,€ m 1 dp
-,(0.4),Dashboard!L14,Dashboard!L14,-0.370209038383906,€ m 1 dp
 ,1.4,Out_Commitment_Penalty_1,Dashboard!E39,1.41821917808219,€ m 1 dp
-,1.1,Out_Commitment_Penalty_2,Dashboard!F39,1.11232876712329,€ m 1 dp
+,2.8,Out_Commitment_Penalty_1 + Out_Commitment_Penalty_2,Dashboard!E39 + Dashboard!F39,2.83643835616438,€ m 1 dp
 ,51%,Dashboard!E15,Dashboard!E15,0.51,% 0 dp
-,40%,Dashboard!F15,Dashboard!F15,0.4,% 0 dp
 ,15,Dashboard!I15,Dashboard!I15,15,points (2 dp if fractional)
-,13.50,Dashboard!J15,Dashboard!J15,13.5,points (2 dp if fractional)
 ,−1.2,Dashboard!O15,Dashboard!O15,-0.012392661209204,pp 1 dp
-,−1.0,Dashboard!P15,Dashboard!P15,-0.0098626548277283,pp 1 dp
 ,2.8,Dashboard!Q15,Dashboard!Q15,2.79452054794521,€ m 1 dp
-,2.2,Dashboard!R15,Dashboard!R15,2.19178082191781,€ m 1 dp
+,5.6,Dashboard!Q15 + Dashboard!R15,Dashboard!Q15 + Dashboard!R15,5.58904109589042,€ m 1 dp
 ,7.0,Dashboard!E52,Dashboard!E52,6.99356164383562,€ m 1 dp
-,6.1,Dashboard!F52,Dashboard!F52,6.08493150684932,€ m 1 dp
 ,5,Dashboard!I18,Dashboard!I18,5,points (2 dp if fractional)
 ,5,Dashboard!I20,Dashboard!I20,5,points (2 dp if fractional)
 ,12,Dashboard!I21,Dashboard!I21,12,points (2 dp if fractional)
 ,3,Dashboard!I22,Dashboard!I22,3,points (2 dp if fractional)
+,3.00,Dashboard!E13,Dashboard!E13,3,2 dp
 ,15,Dashboard!I13,Dashboard!I13,15,points (2 dp if fractional)
-,0.75,Dashboard!J13,Dashboard!J13,0.75,points (2 dp if fractional)
 ,−0.6,Dashboard!O13,Dashboard!O13,-0.00608428062140405,pp 1 dp
-,−0.4,Dashboard!P13,Dashboard!P13,-0.00407139479710583,pp 1 dp
-,7.0,Out_Sanction_Full_1,Dashboard!E40,6.99356164383562,€ m 1 dp
-,6.1,Out_Sanction_Full_2,Dashboard!F40,6.08493150684932,€ m 1 dp
+,14.0,Out_Sanction_Full_1 + Out_Sanction_Full_2,Dashboard!E40 + Dashboard!F40,13.98712328767124,€ m 1 dp
 ,33.8,Out_MVA_At_Risk_1,Dashboard!E56,33.7748344370861,1 dp
-,28.6,Out_MVA_At_Risk_2,Dashboard!F56,28.5714285714286,1 dp
+,80.50,Dashboard!M95,Dashboard!M95,80.5,points (2 dp if fractional)
