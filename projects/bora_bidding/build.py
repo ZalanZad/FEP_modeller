@@ -538,10 +538,11 @@ def checks(m):
 
 # =========================================================================================== dashboard
 LEVERS = [  # key, label, unit, BORA 1 / BORA 2, offerable range, points row, list options, format
+    # BORA 2 = BORA 1 strategy (User 13-Oct-26: BORA 1 strategy, SPEC §0 item 21)
     ("Municipal", "Municipal one-off (ÖSZ-1)", "EUR k/MW", [50, 50], "0 or 10–50", "osz1", None, "money"),
-    ("Community", "Community contribution (ÖSZ-2)", "EUR/MWh", [3, 2.01], "0 or 2–3", "osz2", None, "money2"),
-    ("Overbuild", "Overbuild (ÖSZ-3)", "%", [0.51, 0.40], "≥ 0 %", "osz3", None, "pct"),
-    ("BESS", "BESS power, share of MVA (ÖSZ-4)", "%", [0.51, 0.40], "≤ wind MW", "osz4", None, "pct"),
+    ("Community", "Community contribution (ÖSZ-2)", "EUR/MWh", [3, 3], "0 or 2–3", "osz2", None, "money2"),
+    ("Overbuild", "Overbuild (ÖSZ-3)", "%", [0.51, 0.51], "≥ 0 %", "osz3", None, "pct"),
+    ("BESS", "BESS power, share of MVA (ÖSZ-4)", "%", [0.51, 0.51], "≤ wind MW", "osz4", None, "pct"),
     ("BESS_Hours", "BESS duration", "h", [4, 4], "≥ 4 h", None, None, "money1"),
     ("PB_Mult", "Performance security multiple (ÖSZ-6)", "x", [1.0, 1.0], "≥ 1.0", "osz6", None, "mult"),
     ("Partial", "Partial award accepted (ÖSZ-5)", "flag", [1, 1], "0 / 1", "osz5", [0, 1], "flag"),
