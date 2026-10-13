@@ -186,6 +186,29 @@ class Deck:
         b.ref, b.value = ref, value
         return b
 
+    def bind_sum(self, refs, fmt):
+        """Sum of several cells shown as one figure (e.g. both bids). Each cell is bound and recorded in the
+        manifest with the displayed text and note "sum"; the total itself is never typed.
+
+        `refs`: workbook names or `Sheet!Cell` strings, or Bound values (e.g. from `stored`)."""
+        comps = []
+        for r in refs:
+            if hasattr(r, "ref"):
+                comps.append((r.ref, r.value))
+            else:
+                comps.append(self._resolve(*r.split("!")) if "!" in r else self._resolve(r, None))
+        b = Bound(fmt(sum(v for _, v in comps)))
+        b.ref, b.value, b.components = "+".join(r for r, _ in comps), None, comps
+        for ref, value in comps:
+            self._bound.setdefault(str(b), set()).add((ref, value))
+        return b
+
+    def _entries(self, slide_no, shape, b):
+        """Manifest rows of one Bound: one row per cell (sum components carry note "sum")."""
+        if getattr(b, "components", None):
+            return [(slide_no, shape, str(b), ref, value, "sum") for ref, value in b.components]
+        return [(slide_no, shape, str(b), b.ref, b.value, "")]
+
     def stored(self, output_key, scenario: int, fmt=None):
         """Stored scenario result (1-based scenario) of output `Out_<output_key>`: on its Summary row, or on the
         Dashboard in the `<output_key>_Stored` row (e.g. `stored("HTM_IRR_2", 3)`)."""
@@ -211,12 +234,12 @@ class Deck:
         parts = _parts(text)
         if parts is not None:
             for b in parts:
-                self.bindings.append((slide_no, shape, str(b), b.ref, b.value))
+                self.bindings.extend(self._entries(slide_no, shape, b))
             return
         for t, refs in self._bound.items():
             if t and t in text:
                 for ref, value in sorted(refs, key=str):
-                    self.bindings.append((slide_no, shape, t, ref, value))
+                    self.bindings.append((slide_no, shape, t, ref, value, ""))
 
     # ---- slides ---------------------------------------------------------------------------
     def cover(self, project, topic, date_text, subtitle=None):
@@ -262,7 +285,7 @@ class Deck:
             raise ValueError(f"bound values never placed on a slide: {orphans}")
         with open(path.parent / "deck_bindings.csv", "w", newline="") as fh:
             w = csv.writer(fh)
-            w.writerow(["slide", "shape", "text", "cell", "value"])
+            w.writerow(["slide", "shape", "text", "cell", "value", "note"])
             w.writerows(self.bindings)
         return path
 
@@ -388,7 +411,7 @@ class Slide:
                 else:
                     cell.fill.background()
                 for b in _parts(v) or []:
-                    self.d.bindings.append((self.number, name, str(b), b.ref, b.value))
+                    self.d.bindings.extend(self.d._entries(self.number, name, b))  # noqa: SLF001
         return shape
 
     def chart(self, kind, categories, series: dict, *, left=LEFT, top=6.0, width=WIDTH, height=4.0, title=None,
@@ -438,7 +461,7 @@ class Slide:
         for sname, vals in series.items():
             for cat, v in zip(categories, vals):
                 if hasattr(v, "ref"):
-                    self.d.bindings.append((self.number, name, f"{sname} / {cat}", v.ref, v.value))
+                    self.d.bindings.append((self.number, name, f"{sname} / {cat}", v.ref, v.value, ""))
         return gf
 
     def card(self, header, bullets, *, left=15.35, top=1.75, width=4.55, height=4.75, name="Card"):
