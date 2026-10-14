@@ -57,9 +57,10 @@ def inputs(m):
       source="Bana v3 Inputs N230")
     a("Sale_Costs", "Sale costs at COD", "EUR k", 500, source="Bana v3 Inputs E26")
     a("Discount_Rate", "FEP discount rate (NPV)", "%", 0.08, source="Bana v3 Inputs E253")
-    a("CIT", "Corporate income tax (Pillar Two 15 % minimum)", "%", 0.15, {11: 0.09},
+    a("CIT", "Corporate income tax: 9 % + possible Pillar Two top-up (proxy)", "%", 0.15, {11: 0.09},
       source="User 14-Oct-26; set 11: Tao. 19. §")
-    a("RH_On", "Robin Hood tax applies (1 = yes)", "flag", 0, {10: 1}, source="Bana v3 E197 (≤ 50 MW: off)")
+    a("RH_On", "Robin Hood tax applies (1 = yes)", "flag", 0, {10: 1},
+      source="Bana v3 E197; 55 MW built: to confirm")
     a("RH_Rate", "Robin Hood tax on positive pre-tax profit", "%", 0.31, source="Bana v3 Inputs E198")
     a("Sale_Gain_Taxed", "Gain on the COD share sale taxed (0 = exempt)", "flag", 0,
       source="Bana v3 E231; participation exemption")
@@ -392,9 +393,9 @@ def calc(m):
           bold=True)
     c.xnpv("cod_npv", "FEP NPV – sale at COD", "In_Discount_Rate", "cod_cf")
     c.subheader("Buyer at COD (share deal: SPV tax, debt and DSRA stay in the SPV)")
-    c.row("buy_u", "Buyer cash flow, unlevered: pays the price, gets post-COD flows", "EUR k",
-          "=({ebitda}+{gfee}+{sanction}+{tax_copy})*({end}>In_COD)-{v_price.E}*{cod}")
-    c.xirr("buy_u_irr", "Buyer IRR, unlevered, post-tax", "buy_u")
+    c.row("buy_u", "Buyer cash flow, unlevered: price net of any PB call, post-COD flows", "EUR k",
+          "=({ebitda}+{gfee}+{sanction}+{tax_copy})*({end}>In_COD)-({v_price.E}+{sanction.I})*{cod}")
+    c.xirr("buy_u_irr", "Buyer IRR, unlevered, at the SPV's actual tax", "buy_u")
     c.row("buy_l", "Buyer cash flow, levered: pays price less debt, funds the DSRA", "EUR k",
           "={buy_u}+{d_ds}+{dsra}+{d_close.E}*{cod}")
     c.xirr("buy_l_irr", "Buyer IRR, levered, post-tax", "buy_l")
@@ -512,7 +513,7 @@ def dashboard(m):
     d.link("Net proceeds to FEP (after debt and sale costs)", "EUR m", "{v_net.E}", scale="Thousand",
            out="COD_Proceeds", fmt=m2)
     d.link("Tax on the gain", "EUR m", "{v_tax.E}", scale="Thousand", out="COD_Tax", fmt=m2)
-    d.link("Buyer IRR, unlevered, post-tax", "%", "{buy_u_irr.E}", out="Buyer_IRR_U", fmt="pct", bold=True)
+    d.link("Buyer IRR, unlevered, at the SPV's actual tax", "%", "{buy_u_irr.E}", out="Buyer_IRR_U", fmt="pct", bold=True)
     d.link("Buyer IRR, levered (takes the debt, funds the DSRA)", "%", "{buy_l_irr.E}", out="Buyer_IRR_L", fmt="pct")
 
     d.section("Hold to maturity: debt and tax")
@@ -561,8 +562,8 @@ def dashboard(m):
 
 # =========================================================================================== build
 def model():
-    m = Model("Project Bana", "50 MW onshore wind, Ács Katódgyár – sale at COD vs hold to maturity", periods=136,
-              periodicity="quarterly", start=D(2026, 10, 1), scenarios=SETS, version="v1", date=D(2026, 10, 13),
+    m = Model("Project Bana", "50 MVA onshore wind, Ács Katódgyár – sale at COD vs hold to maturity", periods=136,
+              periodicity="quarterly", start=D(2026, 10, 1), scenarios=SETS, version="v2", date=D(2026, 10, 14),
               curves=True, layout="dashboard", calc_sheets=["Calc_1", "Calc_2"],
               bids=["European turbine", "Chinese turbine"], extra_cols=len(SETS), source_col=False)
     inputs(m)

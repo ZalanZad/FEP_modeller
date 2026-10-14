@@ -311,8 +311,10 @@ def build_deck(xlsm: Path, out: Path) -> Path:
                                     xh=b("Out_DSCR_Max_High_1", x2), pa=b("Out_Debt_Max_Low_Pct_1", pct0),
                                     pc=b("Out_Debt_Max_High_Pct_1", pct0), b=b("Out_Debt_Max_Low_2", eur),
                                     d=b("Out_Debt_Max_High_2", eur))),
-        ("Tax: ", f("CIT {c} (Pillar Two minimum), no Robin Hood tax in the base; {y}-year depreciation; losses capped at {l} of the base and lapse after {ly} years. "
+        ("Tax: ", f("CIT {c}, a proxy for 9 % plus a possible Pillar Two top-up. Robin Hood tax is not in the base, "
+                    "but the {mw} MW build crosses the 50 MW threshold its exemption relies on (to confirm). {y}-year depreciation; losses capped at {l} of the base and lapse after {ly} years. "
                     "Gain on the COD share sale {e}.", c=b("In_CIT", pct0), y=b("In_Dep_Years", n0),
+                    mw=b("Out_Wind_Built_1", n0),
                     l=b("In_Loss_Cap", pct0), ly=b("In_Loss_Years", n0),
                     e=b("In_Sale_Gain_Taxed", lambda v: "exempt" if v == 0 else "taxed")))],
         left=15.45, top=6.25, width=4.45, height=4.2)
@@ -331,7 +333,7 @@ def build_deck(xlsm: Path, out: Path) -> Path:
         "to {c1} / {c2}", pe=b("In_COD_Price", n0), pc=b("In_COD_Price_CN", n0),
         u1=b("Out_Buyer_IRR_U_1", pct), u2=b("Out_Buyer_IRR_U_2", pct), l1=st("Buyer_IRR_U_1", lo, pct),
         l2=st("Buyer_IRR_U_2", lo, pct), c1=st("COD_IRR_1", lo, pct), c2=st("COD_IRR_2", lo, pct)), (
-        "The buyer receives the same cash flows on both routes, so the higher European price lowers its return; "
+        "The buyer receives the same EBITDA on both routes, so the higher European price lowers its return; "
         "the price per MW is an estimate, not a bid."), title_lines=2)
     rows = []
     for name in cases:
@@ -346,14 +348,13 @@ def build_deck(xlsm: Path, out: Path) -> Path:
             height=0.59 + 3 * 0.6, col_widths=[2.2] + [1.6] * 8, unit_col=None)
     s.footnote("Buyer unlevered: pays the enterprise value at COD and receives EBITDA less tax, guarantee fees and any "
                "PB call. Buyer levered: pays the price less the senior debt, funds the DSRA and services the debt. "
-               "Share deal: SPV tax, debt and depreciation continue.")
+               "Share deal: SPV tax, debt and depreciation continue; the unlevered IRR uses the SPV's actual tax.")
 
     # ---- 8 Sensitivities ------------------------------------------------------------------------------------------
 
     s = d.content("Sensitivities", f(
-        "A lower COD price is the largest risk to the sale ({c}); the hold moves with yield ({y} if lower) and PPA "
-        "price ({pp} if higher)", c=st("COD_IRR_1", sets.index("COD price −10%") + 1, pct),
-        y=st("HTM_IRR_1", sets.index("Yield −10%") + 1, pct), pp=st("HTM_IRR_1", sets.index("PPA +10%") + 1, pct)),
+        "A lower COD price hits the sale most ({c}); Robin Hood tax ({r}) and lower yield ({y}) hit the hold", c=st("COD_IRR_1", sets.index("COD price −10%") + 1, pct),
+        r=st("HTM_IRR_1", sets.index("Robin Hood 31%") + 1, pct), y=st("HTM_IRR_1", sets.index("Yield −10%") + 1, pct)),
         "FEP IRR by key-assumption set, each change on its own (buyer IRR on the previous slide); the sale at COD does not depend on yield or PPA price "
         "because its price is fixed per MW.", title_lines=2)
     rows = [[name, *[st(k, i, x2 if "DSCR" in k else pct) for k in
@@ -371,7 +372,8 @@ def build_deck(xlsm: Path, out: Path) -> Path:
                           pb=b("Out_PB_Call_Full_1", lambda v: fmt_eur_m(v, 2)),
                           ci=st("COD_IRR_1", sets.index("Full PB call") + 1, pct),
                           hi=st("HTM_IRR_1", sets.index("Full PB call") + 1, pct))),
-        ("Robin Hood tax: ", f("if the {r} levy applies, the hold IRR falls to {h} / {h2}.",
+        ("Robin Hood tax: ", f("{mw} MW built may lose the 50 MW exemption; if the {r} levy applies, the hold IRR "
+                               "falls to {h} / {h2}.", mw=b("Out_Wind_Built_1", n0),
                                r=b("In_RH_Rate", pct0), h=st("HTM_IRR_1", sets.index("Robin Hood 31%") + 1, pct),
                                h2=st("HTM_IRR_2", sets.index("Robin Hood 31%") + 1, pct))),
         ("PPA: ", f("{p} €/MWh for the whole life is an assumption; no offtake is signed.",

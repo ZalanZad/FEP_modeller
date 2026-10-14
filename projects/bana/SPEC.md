@@ -45,7 +45,7 @@ turbine adds 12 tender points but needs a permit amendment. Both turbine routes 
 | Sheet | Content |
 |---|---|
 | `Dashboard` | The bid (levers, blue on yellow), returns at a glance, funding to COD, securities, sale at COD, HTM debt and tax, stored results by key-assumption set; key-assumption panel on the right. |
-| `Inputs` | Scalar inputs, Live + 8 key-assumption sets. Short source per row. |
+| `Inputs` | Scalar inputs, Live + 11 key-assumption sets (§12). Short source per row. |
 | `Curves` | Tender band tables (ÖSZ-1, -2, -6) and yes/no points (as Bora). |
 | `Calc_1`, `Calc_2` | Identical. Calc_1 = **European turbine**, Calc_2 = **Chinese turbine**. Column levers via `calc.lever`. |
 | `Checks` | Every check → `Master_Check`. |
@@ -97,8 +97,7 @@ debt tenor window, tax-depreciation share, devex window (closing → NTP), opera
 - Draws = debt share k × each period's construction cost (capex + connection fees + municipal); IDC capitalised.
 - Debt capacity = PV at the debt rate (to COD) of CFADS ÷ target DSCR over the tenor (18 years from COD,
   Rock), CFADS = EBITDA − guarantee fees − tax after COD (tax from the PASTE row).
-- k = MIN(gearing cap, capacity ÷ Σ cost × IDC growth to COD). Gearing cap 55 % EU /
-  50 % CN (user, 13-Oct-2026). Target DSCR 1.20x (Rock, contracted).
+- k = MIN(gearing cap, capacity ÷ Σ cost × IDC growth to COD). Gearing cap 55 % on both routes (user, 14-Oct-2026). Target DSCR 1.20x (Rock, contracted).
 - Repayment sculpted: debt service = CFADS ÷ DSCR × MIN(1, debt at COD ÷ capacity); principal = service −
   interest. The loan amortises to zero at the tenor end by construction (check).
 - Fees: upfront 1.75 % of the facility (debt at COD incl. capitalised interest) at first draw, commitment 0.9 % p.a. on undrawn (Bana v3 E219/E222),
@@ -111,13 +110,13 @@ variable 5 €/MWh, fixed 22 k€/MW + admin 150 k€, lease 3 k€/MW from NTP,
 MEKH 0.1 %, HIPA 2 % and innovation contribution 0.3 % of revenue; community contribution (ÖSZ-2 €/MWh).
 
 **6.7 Tax (Hungary).**
-- CIT 9 %. Depreciation base: capex, connection fees (incl. TSO security), municipal one-off, capitalised IDC,
+- CIT 15 % (§12: 9 % plus a possible Pillar Two top-up, proxy; set 11 = 9 %). Depreciation base: capex, connection fees (incl. TSO security), municipal one-off, capitalised IDC,
   purchase price, DD and devex; straight line over 20 years from COD (Bana v3 E213, to confirm).
 - Period costs expensed: participation fee, guarantee fees, debt fees, pre-COD lease, interest after COD.
 - Tax losses carried forward, used up to 50 % of the year's positive tax base (Tao. 17. §; Rock row 653).
   Losses still unused 5 years after the NTP lapse (most losses arise from NTP; conservative for 2029–2030 losses).
-- Interest limitation (30 % EBITDA, 3 bn HUF safe harbour) not binding at this size; Robin Hood tax not applied
-  (≤ 50 MW, Bana v3 E197). Both are notes, not rows.
+- Interest limitation (30 % EBITDA, 3 bn HUF safe harbour) not binding at this size (note). Robin Hood tax 31 % is a set (§12), off in the base per Bana v3 E197
+  (≤ 50 MW); with 55 MW built the exemption is to confirm.
 - Circularity (tax ↔ interest ↔ debt size) broken with COPY/PASTE (`Tax_1`, `Tax_2`, Solver.bas).
 - Sale at COD: gain exempt under the participation exemption (`In_Sale_Gain_Taxed` 0; 1 taxes it at CIT).
 
@@ -128,15 +127,13 @@ MEKH 0.1 %, HIPA 2 % and innovation contribution 0.3 % of revenue; community con
 - COD sale: the buyer takes the SPV with its debt and funds the DSRA.
 
 ## 7. Key-assumption sets (blank = base)
-1 Base · 2 COD price −10 % · 3 Turbine price +10 % · 4 Yield −10 % · 5 PPA price +10 % · 6 Full PB call (GYIK 72) ·
-7 Debt rate +1 pp · 8 Tenor 10 years (old engine; the gearing cap binds at 18 years, so this set tests the DSCR sizing). `RunAllScenarios` (with the tax solver) stores per set and route:
-points, peak equity, COD IRR and MOIC, HTM IRR and MOIC, debt at COD, min DSCR.
+See §12 (11 sets).
 
 ## 8. Checks
 Levers in range; debt within the DSCR capacity and repaid by the tenor end; DSCR ≥ target; sources = uses to COD;
 solver deltas = 0; stored = live; XIRR returned numbers. The checks result is stored for every key-assumption set.
 
-## 9. Deck (`out/Bana_IC.pptx`, FEP template, ~7 slides, every figure bound)
+## 9. Deck (`out/Bana_IC.pptx`, FEP template, 8 slides (§12), every figure bound)
 1. Cover. 2. Executive summary (narrative from the deck, condensed, plus key numbers). 3. Risks and mitigants
 (Dentons DD table, unchanged). 4. Technical overview and tender bid. 5. Funding to COD (uses and sources,
 securities). 6. Returns: sale at COD vs hold, with debt and tax. 7. Sensitivities (stored sets).
