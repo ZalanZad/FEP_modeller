@@ -18,8 +18,8 @@ from fepm.xl.styles import FMT, apply
 HERE = Path(__file__).resolve().parent
 NAME = "Bana_Model"
 D = dt.date
-SETS = ["Base", "COD price −10%", "Turbine +10%", "Yield −10%", "PPA +10%", "Full PB call", "Rate +1 pp",
-        "Tenor 10 years"]
+SETS = ["Base", "COD price −10%", "COD price +10%", "Turbine +10%", "Yield −10%", "PPA +10%", "Full PB call",
+        "Rate +1 pp", "Tenor 10 years", "Robin Hood 31%", "CIT 9%"]
 TO_COD = 'SUMIF({end.all},"<="&In_COD,{self.all})'          # amount to COD
 EVENT = "N(AND({start}<={self.F},{end}>={self.F}))"           # line paid on its date in F
 SHARE = "=MAX(0,MIN({self.F},{end})-MAX({self.E},{start})+1)/({self.F}-{self.E}+1)"   # share of a window
@@ -51,12 +51,16 @@ def inputs(m):
     a("Purchase_Price", "Purchase price to GEI", "EUR k", 4500, source="Bana v3 Inputs E283")
     a("DD", "Transaction and DD costs", "EUR k", 150, source="Bana v3 Inputs E25")
     a("Devex", "Devex to NTP incl. contingency", "EUR k", 500, source="Bana v3 Inputs E292")
-    a("COD_Price", "Sale price at COD per MW, EU turbines", "EUR k/MW", 2450, {2: 2205}, source="Bana v3 Inputs M230")
-    a("COD_Price_CN", "Sale price at COD per MW, CN turbines", "EUR k/MW", 2100, {2: 1890},
+    a("COD_Price", "Sale price at COD per MW, EU turbines", "EUR k/MW", 2450, {2: f"=H{i.r}*(1-Sens_Step)", 3: f"=H{i.r}*(1+Sens_Step)"},
+      source="Bana v3 Inputs M230")
+    a("COD_Price_CN", "Sale price at COD per MW, CN turbines", "EUR k/MW", 2100, {2: f"=H{i.r}*(1-Sens_Step)", 3: f"=H{i.r}*(1+Sens_Step)"},
       source="Bana v3 Inputs N230")
     a("Sale_Costs", "Sale costs at COD", "EUR k", 500, source="Bana v3 Inputs E26")
     a("Discount_Rate", "FEP discount rate (NPV)", "%", 0.08, source="Bana v3 Inputs E253")
-    a("CIT", "Corporate income tax", "%", 0.09, source="Bana v3 Inputs E12; Tao. 19. §")
+    a("CIT", "Corporate income tax (Pillar Two 15 % minimum)", "%", 0.15, {11: 0.09},
+      source="User 14-Oct-26; set 11: Tao. 19. §")
+    a("RH_On", "Robin Hood tax applies (1 = yes)", "flag", 0, {10: 1}, source="Bana v3 E197 (≤ 50 MW: off)")
+    a("RH_Rate", "Robin Hood tax on positive pre-tax profit", "%", 0.31, source="Bana v3 Inputs E198")
     a("Sale_Gain_Taxed", "Gain on the COD share sale taxed (0 = exempt)", "flag", 0,
       source="Bana v3 E231; participation exemption")
     a("Dep_Years", "Tax depreciation period", "years", 20, source="Bana v3 Inputs E213 (to confirm)", fmt="int")
@@ -71,7 +75,7 @@ def inputs(m):
     a("BESS_Built", "BESS built (1 = yes)", "flag", 1, source="User 13-Oct-26 (as Bora)")
     a("Min_Hours", "Minimum BESS duration for ÖSZ-4", "h", 4, source="Kiírás Annex 8; GYIK Q5", fmt="money1")
     a("Tolerance_Cap", "Build shortfall tolerated without sanction", "%", 0.10, source="GYIK 28, 30")
-    a("Sanction_Regime", "Sanction regime (1 pro rata, 2 full PB call)", "flag", 1, {6: 2},
+    a("Sanction_Regime", "Sanction regime (1 pro rata, 2 full PB call)", "flag", 1, {7: 2},
       source="GYIK 28/30 (1); Kiírás XIII.17, GYIK 72 (2)")
     a("Sanction_Lag", "Sanction paid after COD", "months", 6, source="Kiírás XIII.17", fmt="int")
     a("Bench_BESS", "Security base: benchmark investment, BESS", "mHUF/MWh", 200, source="Kiírás Annex 2",
@@ -91,8 +95,9 @@ def inputs(m):
     a("Guarantee_Fee", "Bank guarantee fee on guarantees outstanding", "%", 0.06, source="Bana v3 Inputs E113")
 
     i.section("Capex")
-    a("Turbine", "Turbine supply, EU", "EUR k/MW", 950, {3: f"=H{i.r}*(1+Sens_Step)"}, source="User 13-Oct-26 (Bana v3 E162)")
-    a("Turbine_CN", "Turbine supply, CN", "EUR k/MW", 500, {3: 550}, source="Bana v3 Inputs I162")
+    a("Turbine", "Turbine supply, EU", "EUR k/MW", 950, {4: f"=H{i.r}*(1+Sens_Step)"},
+      source="User 13-Oct-26 (Bana v3 E162)")
+    a("Turbine_CN", "Turbine supply, CN", "EUR k/MW", 500, {4: f"=H{i.r}*(1+Sens_Step)"}, source="Bana v3 Inputs I162")
     a("Other_Wind", "Other wind capex (install, foundations, BoP, owner, land)", "EUR k/MW", 355,
       source="Bana v3 Inputs E163:E166, E169:E170")
     a("Substation", "Substation and 132 kV bay, EU", "EUR k", 12000, source="Bana v3 Inputs E167")
@@ -101,10 +106,11 @@ def inputs(m):
     a("BESS_Capex", "BESS capex, all-in (no BESS revenue or opex)", "EUR k/MW", 240, source="User 12-Oct-26 (Bora)")
 
     i.section("Operations")
-    a("P50_Hours", "Net P50 hours", "h/yr", 2600, {4: f"=H{i.r}*(1-Sens_Step)"}, source="User 13-Oct-26", fmt="money")
+    a("P50_Hours", "Net P50 hours", "h/yr", 2600, {5: f"=H{i.r}*(1-Sens_Step)"}, source="User 13-Oct-26",
+      fmt="money")
     a("Curtailment", "Curtailment", "%", 0.02, source="Bana v3 Inputs E181")
     a("Degradation", "Degradation per year", "%", 0.003, source="Bana v3 Inputs E182", fmt="0.00%")
-    a("PPA_Price", "PPA price at COD, whole life, 100 % of output", "EUR/MWh", 90, {5: 99},
+    a("PPA_Price", "PPA price at COD, whole life, 100 % of output", "EUR/MWh", 90, {6: 99},
       source="User 13-Oct-26", fmt="money1")
     a("PPA_Esc", "PPA escalation", "%", 0.01, source="Bana v3 Inputs E192")
     a("Var_Opex", "Variable opex (balancing 4, grid 1)", "EUR/MWh", 5, source="Bana v3 Inputs E194:E195",
@@ -121,12 +127,11 @@ def inputs(m):
       fmt="0.00%")
 
     i.section("Senior debt")
-    a("Gearing", "Debt share cap of construction cost, EU", "%", 0.55, source="User 13-Oct-26")
-    a("Gearing_CN", "Debt share cap of construction cost, CN", "%", 0.50, source="User 13-Oct-26")
+    a("Gearing", "Debt share cap of construction cost, both routes", "%", 0.55, source="User 14-Oct-26")
     a("DSCR", "Target DSCR for sizing and sculpting", "x", 1.20, source="Rock Assumptions G549",
       fmt="mult")
-    a("Debt_Tenor", "Tenor from COD", "years", 18, {8: 10}, source="Rock G540; set 8: Bana v3 E220", fmt="int")
-    a("Debt_Rate", "All-in fixed interest rate", "%", 0.05, {7: 0.06}, source="Bana v3 Inputs E218")
+    a("Debt_Tenor", "Tenor from COD", "years", 18, {9: 10}, source="Rock G540; set 9: Bana v3 E220", fmt="int")
+    a("Debt_Rate", "All-in fixed interest rate", "%", 0.05, {8: 0.06}, source="Bana v3 Inputs E218")
     a("Upfront_Fee", "Upfront fee on the facility", "%", 0.0175, source="Bana v3 Inputs E219", fmt="0.00%")
     a("Commitment_Fee", "Commitment fee on undrawn debt", "%", 0.009, source="Bana v3 Inputs E222", fmt="0.00%")
     a("DSRA_Months", "DSRA: months of debt service, funded at COD", "months", 6, source="Bana v3 Inputs E268",
@@ -318,9 +323,8 @@ def calc(m):
           "=({ebitda}+{gfee}+{tax_paste})*({end}>In_COD)")
     c.row("ds_cap", "Debt service at target DSCR (E: PV at COD = capacity)", "EUR k", "={cfads}/In_DSCR*{tenor}",
           e="SUMPRODUCT({self.all}/{idx.all})*{idx.E}")
-    c.row("gcap", "Debt share cap, this route", "%", e="IF({osz9a.E}=1,In_Gearing,In_Gearing_CN)", ef_fmt="pct")
     c.row("k", "Debt share of construction cost (E), share of capacity used (F)", "%",
-          e="MIN({gcap.E},{ds_cap.E}/-{cost.E})", f="{self.E}*-{cost.E}/{ds_cap.E}", ef_fmt="pct", bold=True)
+          e="MIN(In_Gearing,{ds_cap.E}/-{cost.E})", f="{self.E}*-{cost.E}/{ds_cap.E}", ef_fmt="pct", bold=True)
 
     c.section("Senior debt")
     c.row("d_int", "Interest paid", "EUR k", "=-{d_close@prev}*{idx.F}*({end}>In_COD)")
@@ -352,7 +356,8 @@ def calc(m):
           e="EDATE(In_NTP,In_Loss_Years*Months_In_Year)")
     fmt("lcf_lapse", "E", "date")
     c.row("lcf_close", "Tax losses: closing", "EUR k", "=SUM({lcf_open}:{lcf_lapse})", total="seed")
-    c.copy("Tax", "Corporate income tax", "EUR k", "=-In_CIT*(MAX(0,{taxable})+{lcf_use})")
+    c.copy("Tax", "Corporate income tax and Robin Hood tax", "EUR k",
+           "=-In_CIT*(MAX(0,{taxable})+{lcf_use})-In_RH_On*In_RH_Rate*MAX(0,{taxable})")
 
     c.section("Funding to COD (E: uses and sources)")
     c.row("f_dev", "Purchase price, DD and devex", "EUR k", e="-({buy.I}+{dd.I}+{devex.I})")
@@ -380,6 +385,13 @@ def calc(m):
     c.row("cod_moic", "FEP MOIC – sale at COD", "x", e="({v_net.E}+{v_tax.E})/-{cod_contrib.I}", ef_fmt="mult",
           bold=True)
     c.xnpv("cod_npv", "FEP NPV – sale at COD", "In_Discount_Rate", "cod_cf")
+    c.subheader("Buyer at COD (share deal: SPV tax, debt and DSRA stay in the SPV)")
+    c.row("buy_u", "Buyer cash flow, unlevered: pays the price, gets post-COD flows", "EUR k",
+          "=({ebitda}+{gfee}+{sanction}+{tax_copy})*({end}>In_COD)-{v_price.E}*{cod}")
+    c.xirr("buy_u_irr", "Buyer IRR, unlevered, post-tax", "buy_u")
+    c.row("buy_l", "Buyer cash flow, levered: pays price less debt, funds the DSRA", "EUR k",
+          "={buy_u}+{d_ds}+{dsra}+{d_close.E}*{cod}")
+    c.xirr("buy_l_irr", "Buyer IRR, levered, post-tax", "buy_l")
 
     c.section("Hold to maturity")
     c.row("proj_cf", "Project cash flow before financing, with actual tax", "EUR k",
@@ -403,7 +415,7 @@ def checks(m):
     k.add_check("Sources = uses to COD", "=N(ABS({f_uses.E}+{cod_contrib.I}-{d_close.E})>Tolerance)",
                 per_period=False)
     k.add_check("XIRR returned a number on every route",
-                "=N(ISERROR({cod_irr.E}))+N(ISERROR({htm_irr.E}))+N(ISERROR({proj_irr.E}))", per_period=False)
+                "=N(ISERROR({cod_irr.E}))+N(ISERROR({htm_irr.E}))+N(ISERROR({proj_irr.E}))+N(ISERROR({buy_l_irr.E}))", per_period=False)
 
 
 # =========================================================================================== dashboard
@@ -494,11 +506,12 @@ def dashboard(m):
     d.link("Net proceeds to FEP (after debt and sale costs)", "EUR m", "{v_net.E}", scale="Thousand",
            out="COD_Proceeds", fmt=m2)
     d.link("Tax on the gain", "EUR m", "{v_tax.E}", scale="Thousand", out="COD_Tax", fmt=m2)
+    d.link("Buyer IRR, unlevered, post-tax", "%", "{buy_u_irr.E}", out="Buyer_IRR_U", fmt="pct", bold=True)
+    d.link("Buyer IRR, levered (takes the debt, funds the DSRA)", "%", "{buy_l_irr.E}", out="Buyer_IRR_L", fmt="pct")
 
     d.section("Hold to maturity: debt and tax")
     d.link("Debt capacity at target DSCR (PV at COD)", "EUR m", "{ds_cap.E}", scale="Thousand", out="Debt_Capacity",
            fmt=m2)
-    d.link("Debt share cap of construction cost", "%", "{gcap.E}", out="Gearing_Cap", fmt="pct")
     d.link("Debt share of construction cost, sized", "%", "{k.E}", out="Debt_Share", fmt="pct")
     d.link("Share of the DSCR capacity used", "%", "{k.F}", out="Capacity_Used", fmt="pct")
     d.link("DSRA funded at COD", "EUR m", "{dsra.E}", scale="Thousand", out="DSRA", fmt=m2)
@@ -508,11 +521,12 @@ def dashboard(m):
     d.link("EBITDA, first full year", "EUR m", "{ebitda.E}", scale="Thousand", out="EBITDA_Year1", fmt=m2)
     d.link("Lifetime revenue", "EUR m", "{rev.I}", scale="Thousand", out="Revenue_Life", fmt=m2)
     d.link("Lifetime EBITDA", "EUR m", "{ebitda.I}", scale="Thousand", out="EBITDA_Life", fmt=m2)
-    d.link("Lifetime corporate income tax", "EUR m", "SUM({tax_copy.all})", scale="Thousand", out="Tax_Life", fmt=m2)
+    d.link("Lifetime corporate income tax and Robin Hood tax", "EUR m", "SUM({tax_copy.all})", scale="Thousand", out="Tax_Life", fmt=m2)
     d.link("Tax losses lapsed", "EUR m", "-{lcf_lapse.I}", scale="Thousand", out="Tax_Losses_Lapsed", fmt=m2)
     d.link("Checks failed in this set (0 = OK)", "#", "Model_Checks", out="Checks", fmt="int")
 
-    d.scenario_results(outs=["Equity_COD", "COD_IRR", "COD_MOIC", "HTM_IRR", "HTM_MOIC", "Debt_COD", "Min_DSCR",
+    d.scenario_results(outs=["Equity_COD", "COD_IRR", "COD_MOIC", "HTM_IRR", "HTM_MOIC", "Buyer_IRR_U", "Buyer_IRR_L",
+                              "Debt_COD", "Min_DSCR",
                               "Checks"])
 
     d.panel_section("Key-assumption set")
@@ -527,8 +541,8 @@ def dashboard(m):
             ("Net P50 hours", "h/yr", "In_P50_Hours", "money"), ("PPA price at COD, whole life", "EUR/MWh", "In_PPA_Price",
                                                                "money1"),
             ("Debt rate", "%", "In_Debt_Rate", None), ("Target DSCR", "x", "In_DSCR", None),
-            ("Tenor from COD", "years", "In_Debt_Tenor", None), ("Debt share cap, EU", "%", "In_Gearing", None),
-            ("Debt share cap, CN", "%", "In_Gearing_CN", None), ("CIT", "%", "In_CIT", None),
+            ("Tenor from COD", "years", "In_Debt_Tenor", None), ("Debt share cap", "%", "In_Gearing", None),
+            ("CIT", "%", "In_CIT", None), ("Robin Hood tax on (1 = yes)", "flag", "In_RH_On", None),
             ("Discount rate", "%", "In_Discount_Rate", None), ("FX", "HUF/EUR", "In_FX", None)]:
         d.panel_link(label, unit, ref, fmt=f)
 

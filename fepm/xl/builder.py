@@ -53,6 +53,8 @@ from .styles import apply
 
 J = 10                       # first timeline column
 HEADER = {"start": 3, "end": 4, "days": 5, "yf": 6, "year": 7, "period": 8}
+MAX_SETS = 12                # key-assumption sets: Inputs columns H.. (MODELLING_STANDARDS §4)
+INPUT_W = 8 + MAX_SETS       # last Inputs column (spare after the sets)
 FIRST_ROW = 11               # first content row on Calc / Checks (panes frozen at J10)
 UNIT_FMT = {"EUR k": "money", "EUR m": "money1", "%": "pct", "x": "mult", "date": "date", "flag": "flag",
             "MW": "money1", "MWh": "money", "EUR/MWh": "money2", "EUR k/MW": "money", "years": "int",
@@ -101,8 +103,8 @@ class Model:
                  calc_sheets=("Calc",), bids=None, extra_cols: int = 0, source_col: bool = True):
         if periodicity not in ("annual", "quarterly"):
             raise ValueError("periodicity must be 'annual' or 'quarterly'")
-        if not 1 <= len(scenarios) <= 8:
-            raise ValueError("1 to 8 scenarios")
+        if not 1 <= len(scenarios) <= MAX_SETS:
+            raise ValueError(f"1 to {MAX_SETS} scenarios")
         if layout not in ("standard", "dashboard"):
             raise ValueError("layout must be 'standard' or 'dashboard'")
         calc_sheets = list(calc_sheets)
@@ -207,7 +209,7 @@ class Model:
     def _width(self, title):
         if title == "Dashboard":
             return self.dashboard.last
-        return {"Cover": 8, "Summary": 6 + len(self.scenarios), "Inputs": 16}.get(title, self.last)
+        return {"Cover": 8, "Summary": 6 + len(self.scenarios), "Inputs": INPUT_W}.get(title, self.last)
 
     def save(self, path):
         self.inputs.finish()
@@ -313,13 +315,13 @@ class Cover:
 
 # =========================================================================================
 class Inputs:
-    """B label, C unit, D source, F Live, H:O scenarios 1-8 (MODELLING_STANDARDS §4)."""
+    """B label, C unit, D source, F Live, H:S scenarios 1-12, T spare (MODELLING_STANDARDS §4)."""
 
     def __init__(self, model, ws, start, periodicity):
         self.m, self.ws, self.r = model, ws, 4
         n = len(model.scenarios)
         _columns(ws, {"A": 3, "B": 40, "C": 10, "D": 36, "E": 2, "F": 12, "G": 2,
-                      **{L(8 + i): 12 for i in range(8)}, "P": 2})
+                      **{L(8 + i): 12 for i in range(MAX_SETS)}, L(INPUT_W): 2})
         ws["B4"], ws["B5"] = "Scenario selected", "Scenario number"
         if model.dashboard:              # the selector lives on the Dashboard
             _write(ws, 4, 6, "=Scenario_Name")
@@ -334,7 +336,7 @@ class Inputs:
         for c, h in zip((2, 3, 4, 6), ("Input", "Unit", "Source / note", "Live")):
             apply(ws.cell(7, c, h), "header")
         ws["B7"].alignment = ws["C7"].alignment = ws["D7"].alignment = styles.Alignment(horizontal="left")
-        for i in range(8):
+        for i in range(MAX_SETS):
             cell = ws.cell(7, 8 + i, model.scenarios[i] if i < n else None)
             apply(cell, "input" if i < n else "header")
         model.define("Scenario_Names", names_ref)
@@ -354,7 +356,7 @@ class Inputs:
 
     def section(self, title):
         self.r += 1
-        _bar(self.ws, self.r, title, 16)
+        _bar(self.ws, self.r, title, INPUT_W)
         self.r += 1
 
     add_section = section
@@ -380,7 +382,7 @@ class Inputs:
         for i in range(len(self.m.scenarios)):
             v = base if i == 0 else (scenarios or {}).get(i + 1)
             apply(ws.cell(r, 8 + i, v), "input", fmt)
-        live = f"INDEX($H{r}:$O{r},1,Scenario_Selected)"
+        live = f"INDEX($H{r}:${L(7 + MAX_SETS)}{r},1,Scenario_Selected)"
         _write(ws, r, 6, f'=IF({live}="",$H{r},{live})', fmt=fmt)     # blank scenario cell = base case
         self.r += 1
         return self.m.define(f"In_{key}", f"Inputs!$F${r}")
@@ -395,7 +397,7 @@ class Inputs:
     def finish(self):
         if self.m.solver_topics or self.m.goal_topics:      # only models with a circularity or a goal seek
             self._macro_control()
-        _end(self.ws, self.r + 1, 16)
+        _end(self.ws, self.r + 1, INPUT_W)
 
     def _macro_control(self):
         """Topic lists read by Solver.bas / GoalSeek.bas; their presence also makes package() embed those modules."""

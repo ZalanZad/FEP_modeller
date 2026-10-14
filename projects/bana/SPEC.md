@@ -148,3 +148,15 @@ securities). 6. Returns: sale at COD vs hold, with debt and tax. 7. Sensitivitie
 ## 11. User corrections (13-Oct-2026, Bana_Model_2.xlsm)
 EU turbine 950 k€/MW (set 3: base × (1 + `Sens_Step` 10 %)); net P50 2,600 h (set 4: base × (1 − `Sens_Step`)); debt-share cap 55 % EU / 50 % CN;
 set 5 = PPA +10 % (99 €/MWh). Deck slide 2: narrative 16 pt plus the COD-price sentence (bound to `In_COD_Price`).
+
+## 12. User changes (14-Oct-2026)
+- **Debt:** one debt-share cap of 55 % for both turbine routes (`In_Gearing`), still limited by the DSCR capacity.
+- **Tax:** CIT 15 % (Pillar Two minimum) replaces 9 %; HIPA and the innovation contribution stay. Robin Hood tax
+  (31 % of positive pre-tax profit, not deductible, `In_RH_On`) is a sensitivity only.
+- **Buyer at COD (share deal):** unlevered IRR (pays the EV, receives EBITDA, guarantee fees, any PB call and the SPV's
+  tax after COD) and levered IRR (pays EV − debt, funds the DSRA, services the debt).
+- **Key-assumption sets (engine widened to 12):** 1 Base · 2 COD price −10 % · 3 COD price +10 % · 4 Turbine +10 % ·
+  5 Yield −10 % · 6 PPA +10 % · 7 Full PB call · 8 Rate +1 pp · 9 Tenor 10 years · 10 Robin Hood 31 % · 11 CIT 9 %.
+  The ±10 % sets are formulas on the base (`Sens_Step`). Stored per set: FEP COD and HTM IRR/MOIC, buyer IRRs, debt,
+  equity, min DSCR, checks.
+- **Deck:** slide 7 "Sale price and buyer return" (buyer and FEP IRR at the three price cases); buyer IRR on slides 2 and 6.

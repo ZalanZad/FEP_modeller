@@ -12,6 +12,8 @@ import openpyxl
 from openpyxl.formula.tokenizer import Token, Tokenizer
 from openpyxl.utils import column_index_from_string as col_idx, range_boundaries
 
+from ..xl.builder import MAX_SETS
+
 CALC_SHEET = re.compile(r"^Calc(_\d+)?$")           # Calc, Calc_1, Calc_2 ...: direction rule, timeline
 CALC_TYPE = ("Checks", "Summary", "Dashboard")      # + calc sheets: no hardcoded numbers
 TIMELINE_COL = 10                        # J
@@ -154,7 +156,7 @@ def lint(path) -> list[Finding]:
                         if sheet == "Inputs" and _CELL.search(addr):
                             c = col_idx(_CELL.search(addr).group(2))
                             header = ws.title in ("Summary", "Dashboard") and _CELL.search(addr).group(4) == "7"
-                            if 8 <= c <= 15 and not header:
+                            if 8 <= c <= 7 + MAX_SETS and not header:
                                 f.append(Finding("live-only", where, f"refers to scenario column {op}"))
                 if is_calc(ws.title):
                     f += _direction(ws.title, cell.row, cell.column, v, names)
