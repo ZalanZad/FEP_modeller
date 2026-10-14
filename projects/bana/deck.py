@@ -311,8 +311,8 @@ def build_deck(xlsm: Path, out: Path) -> Path:
                                     xh=b("Out_DSCR_Max_High_1", x2), pa=b("Out_Debt_Max_Low_Pct_1", pct0),
                                     pc=b("Out_Debt_Max_High_Pct_1", pct0), b=b("Out_Debt_Max_Low_2", eur),
                                     d=b("Out_Debt_Max_High_2", eur))),
-        ("Tax: ", f("CIT {c}, a proxy for 9 % plus a possible Pillar Two top-up; Robin Hood tax {r} of pre-tax profit "
-                    "(its exemption covers only KÁT/METÁR plants; Bana sells under a PPA). {y}-year depreciation; losses capped at {l} of the base and lapse after {ly} years. "
+        ("Tax: ", f("CIT {c}, a proxy for 9 % plus a possible Pillar Two top-up. Robin Hood tax ({r}) is not in the "
+                    "base; it may apply, as its exemption covers only KÁT/METÁR plants (see sensitivities). {y}-year depreciation; losses capped at {l} of the base and lapse after {ly} years. "
                     "Gain on the COD share sale {e}.", c=b("In_CIT", pct0), y=b("In_Dep_Years", n0),
                     r=b("In_RH_Rate", pct0),
                     l=b("In_Loss_Cap", pct0), ly=b("In_Loss_Years", n0),
@@ -353,8 +353,8 @@ def build_deck(xlsm: Path, out: Path) -> Path:
     # ---- 8 Sensitivities ------------------------------------------------------------------------------------------
 
     s = d.content("Sensitivities", f(
-        "A lower COD price hits the sale most ({c}); lower yield hits the hold most ({y})",
-        c=st("COD_IRR_1", sets.index("COD price −10%") + 1, pct), y=st("HTM_IRR_1", sets.index("Yield −10%") + 1, pct)),
+        "A lower COD price hits the sale most ({c}); Robin Hood tax ({r}) and lower yield ({y}) hit the hold", c=st("COD_IRR_1", sets.index("COD price −10%") + 1, pct),
+        r=st("HTM_IRR_1", sets.index("Robin Hood 31%") + 1, pct), y=st("HTM_IRR_1", sets.index("Yield −10%") + 1, pct)),
         "FEP IRR by key-assumption set, each change on its own (buyer IRR on the previous slide); the sale at COD does not depend on yield or PPA price "
         "because its price is fixed per MW.", title_lines=2)
     rows = [[name, *[st(k, i, x2 if "DSCR" in k else pct) for k in
@@ -372,9 +372,10 @@ def build_deck(xlsm: Path, out: Path) -> Path:
                           pb=b("Out_PB_Call_Full_1", lambda v: fmt_eur_m(v, 2)),
                           ci=st("COD_IRR_1", sets.index("Full PB call") + 1, pct),
                           hi=st("HTM_IRR_1", sets.index("Full PB call") + 1, pct))),
-        ("Robin Hood tax: ", f("in the base at {r}; without it the hold IRR would be {h} / {h2}.",
-                               r=b("In_RH_Rate", pct0), h=st("HTM_IRR_1", sets.index("No Robin Hood") + 1, pct),
-                               h2=st("HTM_IRR_2", sets.index("No Robin Hood") + 1, pct))),
+        ("Robin Hood tax: ", f("not in the base; if the {r} levy applies (its exemption covers only KÁT/METÁR "
+                               "plants), the hold IRR falls to {h} / {h2}.", r=b("In_RH_Rate", pct0),
+                               h=st("HTM_IRR_1", sets.index("Robin Hood 31%") + 1, pct),
+                               h2=st("HTM_IRR_2", sets.index("Robin Hood 31%") + 1, pct))),
         ("PPA: ", f("{p} €/MWh for the whole life is an assumption; no offtake is signed.",
                     p=b("In_PPA_Price", n0))),
         ("Debt: ", f("a {t}-year tenor lowers the European minimum DSCR to {ds} and the hold IRR to {h}.",

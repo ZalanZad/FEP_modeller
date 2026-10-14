@@ -32,6 +32,8 @@ Working language: English (code, workbooks, decks, docs). Chat replies to the us
    recomputation of the headline outputs, then ties the deck out to the workbook. A failed check is a bug to fix,
    not one to hide.
 4. Commit on the session branch with a short imperative message, then push.
+5. Be economical: batch small changes, and rebuild, re-render or run audit agents only when a change needs it
+   or the user asks. Answer questions without rebuilding.
 
 ## Layout
 - `fepm/xl` workbook builder (styles, timeline, row writer), `fepm/ppt` deck builder,

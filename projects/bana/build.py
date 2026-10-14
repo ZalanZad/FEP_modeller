@@ -19,7 +19,7 @@ HERE = Path(__file__).resolve().parent
 NAME = "Bana_Model"
 D = dt.date
 SETS = ["Base", "COD price −10%", "COD price +10%", "Turbine +10%", "Yield −10%", "PPA +10%", "Full PB call",
-        "Rate +1 pp", "Tenor 10 years", "No Robin Hood", "CIT 9%"]
+        "Rate +1 pp", "Tenor 10 years", "Robin Hood 31%", "CIT 9%"]
 TO_COD = 'SUMIF({end.all},"<="&In_COD,{self.all})'          # amount to COD
 EVENT = "N(AND({start}<={self.F},{end}>={self.F}))"           # line paid on its date in F
 SHARE = "=MAX(0,MIN({self.F},{end})-MAX({self.E},{start})+1)/({self.F}-{self.E}+1)"   # share of a window
@@ -59,8 +59,8 @@ def inputs(m):
     a("Discount_Rate", "FEP discount rate (NPV)", "%", 0.08, source="Bana v3 Inputs E253")
     a("CIT", "Corporate income tax: 9 % + possible Pillar Two top-up (proxy)", "%", 0.15, {11: 0.09},
       source="User 14-Oct-26; set 11: Tao. 19. §")
-    a("RH_On", "Robin Hood tax applies (1 = yes)", "flag", 1, {10: 0},
-      source="Thtv. 2008/LXVII; exempt only KÁT/METÁR ≤ 50 MW")
+    a("RH_On", "Robin Hood tax applies (1 = yes)", "flag", 0, {10: 1},
+      source="User 14-Oct-26: sensitivity only (Thtv.)")
     a("RH_Rate", "Robin Hood tax on positive pre-tax profit", "%", 0.31, source="Thtv.; 41 % to 2025, 31 % from 2026")
     a("Sale_Gain_Taxed", "Gain on the COD share sale taxed (0 = exempt)", "flag", 0,
       source="Bana v3 E231; participation exemption")
