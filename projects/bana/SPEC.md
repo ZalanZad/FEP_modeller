@@ -157,3 +157,9 @@ set 5 = PPA +10 % (99 €/MWh). Deck slide 2: narrative 16 pt plus the COD-price
   The ±10 % sets are formulas on the base (`Sens_Step`). Stored per set: FEP COD and HTM IRR/MOIC, buyer IRRs, debt,
   equity, min DSCR, checks.
 - **Deck:** slide 7 "Sale price and buyer return" (buyer and FEP IRR at the three price cases); buyer IRR on slides 2 and 6.
+
+## 13. Robin Hood tax in the base (user, 14-Oct-2026)
+The energy suppliers' income tax (Thtv., 2008/LXVII) exempts producers under 50 MW only when they sell under KÁT or
+METÁR. Bana sells under a corporate PPA without support, so the tax applies whatever the size: `In_RH_On` = 1 in the base,
+31 % of positive pre-tax profit (41 % applied to 2025; 31 % from 2026), not deductible. Set 10 is now "No Robin Hood".
+To confirm with the tax adviser: the tax base adjustments and any interaction with the CIT proxy.
