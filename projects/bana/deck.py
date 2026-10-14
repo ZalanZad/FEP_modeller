@@ -305,11 +305,17 @@ def build_deck(xlsm: Path, out: Path) -> Path:
                      dscr=b("In_DSCR", x2), t=b("In_Debt_Tenor", n0), r=b("In_Debt_Rate", pct),
                      g1=b("In_Gearing", pct0),
                      u1=b("Out_Capacity_Used_1", pct0), u2=b("Out_Capacity_Used_2", pct0))),
+        ("Maximum debt, no cap: ", f("€{a}m at {xl} / €{c}m at {xh} DSCR European ({pa} / {pc} of uses); "
+                                    "€{b}m / €{d}m Chinese.", a=b("Out_Debt_Max_Low_1", eur),
+                                    c=b("Out_Debt_Max_High_1", eur), xl=b("Out_DSCR_Max_Low_1", x2),
+                                    xh=b("Out_DSCR_Max_High_1", x2), pa=b("Out_Debt_Max_Low_Pct_1", pct0),
+                                    pc=b("Out_Debt_Max_High_Pct_1", pct0), b=b("Out_Debt_Max_Low_2", eur),
+                                    d=b("Out_Debt_Max_High_2", eur))),
         ("Tax: ", f("CIT {c} (Pillar Two minimum), no Robin Hood tax in the base; {y}-year depreciation; losses capped at {l} of the base and lapse after {ly} years. "
                     "Gain on the COD share sale {e}.", c=b("In_CIT", pct0), y=b("In_Dep_Years", n0),
                     l=b("In_Loss_Cap", pct0), ly=b("In_Loss_Years", n0),
                     e=b("In_Sale_Gain_Taxed", lambda v: "exempt" if v == 0 else "taxed")))],
-        left=15.45, top=6.25, width=4.45, height=3.9)
+        left=15.45, top=6.25, width=4.45, height=4.2)
     s.footnote(f("Sale price {pe} / {pc} k€ per built MW, less the {bl} bottleneck loss; the buyer takes the SPV with its debt and funds the DSRA. Hold: PPA {ppa} €/MWh, {life}-year life; DSRA of {dsra} months "
                  "funded at COD. HIPA {hipa} and the innovation contribution on revenue. NPV at {r}.",
                  pe=b("In_COD_Price", n0), pc=b("In_COD_Price_CN", n0), ppa=b("In_PPA_Price", n0),

@@ -128,6 +128,8 @@ def inputs(m):
 
     i.section("Senior debt")
     a("Gearing", "Debt share cap of construction cost, both routes", "%", 0.55, source="User 14-Oct-26")
+    a("DSCR_Max_Low", "Info: DSCR for maximum debt, low", "x", 1.10, source="User 14-Oct-26", fmt="mult")
+    a("DSCR_Max_High", "Info: DSCR for maximum debt, high", "x", 1.20, source="User 14-Oct-26", fmt="mult")
     a("DSCR", "Target DSCR for sizing and sculpting", "x", 1.20, source="Rock Assumptions G549",
       fmt="mult")
     a("Debt_Tenor", "Tenor from COD", "years", 18, {9: 10}, source="Rock G540; set 9: Bana v3 E220", fmt="int")
@@ -371,6 +373,10 @@ def calc(m):
     c.row("f_equity", "FEP equity (E), peak including the DSRA (F)", "EUR k", e="{f_uses.E}-{d_close.E}",
           f="{self.E}+{dsra.E}")
     c.row("f_gear", "Debt share of total uses", "%", e="{d_close.E}/{f_uses.E}", ef_fmt="pct")
+    c.row("dmax", "Info: maximum debt at COD, no cap (E: low, F: high DSCR)", "EUR k",
+          e="{ds_cap.E}*In_DSCR/In_DSCR_Max_Low", f="{ds_cap.E}*In_DSCR/In_DSCR_Max_High")
+    c.row("dmax_pct", "Info: maximum debt, share of total uses (E: low, F: high)", "%", e="{dmax.E}/{f_uses.E}",
+          f="{dmax.F}/{f_uses.E}", ef_fmt="pct")
 
     c.section("Sale at COD")
     c.row("cod_contrib", "FEP contributions to COD", "EUR k",
@@ -514,6 +520,12 @@ def dashboard(m):
            fmt=m2)
     d.link("Debt share of construction cost, sized", "%", "{k.E}", out="Debt_Share", fmt="pct")
     d.link("Share of the DSCR capacity used", "%", "{k.F}", out="Capacity_Used", fmt="pct")
+    for t, lvl, name in (("E", "low", "Low"), ("F", "high", "High")):
+        d.link(f"Info: DSCR for maximum debt, {lvl}", "x", f"In_DSCR_Max_{name}", out=f"DSCR_Max_{name}")
+        d.link(f"Info: maximum debt at COD, {lvl} DSCR, no cap", "EUR m", "{dmax.%s}" % t, scale="Thousand",
+               out=f"Debt_Max_{name}", fmt=m2)
+        d.link(f"Info: maximum debt, share of total uses, {lvl} DSCR", "%", "{dmax_pct.%s}" % t,
+               out=f"Debt_Max_{name}_Pct", fmt="pct")
     d.link("DSRA funded at COD", "EUR m", "{dsra.E}", scale="Thousand", out="DSRA", fmt=m2)
     d.link("Minimum DSCR", "x", "{dscr.E}", out="Min_DSCR")
     d.link("Net generation, first full year", "GWh", "{gen.E}", scale="Thousand", out="Gen_Year1", fmt="money1")
