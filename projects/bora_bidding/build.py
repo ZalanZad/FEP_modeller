@@ -19,6 +19,7 @@ HERE = Path(__file__).resolve().parent
 OLD = HERE / "data" / "old_engine"
 NAME = "Bora_Bid_Model"
 D = dt.date
+START, NTP = D(2026, 7, 1), D(2029, 9, 30)                 # model start; NTP (devex years run to the NTP year)
 SETS = ["Base", "Overbuild built", "Full PB call", "Freeze off", "Low premium", "ÖSZ-4 on wind"]
 EXIT = 'SUMIF({end.all},"<="&{exit.E},{self.all})'          # amount to the RtB exit
 TO_COD = 'SUMIF({end.all},"<="&In_COD,{self.all})'          # amount to COD
@@ -33,7 +34,7 @@ def inputs(m):
     a("Invest_Date", "Signing fee and DD paid", "date", D(2026, 7, 31), source="Old engine Inputs E27")
     a("Signing_Date", "Signing (DSA accrual start)", "date", D(2026, 10, 26), source="Old engine Inputs E70")
     a("Contingency_Date", "Devex contingency paid", "date", D(2028, 12, 31), source="Old engine Devex_FEP row 38")
-    a("NTP", "Notice to proceed", "date", D(2029, 9, 30), source="Old engine Inputs E154")
+    a("NTP", "Notice to proceed", "date", NTP, source="Old engine Inputs E154")
     a("COD", "Commercial operation date", "date", D(2031, 9, 30), source="Bora!N16")
     a("Life", "Operating life", "years", 30, source="Old engine Inputs E157", fmt="int")
     a("Freeze_Start", "Interest freeze start", "date", D(2029, 6, 30), source="Old engine Inputs E64")
@@ -111,8 +112,11 @@ def inputs(m):
     a("CN_Turbine", "Chinese turbines (0 EU, 1 CN)", "flag", 0, source="User 12-Oct-26 (SPEC v2.1)")
     a("Turbine", "Turbine supply, EU", "EUR k/MW", 600, source="User 12-Oct-26 (SPEC v2.1)")
     a("Turbine_CN", "Turbine supply, CN", "EUR k/MW", 500, source="Old engine Calc G101")
-    a("Other_Wind", "Other wind capex (install, foundations, BoP, owner, land)", "EUR k/MW", 355,
-      source="Old engine Inputs E163:E166, E169:E170")
+    a("Installation", "Turbine installation and erection", "EUR k/MW", 80, source="Old engine Inputs E163")
+    a("Foundations", "Foundations", "EUR k/MW", 90, source="Old engine Inputs E164")
+    a("BoP", "Balance of plant (civil 70, electrical 60)", "EUR k/MW", 130, source="Old engine Inputs E165:E166")
+    a("Owner", "Owner's costs, engineering, construction insurance", "EUR k/MW", 40, source="Old engine Inputs E169")
+    a("Easements", "Land purchase and easements", "EUR k/MW", 15, source="Old engine Inputs E170")
     a("Substation", "Substation and 132 kV bay, EU", "EUR k", 12000, source="Old engine Inputs E167")
     a("Substation_CN", "Substation and 132 kV bay, CN", "EUR k", 10800, source="Old engine Tender E29")
     a("Capex_Contingency", "Contingency on wind and substation capex", "%", 0.05, source="Old engine Inputs E171")
@@ -315,6 +319,8 @@ def calc(m):
     fmt("cont", "F", "date")
     c.row("dev_cost", "Devex, land and contingency (E: to the exit, F: to COD)", "EUR k", "={devex}+{land}+{cont}",
           e="-" + EXIT, f="-" + TO_COD)
+    c.row("dev_year", "Devex, land and contingency by calendar year (at Q4)", "EUR k",
+          "={q4}*SUMIF({year.todate},{year},{dev_cost.todate})")
     c.row("gfee", "Guarantee fees (E: to the exit, F: to COD)", "EUR k",
           "=-({bid}+{pb})*In_Guarantee_Fee*{days}/Days_In_Year", e=EXIT, f=TO_COD)
     c.row("dev_cf", "Development cash flow (excl. connection fees)", "EUR k", "={inv}+{fee}+{tso}+{dev_cost}+{gfee}",
@@ -370,11 +376,13 @@ def calc(m):
     c.row("excl", "3-year group exclusion possible (if the PB loss counts as a call)", "flag", e="N({sanction.I}<0)", ef_fmt="flag")
 
     c.section("Build and debt")
-    c.row("tur", "Turbine supply, live route", "EUR k/MW", e="IF(In_CN_Turbine=1,In_Turbine_CN,In_Turbine)")
+    c.row("tur", "Wind capex per built MW (E: turbine, live route; F: other)", "EUR k/MW",
+          e="IF(In_CN_Turbine=1,In_Turbine_CN,In_Turbine)",
+          f="In_Installation+In_Foundations+In_BoP+In_Owner+In_Easements")
     c.row("subst", "Substation and 132 kV bay, live route", "EUR k",
           e="IF(In_CN_Turbine=1,In_Substation_CN,In_Substation)")
     c.row("capex", "Capex on built MW (E: total)", "EUR k", "=-{self.E}*{constr}",
-          e="(({tur.E}+In_Other_Wind)*{wind.F}+{subst.E})*(1+In_Capex_Contingency)+In_BESS_Capex*{bess.F}")
+          e="(({tur.E}+{tur.F})*{wind.F}+{subst.E})*(1+In_Capex_Contingency)+In_BESS_Capex*{bess.F}")
     c.row("municipal", "Municipal one-off at COD", "EUR k", "=-{self.E}*{cod}", e="{osz1.E}*In_MVA")
     c.subheader("Senior debt")
     c.row("d_open", "Opening balance", "EUR k", "={d_close@prev}", total="none")
@@ -474,18 +482,26 @@ def calc(m):
     c.row("cod_moic", "FEP MOIC – sale at COD (proceeds ÷ contributions)", "x", e="{v_fep.F}/-{cod_contrib.I}",
           ef_fmt="mult", bold=True)
     c.xnpv("cod_npv", "FEP NPV – sale at COD", "In_Discount_Rate", "cod_cf")
-    c.subheader("Commitment overview")
+    c.subheader("Capex breakdown to COD (two items per row)")
+    c.row("cx_a", "Turbines (E), installation (F)", "EUR k", e="{tur.E}*{wind.F}", f="In_Installation*{wind.F}")
+    c.row("cx_b", "Foundations (E), balance of plant (F)", "EUR k", e="In_Foundations*{wind.F}", f="In_BoP*{wind.F}")
+    c.row("cx_c", "Owner's costs (E), land, easements and pre-COD lease (F)", "EUR k", e="In_Owner*{wind.F}",
+          f='In_Easements*{wind.F}-SUMIF({end.all},"<="&In_COD,{ebitda.all})')
+    c.row("cx_d", "Contingency (E), substation and 132 kV bay (F)", "EUR k",
+          e="In_Capex_Contingency*(({tur.E}+{tur.F})*{wind.F}+{subst.E})", f="{subst.E}")
+    c.row("cx_e", "BESS (E), connection fees (F)", "EUR k", e="In_BESS_Capex*{bess.F}", f="-{conn.I}")
+    c.row("cx_f", "Municipal one-off (E), development: devex, land, signing, securities (F)", "EUR k",
+          e="-{municipal.I}", f="-({dev_cost.I}+{inv.I}+{fee.I}+{tso.I})")
+    c.row("cx_g", "Financing: IDC, debt fees, guarantee fees", "EUR k", e="{d_idc.I}-{d_up.I}-{d_cf.I}-{gfee.F}")
+    c.row("c2c", "All-in cost to COD (E: uses, F: sources)", "EUR k", e="SUM({cx_a.E}:{cx_g.F})",
+          f="{d_draw.I}+{d_idc.I}-{cod_contrib.I}", bold=True)
+    c.row("fn_con", "Funding: construction equity (E: capex, lease less debt), debt fees (F)", "EUR k",
+          e='-({capex.I}+{d_draw.I})-SUMIF({end.all},"<="&In_COD,{ebitda.all})', f="-({d_up.I}+{d_cf.I})")
+    c.subheader("Commitment")
     c.row("ov_sec", "Securities: cash posted and guarantee outstanding", "EUR k", e="{pb.E}-{fee.I}-{tso.I}")
-    c.row("ov_dev", "Devex, land, signing and DD", "EUR k", e="-({dev_cost.I}+{inv.I})")
-    c.row("ov_con", "Construction capex incl. connection fees, municipal, pre-COD lease", "EUR k",
-          e='-({capex.I}+{conn.I}+{municipal.I})-SUMIF({end.all},"<="&In_COD,{ebitda.all})')
-    c.row("ov_fin", "Financing: IDC, debt fees, guarantee fees", "EUR k", e="{d_idc.I}-{d_up.I}-{d_cf.I}-{gfee.F}")
-    c.row("ov_tot", "Total commitment", "EUR k", e="SUM({ov_sec.E}:{ov_fin.E})", bold=True)
+    c.row("ov_tot", "Total commitment: all-in cost to COD and guarantee", "EUR k", e="{c2c.E}+{pb.E}", bold=True)
     c.row("ov_pen", "Penalty if overbuild not built, a call on the PB (F: full call)", "EUR k", e="-{sanction.I}",
           f="{sanc.F}")
-    c.row("c2c", "All-in cost to COD (E: uses, F: sources)", "EUR k", e="{ov_tot.E}-{pb.E}",
-          f="{d_draw.I}+{d_idc.I}-{cod_contrib.I}", bold=True)
-    c.row("c2c_mw", "All-in cost to COD per built MW", "EUR k/MW", e="{c2c.E}/{wind.F}")
 
     c.section("Hold to maturity")
     c.row("htm_cf", "FEP equity cash flow – hold to maturity", "EUR k",
@@ -527,6 +543,10 @@ def checks(m):
                 "=N({v_dist.F}<-Tolerance)+N(SUM({v_cost.F}:{v_dsa.F})>{v_avail.F}+Tolerance)", per_period=False)
     k.add_check("Sources = uses to COD (equity + debt vs all-in cost lines)", "=N(ABS({c2c.E}-{c2c.F})>Tolerance)",
                 per_period=False)
+    k.add_check("Funding table: cumulative cash = FEP contributions to COD (both bids)",
+                "=N(ABS(Funding_Cum_Last-Out_Funding_Equity_To_COD)>Tolerance)", per_period=False)
+    k.add_check("Capex breakdown sums to the all-in cost to COD (both bids)",
+                "=N(SUM(Capex_Items)-Out_Capex_Total>Tolerance)+N(Out_Capex_Total-SUM(Capex_Items)>Tolerance)", per_period=False)
     k.add_check("Debt repaid by the end of the tenor", "=N(({end}>={tenor.F})*ABS({d_close})>Tolerance)")
     k.add_check("XIRR returned a number on every route",
                 "=N(ISTEXT({rtb_irr.E}))+N(ISERROR({htm_irr.E}))+N(ISERROR({cod_irr.E}))", per_period=False)
@@ -607,16 +627,9 @@ def dashboard(m):
         m.define(f"ZB_Live_{b}", col(rc, r2, b))
         m.define(f"ZB_Delta_{b}_Stored", grid(rc, r2, 1 + b))
 
-    # 3. what FEP commits per bid (total in Returns at a glance)
-    d.section("Commitment overview (total in Returns at a glance)")
-    for t, label, out in [("{ov_sec.E}", "Securities: cash posted and guarantee outstanding", "Commitment_Securities"),
-                          ("{ov_dev.E}", "Devex, land, signing and DD", "Commitment_Devex"),
-                          ("{ov_con.E}", "Construction capex incl. connection fees, municipal, pre-COD lease",
-                           "Commitment_Construction"),
-                          ("{ov_fin.E}", "Financing: IDC, debt fees, guarantee fees", "Commitment_Financing"),
-                          ("{ov_pen.E}", "Memo, not in the total: PB call if overbuild not built", "Commitment_Penalty"),
-                          ("{ov_pen.F}", "Memo, not in the total: full PB call", "Sanction_Full")]:
-        d.link(label, "EUR m", t, scale="Thousand", out=out, fmt=m2)
+    # 3. funding need and capex breakdown to COD, both bids together (MODELLING_STANDARDS section 9)
+    funding(m, d, S)
+    capex_breakdown(m, d)
 
     d.section("Points and validity")
     d.link("Wind committed", "MW", "{wind.E}", out="Wind_MW")
@@ -637,6 +650,12 @@ def dashboard(m):
         r = d.link(label, "EUR m", "{%s.E}" % key, scale="Thousand", fmt="0.000", extra=[form, posted, released])
         for col in (d.X + 1, d.X + 2):
             d.ws.cell(r, col).number_format = FMT["date"]
+    d.link("Securities: cash posted and guarantee outstanding", "EUR m", "{ov_sec.E}", scale="Thousand",
+           out="Commitment_Securities", fmt=m2)
+    d.link("PB call if overbuild not built (selected regime)", "EUR m", "{ov_pen.E}", scale="Thousand",
+           out="Commitment_Penalty", fmt=m2)
+    d.link("PB call if overbuild not built (full call)", "EUR m", "{ov_pen.F}", scale="Thousand", out="Sanction_Full",
+           fmt=m2)
     d.link("Connection capacity at risk", "MVA", "{mva_risk.E}", out="MVA_At_Risk")
     d.link("3-year group exclusion possible (if the PB loss counts as a call)", "flag", "{excl.E}", out="Exclusion")
 
@@ -674,7 +693,6 @@ def dashboard(m):
 
     d.section("Sale at COD")
     d.link("All-in cost to COD", "EUR m", "{c2c.E}", scale="Thousand", out="Cost_To_COD", fmt=m2, bold=True)
-    d.link("All-in cost per built MW", "EUR k/MW", "{c2c_mw.E}", out="Cost_To_COD_MW")
     d.link("Sale price (built MW, after bottleneck loss)", "EUR m", "{v_price.E}", scale="Thousand", out="COD_Price",
            fmt=m2)
     d.link("COD price effect (community, sanction)", "EUR m", "{v_price.F}", scale="Thousand",
@@ -706,10 +724,67 @@ def dashboard(m):
         d.panel_link(label, unit, ref, fmt=f)
 
 
+def funding(m, d, S):
+    """Funding need to COD for all bids: date | cash | guarantee | cumulative cash equity, one line per milestone."""
+    d.section("Funding need to COD – both bids", ["Guarantee €m", "Cum. cash €m"], values=["Date", "Cash €m"])
+    ws, dev = m.dashboard.ws, m.calc.rows["dev_year"].r
+    q4 = lambda y: L(10 + ((y - START.year) * 12 + 12 - START.month + 1) // 3 - 1)  # noqa: E731  Q4 column of year y
+    devex = [(f"Devex, land and contingency {y}", f"={S[0]}!{q4(y)}$4",
+              "=-(" + "+".join(f"{s}!{q4(y)}{dev}" for s in S) + ")/Thousand", None) for y in range(START.year,
+                                                                                               NTP.year + 1)]
+    cash = lambda t, sign="": f"={sign}({d.across(t)})/Thousand"  # noqa: E731
+    lines = [("Signing fee and DD", "=In_Invest_Date", cash("{inv.I}", "-"), None),
+             ("Bid: participation fee (cash), bid guarantee", "=In_Bid_Date", cash("{fee.E}"), cash("{bid.E}")),
+             ("Award: performance guarantee (bid guarantee released)", f"={m.calc.ref('pb', 'F', S[0])}", None,
+              cash("{pb.E}")),
+             ("Connection request: TSO security", "=In_TSO_Date", cash("{tso.E}"), None)] + devex[:-1] + [
+             ("HCSSZ: connection fees", "=In_HCSSZ_Date", cash("{conn.I}", "-"), None)] + devex[-1:] + [
+             ("NTP → COD: construction equity (capex, lease less debt)", "=In_COD", cash("{fn_con.E}"), None),
+             ("NTP → COD: debt fees (IDC is debt-funded)", "=In_COD", cash("{fn_con.F}"), None),
+             ("Guarantee fees to COD", "=In_COD", cash("{gfee.F}", "-"), None),
+             ("COD: municipal one-off", "=In_COD", cash("{municipal.I}", "-"), None)]
+    prev = None
+    for label, date, c, g in lines:
+        r = d._row(None, label, "EUR m")
+        apply(ws.cell(r, d.V, date), "link", FMT["date"])
+        for col, f in ((d.V + 1, c), (d.X, g)):
+            if f:
+                apply(ws.cell(r, col, f), "calc", FMT["money2"])
+        apply(ws.cell(r, d.X + 1, f"={L(d.V + 1)}{r}" + (f"+{L(d.X + 1)}{prev}" if prev else "")), "calc", FMT["money2"])
+        prev = r
+    r = d._row(None, "Total cash equity to COD; peak guarantee", "EUR m", bold=True)
+    apply(ws.cell(r, d.V + 1, cash("{cod_contrib.I}", "-")), "total", FMT["money2"])
+    apply(ws.cell(r, d.X, cash("{pb.E}")), "total", FMT["money2"])
+    m.define("Out_Funding_Equity_To_COD", f"Dashboard!${L(d.V + 1)}${r}")
+    m.define("Out_Funding_Peak_Guarantee", f"Dashboard!${L(d.X)}${r}")
+    m.define("Funding_Cum_Last", f"Dashboard!${L(d.X + 1)}${prev}")
+
+
+def capex_breakdown(m, d):
+    """Capex breakdown to COD for all bids, in EUR m and EUR k per built MW, summing to the all-in cost to COD."""
+    d.section("Capex breakdown to COD – both bids", values=["€ m", "k€/MW"])
+    ws, mw = d.ws, d.across("{wind.F}")
+    rows = []
+    for t, label in [("{cx_a.E}", "Turbines"), ("{cx_a.F}", "Installation"), ("{cx_b.E}", "Foundations"),
+                     ("{cx_b.F}", "Balance of plant"), ("{cx_c.E}", "Owner's costs"),
+                     ("{cx_c.F}", "Land, easements, pre-COD lease"), ("{cx_d.E}", "Contingency"),
+                     ("{cx_d.F}", "Substation and 132 kV bay"), ("{cx_e.E}", "BESS"), ("{cx_e.F}", "Connection fees"),
+                     ("{cx_f.E}", "Municipal one-off"), ("{cx_f.F}", "Development: devex, land, signing, securities"),
+                     ("{cx_g.E}", "Financing: IDC, debt fees, guarantee fees"), ("{c2c.E}", "All-in cost to COD")]:
+        total = t == "{c2c.E}"
+        r = d._row(None, label, "EUR m", bold=total)
+        apply(ws.cell(r, d.V, f"=({d.across(t)})/Thousand"), "total" if total else "calc", FMT["money1"])
+        apply(ws.cell(r, d.V + 1, f"=({d.across(t)})/({mw})"), "total" if total else "calc", FMT["money"])
+        rows.append(r)
+    m.define("Capex_Items", f"Dashboard!${L(d.V)}${rows[0]}:${L(d.V)}${rows[-2]}")
+    m.define("Out_Capex_Total", f"Dashboard!${L(d.V)}${rows[-1]}")
+    m.define("Out_Capex_Total_MW", f"Dashboard!${L(d.V + 1)}${rows[-1]}")
+
+
 # =========================================================================================== build
 def model():
     m = Model("Project Bora", "Bid strategy – BORA 1 / BORA 2 (2 x 100 MVA, Szombathely)", periods=141,
-              periodicity="quarterly", start=D(2026, 7, 1), scenarios=SETS, version="v2", date=D(2026, 10, 12),
+              periodicity="quarterly", start=START, scenarios=SETS, version="v2", date=D(2026, 10, 12),
               curves=True, layout="dashboard", calc_sheets=["Calc_1", "Calc_2"], bids=["BORA 1", "BORA 2"],
               extra_cols=1 + 2 * (1 + len(IMPACT)), source_col=False)
     inputs(m)

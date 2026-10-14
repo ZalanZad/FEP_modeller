@@ -811,11 +811,13 @@ class Dashboard:
         ws.freeze_panes = "A10"
 
     # ---- layout ---------------------------------------------------------------------------
-    def section(self, title, headers=()):
-        """Section bar with the bid labels over the value columns and `headers` over the grid columns."""
+    def section(self, title, headers=(), values=None):
+        """Section bar with the bid labels (or `values`) over the value columns and `headers` over the grid columns.
+
+        `values` relabels the value columns for a block that is not per bid (e.g. ["Date", "Cash"] for all bids)."""
         if self.r > self.TOP:
             self.r += 1
-        self._bar(title, "section", headers)
+        self._bar(title, "section", headers, values)
 
     def subheader(self, title, headers=()):
         self._bar(title, "subheader", headers)
@@ -865,6 +867,12 @@ class Dashboard:
     def _span(self, r, first=None, n=None):
         first = first or self.V
         return f"Dashboard!${L(first)}${r}:${L(first + (n or self.nb) - 1)}${r}"
+
+    def across(self, ref) -> str:
+        """Sum of one calc-sheet cell over every bid, e.g. across("{capex.I}") -> "Calc_1!$I$90+Calc_2!$I$90"; for
+        blocks that show all bids together (MODELLING_STANDARDS section 9)."""
+        t = ref[1:] if ref.startswith("=") else ref
+        return "+".join(self.m.render(t, None, None, "Dashboard", s) for s in self.m.calc_sheets)
 
     def ref(self, key, bid=1, grid=None) -> str:
         """Address of a row's value for `bid` (1-based), or of grid column `grid` (1-based)."""
