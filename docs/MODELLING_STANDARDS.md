@@ -136,6 +136,14 @@ If a value cannot be a live formula (circularity, goal seek, a scenario snapshot
   and the bid metrics the SPEC defines).
 - Panel 2: stored scenario results (macro output, purple): one column per scenario, the same rows as Panel 1.
 - Panel 3: checks status.
+- **Two standard blocks in every project model** (on Summary or the Dashboard, after the headline returns; compact,
+  links only):
+  - **Funding need to COD.** One line per milestone with its date: what FEP must put up, split into cash and guarantees
+    (bid, award, deposits, devex and land by year, connection fees, construction equity, financing costs), plus the
+    cumulative cash equity to COD and the peak guarantee. This shows the equity needed now and the equity needed to COD.
+  - **Capex breakdown.** One line per capex item (equipment, installation, BoP, grid, storage, owner's costs, contingency,
+    connection fees, development, financing) in EUR m and EUR k per built MW, summing to the all-in cost to COD.
+  - Show them for the scope the decision is about (e.g. all bids together); do not repeat them per bid when the bids are identical.
 - Use EUR m for presentation (`=Calc!I r/Thousand`). The deck binds to these cells.
 
 ## 10. What we deliberately do NOT copy from the references

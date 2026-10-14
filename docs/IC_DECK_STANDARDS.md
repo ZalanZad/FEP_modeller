@@ -10,6 +10,8 @@ with sample slides `slide1/6/8.png`.
 4. Context (for example tender rules and scoring)
 5. Options / scenarios: what differs between them
 6. Economics per option: returns table + one chart
+6a. **Funding and capex**: one slide with the funding need by date to COD (cash and guarantees, cumulative equity)
+   and the capex breakdown with EUR k/MW, for the scope of the decision
 7. Bridge or sensitivity: what drives the difference
 8. **Risks and mitigants**
 9. Summary comparison and **next steps / approval requested**

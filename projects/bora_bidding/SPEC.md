@@ -86,6 +86,25 @@ v2 (12-Oct-2026) replaces v1. It adds the logic recovered from the old engine (`
 21. **One strategy for both bids (user, 13-Oct-2026).** BORA 2 takes BORA 1's commitments (85 points). The model keeps two
     identical bid columns; only BORA 2's lever values change. The deck and the emails present one strategy: figures per bid
     (identical) and for both bids together (2 × 100 MVA), plus the zero bid for comparison. Nothing is shown twice.
+22. **Funding need and capex breakdown (user, 14-Oct-2026; house standard, MODELLING_STANDARDS §9).**
+    For both bids together (200 MW), no per-bid repeat.
+    - Funding need to COD, one line per milestone with its date:
+      - bid submission: participation fee (cash), bid guarantee;
+      - PB posting: PB guarantee;
+      - connection request: TSO cash;
+      - devex and land by year;
+      - HCSSZ: connection fees;
+      - guarantee fees;
+      - NTP → COD: construction equity (capex less debt), municipal at COD, IDC and fees.
+      Each line is split into cash and guarantee. Then the cumulative cash equity to COD and the peak guarantee.
+      This answers "how much equity now, and to COD".
+    - Capex breakdown, each item in € m and k€ per built MW:
+      - turbines, installation, foundations, BoP, owner's costs, land/easements, contingency;
+      - substation, BESS, connection fees, municipal;
+      - development (devex, land, signing/DD, securities);
+      - financing (IDC, fees, guarantee fees).
+      It sums to the all-in cost to COD.
+    - Placement: compact Dashboard blocks after the commitment overview; one deck slide "Funding and capex".
 12. **Inputs (user):** BESS capex 240 k€/MW; BORA 2 community contribution 2.01 €/MWh (scores ÖSZ-2 points, 68.25 total).
 
 ## 1. Decision
