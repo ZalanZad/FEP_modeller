@@ -162,3 +162,9 @@ set 5 = PPA +10 % (99 €/MWh). Deck slide 2: narrative 16 pt plus the COD-price
 Sensitivity only, never the base (`In_RH_On` = 0; set 10). Note for the IC: the energy suppliers' income tax (Thtv.,
 2008/LXVII) exempts producers under 50 MW only when they sell under KÁT or METÁR, so a PPA-only plant may be liable;
 31 % from 2026 (41 % to 2025). To confirm with the tax adviser.
+
+## 14. User changes (14-Oct-2026, later)
+- Buyer IRRs start at the COD column (`cod_col`): Excel's XIRR returned ~0 on the full row (leading zeros).
+  New engine option `Calc.xirr(..., start=)` and lint rule `x-xirr0`.
+- Set 12 "Debt 6x EBITDA": debt = 6 × first full-year EBITDA (`In_Debt_Mult`), cap raised to 70 %, still within the
+  DSCR capacity. Buyer IRR added to the sensitivity table.

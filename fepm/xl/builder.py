@@ -580,8 +580,13 @@ class Calc:
         return f"{sheet}!${L(J)}${r}:${L(self.m.last)}${r}"
 
     # ---- returns (column E) -------------------------------------------------------------
-    def xirr(self, key, label, cf, iferror=False):
+    def xirr(self, key, label, cf, iferror=False, start=None):
+        """IRR of a row. `start`: a row key whose E holds the first timeline column to use (e.g. MATCH of a date):
+        Excel's XIRR returns ~0 when the first value of its range is 0, so a row that starts late must start there."""
         f = f"XIRR({{{cf}.all}},{{end.all}})"
+        if start:
+            r, z = self.rows[cf].r, L(self.m.last)
+            f = f"XIRR(INDEX({{{cf}.all}},{{{start}.E}}):${z}{r},INDEX({{end.all}},{{{start}.E}}):${z}$4)"
         return self.row(key, label, "%", e=f'=IFERROR({f},"n/a")' if iferror else "=" + f, total="none",
                         ef_fmt="pct", bold=True)
 

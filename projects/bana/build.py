@@ -19,7 +19,7 @@ HERE = Path(__file__).resolve().parent
 NAME = "Bana_Model"
 D = dt.date
 SETS = ["Base", "COD price −10%", "COD price +10%", "Turbine +10%", "Yield −10%", "PPA +10%", "Full PB call",
-        "Rate +1 pp", "Tenor 10 years", "Robin Hood 31%", "CIT 9%"]
+        "Rate +1 pp", "Tenor 10 years", "Robin Hood 31%", "CIT 9%", "Debt 6x EBITDA"]
 TO_COD = 'SUMIF({end.all},"<="&In_COD,{self.all})'          # amount to COD
 EVENT = "N(AND({start}<={self.F},{end}>={self.F}))"           # line paid on its date in F
 SHARE = "=MAX(0,MIN({self.F},{end})-MAX({self.E},{start})+1)/({self.F}-{self.E}+1)"   # share of a window
@@ -128,7 +128,9 @@ def inputs(m):
       fmt="0.00%")
 
     i.section("Senior debt")
-    a("Gearing", "Debt share cap of construction cost, both routes", "%", 0.55, source="User 14-Oct-26")
+    a("Gearing", "Debt share cap of construction cost, both routes", "%", 0.55, {12: 0.70}, source="User 14-Oct-26")
+    a("Debt_Mult", "Debt sized at first full-year EBITDA x (0 = off)", "x", 0, {12: 6}, source="User 14-Oct-26",
+      fmt="money1")
     a("DSCR_Max_Low", "Info: DSCR for maximum debt, low", "x", 1.10, source="User 14-Oct-26", fmt="mult")
     a("DSCR_Max_High", "Info: DSCR for maximum debt, high", "x", 1.20, source="User 14-Oct-26", fmt="mult")
     a("DSCR", "Target DSCR for sizing and sculpting", "x", 1.20, source="Rock Assumptions G549",
@@ -212,6 +214,8 @@ def calc(m):
     c.row("devex_w", "Devex share (closing → NTP)", "factor", SHARE, e="In_Closing+1", f="In_NTP", fmt="factor",
           ef_fmt="date")
     c.event("cod", "COD", "In_COD")
+    c.row("cod_col", "COD column on the timeline (buyer IRR start)", "#", e="MATCH(In_COD,{end.all},0)",
+          total="none", ef_fmt="int")
     c.window("ops", "Operations", "In_COD+1", "EDATE(In_COD,In_Life*Months_In_Year)")
     c.window("lease_w", "Land lease period (NTP → end of life)", "In_NTP+1", "EDATE(In_COD,In_Life*Months_In_Year)")
     c.window("tenor", "Debt repayment period", "In_COD+1", "EDATE(In_COD,In_Debt_Tenor*Months_In_Year)")
@@ -326,8 +330,10 @@ def calc(m):
           "=({ebitda}+{gfee}+{tax_paste})*({end}>In_COD)")
     c.row("ds_cap", "Debt service at target DSCR (E: PV at COD = capacity)", "EUR k", "={cfads}/In_DSCR*{tenor}",
           e="SUMPRODUCT({self.all}/{idx.all})*{idx.E}")
+    c.row("dtgt", "Debt target: EBITDA multiple (else the DSCR capacity)", "EUR k",
+          e="IF(In_Debt_Mult>0,In_Debt_Mult*{ebitda.E},{ds_cap.E})")
     c.row("k", "Debt share of construction cost (E), share of capacity used (F)", "%",
-          e="MIN(In_Gearing,{ds_cap.E}/-{cost.E})", f="{self.E}*-{cost.E}/{ds_cap.E}", ef_fmt="pct", bold=True)
+          e="MIN(In_Gearing,{ds_cap.E}/-{cost.E},{dtgt.E}/-{cost.E})", f="{self.E}*-{cost.E}/{ds_cap.E}", ef_fmt="pct", bold=True)
 
     c.section("Senior debt")
     c.row("d_int", "Interest paid", "EUR k", "=-{d_close@prev}*{idx.F}*({end}>In_COD)")
@@ -395,10 +401,10 @@ def calc(m):
     c.subheader("Buyer at COD (share deal: SPV tax, debt and DSRA stay in the SPV)")
     c.row("buy_u", "Buyer cash flow, unlevered: price net of any PB call, post-COD flows", "EUR k",
           "=({ebitda}+{gfee}+{sanction}+{tax_copy})*({end}>In_COD)-({v_price.E}+{sanction.I})*{cod}")
-    c.xirr("buy_u_irr", "Buyer IRR, unlevered, at the SPV's actual tax", "buy_u")
+    c.xirr("buy_u_irr", "Buyer IRR, unlevered, at the SPV's actual tax", "buy_u", start="cod_col")
     c.row("buy_l", "Buyer cash flow, levered: pays price less debt, funds the DSRA", "EUR k",
           "={buy_u}+{d_ds}+{dsra}+{d_close.E}*{cod}")
-    c.xirr("buy_l_irr", "Buyer IRR, levered, post-tax", "buy_l")
+    c.xirr("buy_l_irr", "Buyer IRR, levered, post-tax", "buy_l", start="cod_col")
 
     c.section("Hold to maturity")
     c.row("proj_cf", "Project cash flow before financing, with actual tax", "EUR k",

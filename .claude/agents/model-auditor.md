@@ -18,5 +18,9 @@ Check, in priority order:
    and whether the scenario definitions match SPEC.md.
 4. Deck tie-out: every number on every slide matches its bound cell. No orphan figures.
 5. Simplicity: rows or sheets that the decision does not need.
+6. Excel compatibility: the recalc runs in LibreOffice, but the user opens the file in Excel. Flag anything Excel
+   computes differently. Above all, an XIRR whose range starts with a 0 returns ~0 in Excel (LibreOffice solves it);
+   every IRR range must start at its first non-zero flow (lint rule `x-xirr0`). Check each output for plausibility
+   too: an IRR of 0 % or a value that is exactly 0 is a finding until explained.
 
 Report the findings as a short list (file, cell, issue, suggested fix), most severe first. Say "clean" if there are none.

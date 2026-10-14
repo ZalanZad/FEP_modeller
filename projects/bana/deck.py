@@ -355,14 +355,15 @@ def build_deck(xlsm: Path, out: Path) -> Path:
     s = d.content("Sensitivities", f(
         "A lower COD price hits the sale most ({c}); Robin Hood tax ({r}) and lower yield ({y}) hit the hold", c=st("COD_IRR_1", sets.index("COD price −10%") + 1, pct),
         r=st("HTM_IRR_1", sets.index("Robin Hood 31%") + 1, pct), y=st("HTM_IRR_1", sets.index("Yield −10%") + 1, pct)),
-        "FEP IRR by key-assumption set, each change on its own (buyer IRR on the previous slide); the sale at COD does not depend on yield or PPA price "
+        "FEP and buyer (unlevered) IRR by key-assumption set, each change on its own; the sale at COD does not depend on yield or PPA price "
         "because its price is fixed per MW.", title_lines=2)
     rows = [[name, *[st(k, i, x2 if "DSCR" in k else pct) for k in
-                     ("COD_IRR_1", "COD_IRR_2", "HTM_IRR_1", "HTM_IRR_2", "Min_DSCR_1", "Min_DSCR_2")]]
+                     ("COD_IRR_1", "COD_IRR_2", "Buyer_IRR_U_1", "Buyer_IRR_U_2", "HTM_IRR_1", "HTM_IRR_2",
+                      "Min_DSCR_1", "Min_DSCR_2")]]
             for i, name in enumerate(sets, 1)]
-    s.table(["Key-assumption set", "COD – EU", "COD – CN", "Hold – EU", "Hold – CN", "DSCR – EU", "DSCR – CN"],
-            rows, key_rows={0}, top=TOP, width=10.3, height=0.59 + len(sets) * 0.5,
-            col_widths=[2.8, 1.25, 1.25, 1.25, 1.25, 1.25, 1.25], unit_col=None)
+    s.table(["Key-assumption set", "COD EU", "COD CN", "Buyer EU", "Buyer CN", "Hold EU", "Hold CN", "DSCR EU",
+             "DSCR CN"], rows, key_rows={0}, top=TOP, width=10.3, height=0.59 + len(sets) * 0.46,
+            col_widths=[2.3] + [1.0] * 8, unit_col=None)
     s.card("What to watch", [
         ("Turbine choice: ", "the permits name Goldwind; European turbines need a permit amendment and carry the "
                              "most capex risk."),
@@ -381,9 +382,16 @@ def build_deck(xlsm: Path, out: Path) -> Path:
         ("Debt: ", f("a {t}-year tenor lowers the European minimum DSCR to {ds} and the hold IRR to {h}.",
                      ds=st("Min_DSCR_1", sets.index("Tenor 10 years") + 1, x2),
                      t=b(set_cell("In_Debt_Tenor", "Tenor 10 years"), n0),
-                     h=st("HTM_IRR_1", sets.index("Tenor 10 years") + 1, pct)))],
-        left=15.45, top=TOP, width=4.45, height=7.2)
-    s.footnote(f("Each set changes one input, as named; tenor {t} years. Stored by the scenario macro with the tax "
+                     h=st("HTM_IRR_1", sets.index("Tenor 10 years") + 1, pct))),
+        ("Higher gearing: ", f("debt at {m} first-year EBITDA, capped at {c} of cost, is €{d1}m / €{d2}m; hold IRR "
+                               "{h1} / {h2}.", m=b(set_cell("In_Debt_Mult", "Debt 6x EBITDA"), lambda v: f"{v:.0f}x"),
+                               c=b(set_cell("In_Gearing", "Debt 6x EBITDA"), pct0),
+                               d1=st("Debt_COD_1", sets.index("Debt 6x EBITDA") + 1, eur),
+                               d2=st("Debt_COD_2", sets.index("Debt 6x EBITDA") + 1, eur),
+                               h1=st("HTM_IRR_1", sets.index("Debt 6x EBITDA") + 1, pct),
+                               h2=st("HTM_IRR_2", sets.index("Debt 6x EBITDA") + 1, pct)))],
+        left=15.45, top=TOP, width=4.45, height=6.4)
+    s.footnote(f("Each set changes one input, as named (the EBITDA set also raises the debt cap); tenor {t} years. Stored by the scenario macro with the tax "
                  "solver; base = live model. Model checks in every set: {ck}.",
                  t=b(set_cell("In_Debt_Tenor", "Tenor 10 years"), n0),
                  ck=d.bind_sum([st(f"Checks_{r}", k, None) for r in (1, 2) for k in range(1, len(sets) + 1)],

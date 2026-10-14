@@ -23,6 +23,7 @@ MACRO_NAMES = re.compile(r"(_Paste$|^Stored_Results$|_Stored$)")   # written by 
 LEVER_NAMES = re.compile(r"^Dash_")                                # deal levers, on the Dashboard only
 MAX_LEN, MAX_DEPTH, MAX_NOTE = 100, 2, 60                          # g-long, g-note (MODELLING_STANDARDS §6.3)
 ERRORS = ("#DIV/0!", "#VALUE!", "#REF!", "#NAME?", "#N/A", "#NUM!", "#NULL!", "Err:")
+_XIRR_START = re.compile(r"XIRR\(\s*(\$?[A-Z]{1,3}\$?\d+):")
 _CELL = re.compile(r"(?<![A-Za-z0-9_.])(\$?)([A-Z]{1,3})(\$?)(\d+)(?![A-Za-z0-9_(])")
 
 
@@ -317,6 +318,14 @@ def lint_values(recalculated) -> list[Finding]:
             for cell in row:
                 if isinstance(cell.value, str) and cell.value.startswith(ERRORS):
                     f.append(Finding("f-error", f"{ws.title}!{cell.coordinate}", cell.value))
+    forms = openpyxl.load_workbook(recalculated)
+    for ws in forms.worksheets:                  # Excel's XIRR returns ~0 when its range starts with a 0
+        for row in ws.iter_rows():
+            for cell in row:
+                m = _XIRR_START.search(cell.value) if isinstance(cell.value, str) else None
+                if m and not wb[ws.title][m.group(1).replace("$", "")].value:
+                    f.append(Finding("x-xirr0", f"{ws.title}!{cell.coordinate}",
+                                     f"XIRR range starts at {m.group(1)} = 0: Excel returns ~0 (start at the first flow)"))
     if "Master_Check" not in wb.defined_names:
         f.append(Finding("f-master", "workbook", "no Master_Check name"))
     else:
