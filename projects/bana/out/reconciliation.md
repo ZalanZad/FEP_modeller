@@ -6,26 +6,29 @@ Old engine: `reference/Bana_IC_model_v3.xlsm`, figures as shown in `reference/Ba
 
 | Step | Total uses to COD | FEP equity to COD | FEP profit – sale at COD | FEP IRR – sale at COD | FEP MOIC – sale at COD | FEP IRR – hold to maturity | FEP MOIC – hold to maturity | Minimum DSCR |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| New model, base | 111.76 | 53.63 | 21.87 | 28.4% | 1.41x | 8.3% | 3.54x | 1.94x |
-| + EU turbine 950 k€/MW | 111.76 | 53.63 | 21.87 | 28.4% | 1.41x | 8.3% | 3.54x | 1.94x |
-| + Debt share cap 60 % EU / 50 % CN | 112.14 | 48.72 | 21.50 | 29.5% | 1.44x | 8.5% | 3.73x | 1.78x |
-| + Tenor 10 years | 112.01 | 50.39 | 21.62 | 29.1% | 1.43x | 7.8% | 3.89x | 1.20x |
+| New model, base | 111.76 | 53.63 | 21.87 | 28.4% | 1.41x | 8.0% | 3.37x | 1.91x |
+| + CIT 9 % | 111.76 | 53.63 | 21.87 | 28.4% | 1.41x | 8.3% | 3.54x | 1.94x |
+| + P50 2,460 h | 111.76 | 53.63 | 21.87 | 28.4% | 1.41x | 7.4% | 3.21x | 1.82x |
+| + Debt share cap 60 % (both routes; old CN 50 %) | 112.14 | 48.72 | 21.50 | 29.5% | 1.44x | 7.5% | 3.36x | 1.67x |
+| + Tenor 10 years | 111.74 | 53.91 | 21.89 | 28.4% | 1.41x | 6.9% | 3.41x | 1.20x |
 | **Old engine (deck 09-Oct-2026)** | 101.75 | 44.23 | 20.25 | 26.4% | 1.46x | 9.2% | 5.64x | 1.09x |
 
 ## Chinese turbine
 
 | Step | Total uses to COD | FEP equity to COD | FEP profit – sale at COD | FEP IRR – sale at COD | FEP MOIC – sale at COD | FEP IRR – hold to maturity | FEP MOIC – hold to maturity | Minimum DSCR |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| New model, base | 83.14 | 44.53 | 31.33 | 41.9% | 1.70x | 12.2% | 4.85x | 2.86x |
-| + EU turbine 950 k€/MW | 83.14 | 44.53 | 31.33 | 41.9% | 1.70x | 12.2% | 4.85x | 2.86x |
-| + Debt share cap 60 % EU / 50 % CN | 83.14 | 44.53 | 31.33 | 41.9% | 1.70x | 12.2% | 4.85x | 2.86x |
-| + Tenor 10 years | 83.14 | 44.53 | 31.33 | 41.9% | 1.70x | 11.3% | 5.01x | 1.88x |
+| New model, base | 83.42 | 40.94 | 31.06 | 43.2% | 1.76x | 12.0% | 4.85x | 2.53x |
+| + CIT 9 % | 83.42 | 40.94 | 31.06 | 43.2% | 1.76x | 12.5% | 5.13x | 2.60x |
+| + P50 2,460 h | 83.42 | 40.94 | 31.06 | 43.2% | 1.76x | 11.4% | 4.70x | 2.44x |
+| + Debt share cap 60 % (both routes; old CN 50 %) | 83.70 | 37.36 | 30.78 | 44.5% | 1.82x | 11.8% | 4.98x | 2.24x |
+| + Tenor 10 years | 83.70 | 37.36 | 30.78 | 44.5% | 1.82x | 10.6% | 5.20x | 1.47x |
 | **Old engine (deck 09-Oct-2026)** | 75.15 | 40.32 | 29.35 | 37.7% | 1.73x | 12.1% | 7.09x | 1.77x |
 
 ## Step sources
 
-- EU turbine 950 k€/MW: Bana v3 Inputs E162; new: Bora user decision 600.
-- Debt share cap 60 % EU / 50 % CN: Bana v3 Inputs E217.
+- CIT 9 %: Bana v3 Inputs E12; new: 15 % Pillar Two minimum (user, 14-Oct-2026).
+- P50 2,460 h: Bana v3 Inputs E179; new: 2,600 h (user, 13-Oct-2026).
+- Debt share cap 60 % (both routes; old CN 50 %): Bana v3 Inputs E217.
 - Tenor 10 years: Bana v3 Inputs E220.
 
 ## What the steps do not reproduce (change of method, by design)
@@ -38,4 +41,4 @@ Old engine: `reference/Bana_IC_model_v3.xlsm`, figures as shown in `reference/Ba
 - Overbuild: the old bid had none (50 MW); the new bid commits 20 % and builds 10 % (55 MW, user 13-Oct-2026), which adds capex, generation, the COD price on the extra MW and a larger security base.
 - Bid and BESS: the old bid was municipal 35 k€/MW and community 2.5 €/MWh with no BESS; the new bid is 50 and 3 with a 10 MW / 4 h BESS at capex only (user, 13-Oct-2026).
 
-The turbine step only moves the European route. Tax losses still unused 5 years after the NTP lapse in every step (Tao. 17. §), so the steps carry no tax shield the rule would not allow.
+The old engine geared the Chinese route at 50 %; the new model has one cap for both. Tax losses still unused 5 years after the NTP lapse in every step (Tao. 17. §), so the steps carry no tax shield the rule would not allow.

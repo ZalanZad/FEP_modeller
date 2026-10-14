@@ -27,8 +27,9 @@ OLD = {"Uses_Total": (101.75, 75.15), "Equity_COD": (44.23, 40.32), "COD_Profit"
        "COD_IRR": (0.264, 0.377), "COD_MOIC": (1.46, 1.73), "HTM_IRR": (0.092, 0.121), "HTM_MOIC": (5.64, 7.09),
        "Min_DSCR": (1.09, 1.77)}
 STEPS = [  # label, {input name: old value}, source
-    ("EU turbine 950 k€/MW", {"In_Turbine": 950}, "Bana v3 Inputs E162; new: Bora user decision 600"),
-    ("Debt share cap 60 % EU / 50 % CN", {"In_Gearing": 0.60, "In_Gearing_CN": 0.50}, "Bana v3 Inputs E217"),
+    ("CIT 9 %", {"In_CIT": 0.09}, "Bana v3 Inputs E12; new: 15 % Pillar Two minimum (user, 14-Oct-2026)"),
+    ("P50 2,460 h", {"In_P50_Hours": 2460}, "Bana v3 Inputs E179; new: 2,600 h (user, 13-Oct-2026)"),
+    ("Debt share cap 60 % (both routes; old CN 50 %)", {"In_Gearing": 0.60}, "Bana v3 Inputs E217"),
     ("Tenor 10 years", {"In_Debt_Tenor": 10}, "Bana v3 Inputs E220"),
 ]
 RESIDUAL = [
@@ -58,7 +59,7 @@ def base_cells(path):
     """Inputs base-column address (H) of every input row, by name."""
     wb = openpyxl.load_workbook(path)
     out = {}
-    for name in ("In_Turbine", "In_Gearing", "In_Gearing_CN", "In_Debt_Tenor"):
+    for name in sorted({n for _, changes, _ in STEPS for n in changes}):
         row = wb.defined_names[name].attr_text.split("$")[-1]
         out[name] = f"Inputs!H{row}"
     return out
@@ -93,7 +94,7 @@ def run():
     lines += ["## Step sources", ""] + [f"- {label}: {src}." for label, _, src in STEPS]
     lines += ["", "## What the steps do not reproduce (change of method, by design)", ""]
     lines += [f"- {t}" for t in RESIDUAL]
-    lines += ["", "The turbine step only moves the European route. Tax losses still unused 5 years after the NTP lapse "
+    lines += ["", "The old engine geared the Chinese route at 50 %; the new model has one cap for both. Tax losses still unused 5 years after the NTP lapse "
                   "in every step (Tao. 17. §), so the steps carry no tax shield the rule would not allow.", ""]
     (OUT / "reconciliation.md").write_text("\n".join(lines))
     return OUT / "reconciliation.md"
