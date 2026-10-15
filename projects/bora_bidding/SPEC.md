@@ -105,7 +105,7 @@ v2 (12-Oct-2026) replaces v1. It adds the logic recovered from the old engine (`
       - financing (IDC, fees, guarantee fees).
       It sums to the all-in cost to COD.
     - Placement: compact Dashboard blocks after the commitment overview; one deck slide "Funding and capex".
-12. **Inputs (user):** BESS capex 240 k€/MW; BORA 2 community contribution 2.01 €/MWh (scores ÖSZ-2 points, 68.25 total).
+12. **Inputs (user):** BESS capex 100 k€/MWh on built BESS MWh (= 400 k€/MW at 4 h; user 15-Oct-26, was 240 k€/MW); BORA 2 community contribution 2.01 €/MWh (scores ÖSZ-2 points, 68.25 total).
 
 ## 1. Decision
 The IC is asked to approve the tender commitments for two 100 MVA capacity bids at the Szombathely OVIT node,

@@ -39,7 +39,7 @@ IRR_HTM = "FEP IRR (HTM!G139, IRR on row 129)"
 ALLIN = "All-in cost to COD (Bora row 87)"
 COD = dt.date(2031, 9, 30)
 # The user's decisions (SPEC §0 items 1, 4, 5, 12; 12-Oct-2026). The workbook inputs must equal them (checked in main).
-UD_EXPECT = dict(rtb_premium=150.0, turbine_eu=600.0, ppa_price=90.0, bess_capex=240.0, community_b2=2.01)
+UD_EXPECT = dict(rtb_premium=150.0, turbine_eu=600.0, ppa_price=90.0, bess_capex=400.0, community_b2=2.01)
 UD = dict(UD_EXPECT, ppa_tenor=30)
 
 
@@ -111,6 +111,7 @@ def read_workbook():
         inp = {k: lo.get(f"In_{k}") for k in ("Award_Date", "PB_Days", "PB_Release", "Life", "RtB_Premium", "Turbine",
                                                "PPA_Price", "BESS_Capex")}
         inp["Community"] = list(lo._range("Dash_Community").getDataArray()[0])
+        inp["BESS_Hours"] = lo._range("Dash_BESS_Hours").getDataArray()[0][0]
         orig = {ref: lo.get(ref) for _, _, over, _ in plan for ref in over}
         for tag, name, over, rows in plan:
             lo.set("Scenario_Name", name)
@@ -189,7 +190,7 @@ def user_steps(s):
         ("U3", "User decision: PPA 90 €/MWh for the whole life (was 91.6 for 10 y, then merchant)",
          dict(g_over={"ppa_price": UD["ppa_price"], "ppa_tenor": UD["ppa_tenor"]}),
          dict(ppa_price=UD["ppa_price"], ppa_tenor=UD["ppa_tenor"]), "b"),
-        ("U4", "User decision: BESS capex 240 k€/MW (was 200)",
+        ("U4", "User decision: BESS capex 100 k€/MWh = 400 k€/MW at 4 h (was 200 k€/MW)",
          dict(g_over={"bess_capex_keur_per_mw": UD["bess_capex"]}), dict(bess_capex=UD["bess_capex"]), "b"),
     ]
     if s == "S3":
@@ -341,7 +342,7 @@ def main():
     wbv, refs = cell_refs()
     findings = []
     UD.update(rtb_premium=inp["RtB_Premium"], turbine_eu=inp["Turbine"], ppa_price=inp["PPA_Price"],
-              bess_capex=inp["BESS_Capex"], community_b2=inp["Community"][1], ppa_tenor=int(inp["Life"]))
+              bess_capex=inp["BESS_Capex"] * inp["BESS_Hours"], community_b2=inp["Community"][1], ppa_tenor=int(inp["Life"]))
     for k, v in UD_EXPECT.items():
         if abs(UD[k] - v) > 1e-9:
             findings.append(f"Workbook input for the user decision '{k}' is {UD[k]}, expected {v}.")

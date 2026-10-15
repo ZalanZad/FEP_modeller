@@ -120,7 +120,7 @@ def inputs(m):
     a("Substation", "Substation and 132 kV bay, EU", "EUR k", 12000, source="Old engine Inputs E167")
     a("Substation_CN", "Substation and 132 kV bay, CN", "EUR k", 10800, source="Old engine Tender E29")
     a("Capex_Contingency", "Contingency on wind and substation capex", "%", 0.05, source="Old engine Inputs E171")
-    a("BESS_Capex", "BESS capex", "EUR k/MW", 240, source="User 12-Oct-26")
+    a("BESS_Capex", "BESS capex", "EUR k/MWh", 100, source="User 15-Oct-26")
 
     i.section("Operations")
     a("P50_Hours", "Net P50 hours", "h/yr", 2460, source="Old engine Inputs E179", fmt="money")
@@ -261,7 +261,8 @@ def calc(m):
     c.row("wind", "Wind", "MW", e=f"In_MVA*(1+{lev('Overbuild')})", f="In_MVA+({self.E}-In_MVA)*In_Overbuild_Built",
           ef_fmt="money1")
     c.row("bess", "BESS power", "MW", e=f"{lev('BESS')}*In_MVA", f="{self.E}*In_BESS_Built", ef_fmt="money1")
-    c.row("mwh", "BESS energy", "MWh", e="{bess.E}*" + lev("BESS_Hours"), ef_fmt="money1")
+    c.row("mwh", "BESS energy", "MWh", e="{bess.E}*" + lev("BESS_Hours"), f="{self.E}*In_BESS_Built",
+          ef_fmt="money1")
     c.row("loss", "Grid-bottleneck loss on built wind", "%", e="({wind.F}-In_MVA)/{wind.F}*In_Bottleneck_Loss",
           ef_fmt="0.000%")
 
@@ -382,7 +383,7 @@ def calc(m):
     c.row("subst", "Substation and 132 kV bay, live route", "EUR k",
           e="IF(In_CN_Turbine=1,In_Substation_CN,In_Substation)")
     c.row("capex", "Capex on built MW (E: total)", "EUR k", "=-{self.E}*{constr}",
-          e="(({tur.E}+{tur.F})*{wind.F}+{subst.E})*(1+In_Capex_Contingency)+In_BESS_Capex*{bess.F}")
+          e="(({tur.E}+{tur.F})*{wind.F}+{subst.E})*(1+In_Capex_Contingency)+In_BESS_Capex*{mwh.F}")
     c.row("municipal", "Municipal one-off at COD", "EUR k", "=-{self.E}*{cod}", e="{osz1.E}*In_MVA")
     c.subheader("Senior debt")
     c.row("d_open", "Opening balance", "EUR k", "={d_close@prev}", total="none")
@@ -489,7 +490,7 @@ def calc(m):
           f='In_Easements*{wind.F}-SUMIF({end.all},"<="&In_COD,{ebitda.all})')
     c.row("cx_d", "Contingency (E), substation and 132 kV bay (F)", "EUR k",
           e="In_Capex_Contingency*(({tur.E}+{tur.F})*{wind.F}+{subst.E})", f="{subst.E}")
-    c.row("cx_e", "BESS (E), connection fees (F)", "EUR k", e="In_BESS_Capex*{bess.F}", f="-{conn.I}")
+    c.row("cx_e", "BESS (E), connection fees (F)", "EUR k", e="In_BESS_Capex*{mwh.F}", f="-{conn.I}")
     c.row("cx_f", "Municipal one-off (E), development: devex, land, signing, securities (F)", "EUR k",
           e="-{municipal.I}", f="-({dev_cost.I}+{inv.I}+{fee.I}+{tso.I})")
     c.row("cx_g", "Financing: IDC, debt fees, guarantee fees", "EUR k", e="{d_idc.I}-{d_up.I}-{d_cf.I}-{gfee.F}")

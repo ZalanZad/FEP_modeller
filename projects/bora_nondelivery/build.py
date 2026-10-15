@@ -41,7 +41,7 @@ def inputs(m):
     a("Owner", "Owner's costs", "EUR k/MW", 40, source="Bora model Inputs (old E169)")
     a("Land", "Land and easements", "EUR k/MW", 15, source="Bora model Inputs (old E170)")
     a("Contingency", "Contingency on overbuild capex", "%", 0.05, source="Bora model Inputs (old E171)")
-    a("BESS_Capex", "BESS capex", "EUR k/MW", 240, source="Bora model Inputs (user 12-Oct-26)")
+    a("BESS_Capex", "BESS capex", "EUR k/MWh", 100, source="Bora model Inputs (user 15-Oct-26)")
     a("White_Label", "EU to CN turbines and transformers, saving", "EUR k/MW", 100, source="User 15-Oct-26")
 
     i.section("Municipal and community commitments")
@@ -130,7 +130,7 @@ def calc(m):
     c.row("ob", "Overbuild capex", "EUR k",
           e="(In_Turbine+In_Installation+In_Foundations+In_BoP+In_Owner+In_Land)*{unbuilt.E}*(1+In_Contingency)",
           f=BOTH, bold=True)
-    c.row("bess_capex", "BESS capex", "EUR k", e="In_BESS_Capex*{bess.E}", f=BOTH)
+    c.row("bess_capex", "BESS capex", "EUR k", e="In_BESS_Capex*{bess.F}", f=BOTH)
     c.row("municipal", "Municipal one-off", "EUR k", e="In_Municipal*In_MVA", f=BOTH)
     c.row("com_pv", "Community contribution (PV to COD)", "EUR k", e="SUMPRODUCT({com.all},{df.all})", f=BOTH)
     c.row("white", "EU to CN turbines and transformers (white labelling)", "EUR k", e="In_White_Label*In_Wind_ND",

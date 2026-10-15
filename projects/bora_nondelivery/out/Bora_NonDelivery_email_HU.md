@@ -27,14 +27,14 @@ Ez alapján a barnamezős pontot (ÖSZ-7, +10 pont) is bevállalhatnánk. Akkor 
 biztosan nem tud teljesíteni. A mostani csomaggal technikailag az ő döntése, hogy mindent megvalósít-e.
 
 **Számok (két projekt, alapeset):**
-- A fejlesztő megtakarítása COD-ig, ha semmit nem teljesít: 180,7 m€. Ebből:
+- A fejlesztő megtakarítása COD-ig, ha semmit nem teljesít: 197,0 m€. Ebből:
   - túlépítés capex: 102,3 m€;
-  - BESS: 24,5 m€;
+  - BESS (100 k€/MWh): 40,8 m€;
   - egyszeri önkormányzati hozzájárulás: 10,0 m€;
   - közösségi hozzájárulás jelenértéke 8%-on: 23,9 m€;
   - kínai turbina és transzformátor: 20,0 m€.
 
-  A 14,0 m€ PB-lehívás után a nettó megtakarítás 166,7 m€.
+  A 14,0 m€ PB-lehívás után a nettó megtakarítás 183,0 m€.
 - A COD-vevő projekt IRR-je, adózás után, hitel nélkül, 245 m€ vételár mellett projektenként:
   - az eredeti tervvel (minden más vállalás teljesítve, PB lehívva): 4,8%;
   - ha semmit nem teljesít: 5,1%.

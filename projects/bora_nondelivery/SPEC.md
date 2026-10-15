@@ -23,7 +23,7 @@ Summary ends with a short "Sanction" note block (≤ 6 lines, with citations; ex
 - **Per bid:** MVA 100, overbuild 51 %, BESS 51 % of MVA × 4 h, built wind if delivered 151 MW, built wind if not delivered 100 MW.
 - **Overbuild capex per MW** (old engine E163–E170 as split in the Bora model): turbine 600, installation 80, foundations 90, BoP 130,
   owner's 40, land/easements 15 k€/MW, plus contingency 5 % on these.
-- **BESS capex:** 240 k€/MW (user).
+- **BESS capex:** 100 k€/MWh on the committed MWh (user 15-Oct-26).
 - **Municipal one-off:** 50 k€/MW × MVA, paid at COD.
 - **Community contribution:** 3 €/MWh on net generation of the built wind, over 30 years from COD 30-Sep-2031.
   Generation = built MW × 2,460 h × (1 − 2 % curtailment) × (1 − 0.3 %)^(year − 1), with COD-year and end-year fractions as in the Bora model.
