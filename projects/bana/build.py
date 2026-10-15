@@ -20,8 +20,7 @@ NAME = "Bana_Model"
 D = dt.date
 SETS = ["Base", "COD price −10%", "COD price +10%", "Turbine +10%", "Yield −10%", "PPA +10%", "Full PB call",
         "Rate +1 pp", "Tenor 10 years", "Robin Hood 31%", "CIT 9%", "Debt 6x EBITDA",
-        "BESS 100 MWh", "Not built, pro rata", "Not built, full call",
-        "BESS not built"]
+        "BESS 100 MWh", "Promise all, deliver nothing"]
 TO_COD = 'SUMIF({end.all},"<="&In_COD,{self.all})'          # amount to COD
 EVENT = "N(AND({start}<={self.F},{end}>={self.F}))"           # line paid on its date in F
 SHARE = "=MAX(0,MIN({self.F},{end})-MAX({self.E},{start})+1)/({self.F}-{self.E}+1)"   # share of a window
@@ -73,15 +72,17 @@ def inputs(m):
     i.section("Tender and grid")
     i.add_constant("Points_Decimals", "Points rounded to decimals", "#", 2, "Kiírás X.1 b")
     a("MVA", "Net connection capacity", "MVA", 50, source="MEKH Annex 1; Bana v3 Inputs E281", fmt="money")
-    a("Overbuild_Built", "Overbuild built, share of MVA (bid: Dashboard)", "%", 0.10, {14: 0, 15: 0},
+    a("Overbuild_Built", "Overbuild built, share of MVA (bid: Dashboard)", "%", 0.10, {14: 0},
       source="User 13-Oct-26")
+    a("Deliver", "Commitments delivered (0 = none: no municipal, community, EU kit)", "flag", 1, {14: 0},
+      source="User 15-Oct-26")
     a("BESS_Set", "BESS commitment, share of MVA (0 = Dashboard bid)", "%", 0, {13: 0.5},
       source="User 15-Oct-26: 100 MWh = 25 MW x 4 h")
     a("Bottleneck_Loss", "Energy lost on overbuilt MW", "%", 0.05, source="Bora!N18 (as Bora)")
-    a("BESS_Built", "BESS built (1 = yes)", "flag", 1, {14: 0, 15: 0, 16: 0}, source="User 13-Oct-26 (as Bora)")
+    a("BESS_Built", "BESS built (1 = yes)", "flag", 1, {14: 0}, source="User 13-Oct-26")
     a("Min_Hours", "Minimum BESS duration for ÖSZ-4", "h", 4, source="Kiírás Annex 8; GYIK Q5", fmt="money1")
     a("Tolerance_Cap", "Build shortfall tolerated without sanction", "%", 0.10, source="GYIK 28, 30")
-    a("Sanction_Regime", "Sanction regime (1 pro rata, 2 full PB call)", "flag", 1, {7: 2, 15: 2},
+    a("Sanction_Regime", "Sanction regime (1 pro rata, 2 full PB call)", "flag", 1, {7: 2, 14: 2},
       source="GYIK 28/30 (1); Kiírás XIII.17, GYIK 72 (2)")
     a("Sanction_Lag", "Sanction paid after COD", "months", 6, source="Kiírás XIII.17", fmt="int")
     a("Bench_BESS", "Security base: benchmark investment, BESS", "mHUF/MWh", 200, source="Kiírás Annex 2",
@@ -245,7 +246,7 @@ def calc(m):
     c.row("short", "Build shortfall vs commitment (E: wind, F: BESS)", "%", e="MAX(0,1-{wind.F}/{wind.E})",
           f="(1-In_BESS_Built)*({bess.E}>0)", ef_fmt="pct")
     c.row("mva_risk", "Memo: connection right lost pro rata (GYIK 28/30)", "MVA",
-          e="({short.E}>In_Tolerance_Cap)*{short.E}*In_MVA", ef_fmt="money1")
+          e="({short.E}>In_Tolerance_Cap)*{short.E}*In_MVA*(In_Sanction_Regime=1)", ef_fmt="money1")
 
     c.section("Tender points (E: commitment, F: weighted points)")
     band = lambda k: (f"INDEX(Osz{k}_Pts,1+SUMPRODUCT((Osz{k}_LB<{{self.E}})+(Osz{k}_LB={{self.E}})"  # noqa: E731
@@ -266,6 +267,7 @@ def calc(m):
         fmt(k, "E", f)
     c.row("pts", "Points total", "points", e="ROUND(SUM({osz1.F}:{osz9b.F}),Points_Decimals)", ef_fmt="money2",
           bold=True)
+    c.row("eu", "European turbines installed (bid and delivered)", "flag", e="{osz9a.E}*In_Deliver", ef_fmt="flag")
     c.row("valid", "Failed tests (E: ÖSZ-1 and -2 range, F: ÖSZ-6, BESS ≤ wind, 4 h)", "#",
           e="({osz1.E}<>0)*({osz1.E}<Osz1_Min)+({osz1.E}>Osz1_Max)+({osz2.E}<>0)*({osz2.E}<Osz2_Min)"
             "+({osz2.E}>Osz2_Max)", f="N({osz6.E}<1)+N({bess.E}>{wind.E})+N({mwh.E}<{bess.E}*In_Min_Hours)",
@@ -298,7 +300,7 @@ def calc(m):
           e="{pb.E}*{wind.E}*In_Bench_Wind/{pb_base.E}", f="{pb.E}-{self.E}")
     c.row("sanc", "PB call (E: pro rata above the tolerance, F: full call)", "EUR k",
           e="({short.E}>In_Tolerance_Cap)*{short.E}*{pbp.E}+({short.F}>In_Tolerance_Cap)*{short.F}*{pbp.F}",
-          f="({short.E}+{short.F}>0)*{pb.E}")
+          f="(({short.E}+{short.F}>0)+(In_Deliver=0)>0)*{pb.E}")
     c.row("sanction", "PB call paid, selected regime (E: date)", "EUR k",
           "=-CHOOSE(In_Sanction_Regime,{sanc.E},{sanc.F})*N(AND({start}<={self.E},{end}>={self.E}))",
           e="EDATE(In_COD,In_Sanction_Lag)")
@@ -306,12 +308,12 @@ def calc(m):
     c.row("dev_cf", "Development cash flow", "EUR k", "={buy}+{dd}+{devex}+{fee}+{tso}+{gfee}", bold=True)
 
     c.section("Construction")
-    c.row("tur", "Turbine supply, this route", "EUR k/MW", e="IF({osz9a.E}=1,In_Turbine,In_Turbine_CN)")
+    c.row("tur", "Turbine supply, this route", "EUR k/MW", e="IF({eu.E}=1,In_Turbine,In_Turbine_CN)")
     c.row("subst", "Substation and 132 kV bay, this route", "EUR k",
-          e="IF({osz9a.E}=1,In_Substation,In_Substation_CN)")
+          e="IF({eu.E}=1,In_Substation,In_Substation_CN)")
     c.row("capex", "Capex (E: total)", "EUR k", "=-{self.E}*{constr}",
           e="(({tur.E}+In_Other_Wind)*{wind.F}+{subst.E})*(1+In_Capex_Contingency)+In_BESS_Capex*{mwh.E}*In_BESS_Built")
-    c.row("municipal", "Municipal one-off at COD", "EUR k", "=-{self.E}*{cod}", e="{osz1.E}*In_MVA")
+    c.row("municipal", "Municipal one-off at COD", "EUR k", "=-{self.E}*{cod}", e="{osz1.E}*In_MVA*In_Deliver")
     c.row("cost", "Construction cost (E: compounded to COD at the debt rate)", "EUR k",
           "={capex}+{conn}+{municipal}", e="SUMPRODUCT({self.all}/{idx.all})*{idx.E}", bold=True)
 
@@ -329,7 +331,7 @@ def calc(m):
     c.row("lease", "Land lease", "EUR k", "=-In_Lease*{wind.F}*{esc}*{lease_w}*{yf}")
     c.row("levies", "MEKH fee, HIPA and innovation contribution", "EUR k", "=-{rev}*(In_MEKH+In_HIPA+In_Innovation)")
     c.row("opex_cont", "Opex contingency", "EUR k", "=In_Opex_Contingency*({opex_var}+{opex_fix}+{lease}-{rev}*In_MEKH)")
-    c.row("community", "Community contribution (ÖSZ-2)", "EUR k", "=-{osz2.E}*{gen}/Thousand")
+    c.row("community", "Community contribution (ÖSZ-2)", "EUR k", "=-{osz2.E}*In_Deliver*{gen}/Thousand")
     c.row("ebitda", "EBITDA (E: first full year)", "EUR k", "=SUM({rev}:{community})",
           e="SUMIF({year.all},YEAR(In_COD)+1,{self.all})", bold=True)
 
@@ -398,7 +400,7 @@ def calc(m):
     c.row("cod_contrib", "FEP contributions to COD", "EUR k",
           "=({dev_cf}+{cost}+{d_draw}+{d_up}+{d_cf}+{ebitda})*({end}<=In_COD)")
     c.row("v_price", "Sale price (built MW, after bottleneck loss)", "EUR k",
-          e="IF({osz9a.E}=1,In_COD_Price,In_COD_Price_CN)*{wind.F}*(1-{loss.E})")
+          e="IF({eu.E}=1,In_COD_Price,In_COD_Price_CN)*{wind.F}*(1-{loss.E})")
     c.row("v_net", "Net proceeds to FEP (after debt, sale costs, any PB call)", "EUR k",
           e="{v_price.E}+{sanction.I}-{d_close.E}-In_Sale_Costs")
     c.row("v_tax", "Tax on the gain", "EUR k", e="-In_CIT*In_Sale_Gain_Taxed*MAX(0,{v_net.E}+{cod_contrib.I})")

@@ -179,3 +179,8 @@ pro rata is a memo (`mva_risk`), not in generation. 16 "BESS not built": wind as
 
 ## 17. Deck: "Promise or build" slide (user, 15-Oct-2026)
 Slide 8 compares the base build with sets 14-16 (PB call, MVA lost, equity, sale and hold IRR); 9 slides in total.
+
+## 18. Promise all, deliver nothing (user, 15-Oct-2026; replaces sets 14-16 of §15)
+Set 14: the bid is unchanged (points kept), but nothing is delivered (`In_Deliver` = 0): no overbuild, no BESS, no municipal
+one-off or community contribution, Chinese turbines (and the Chinese COD price) on the European route. Any missed
+commitment triggers the full PB call (Kiírás XIII.17, GYIK 72), so the whole PB is called. Slide 8 compares it with the base.

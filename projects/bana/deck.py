@@ -352,32 +352,37 @@ def build_deck(xlsm: Path, out: Path) -> Path:
                "Share deal: SPV tax, debt and depreciation continue; the unlevered IRR uses the SPV's actual tax.")
 
     # ---- 8 Promise or build -----------------------------------------------------------------------------------------
-    cases = ["Base", "BESS not built", "Not built, pro rata", "Not built, full call"]
-    kb, kn = sets.index(cases[1]) + 1, sets.index(cases[2]) + 1
+    kn = sets.index("Promise all, deliver nothing") + 1
     s = d.content("Promise or build", f(
-        "Promising the BESS without building it lifts the sale IRR to {b1} / {b2} for a €{p}m PB call",
-        b1=st("COD_IRR_1", kb, pct), b2=st("COD_IRR_2", kb, pct),
-        p=st("PB_Call_Applied_1", kb, lambda v: fmt_eur_m(v, 2))), f(
-        "The bid commits {o} overbuild ({c} MW) and {bs} BESS ({h} MWh), {pt} points in every case; leaving out the "
-        "overbuild as well cuts the sale IRR to {n1} / {n2}.", o=lever("Overbuild", 1, pct0), c=b("Out_Wind_MW_1", n0),
-        bs=lever("BESS", 1, pct0), h=b("Out_BESS_MWh_1", n0), pt=b("Out_Points_1", pt),
-        n1=st("COD_IRR_1", kn, pct), n2=st("COD_IRR_2", kn, pct)), title_lines=2)
-    labels = {"Base": f("Base: {w} MW wind and the BESS built", w=b("Out_Wind_Built_1", n0)), "BESS not built": "Wind as base, BESS not built",
-              "Not built, pro rata": "Neither built, PB lost pro rata (GYIK 28/30)",
-              "Not built, full call": "Neither built, full PB call (GYIK 72)"}
+        "Delivering none of the commitments keeps the {p1} / {p2} points and costs the €{pb}m PB; sale IRR "
+        "{c1} / {c2}", p1=st("Points_1", kn, pt), p2=st("Points_2", kn, pt),
+        pb=st("PB_Call_Applied_1", kn, lambda v: fmt_eur_m(v, 2)), c1=st("COD_IRR_1", kn, pct),
+        c2=st("COD_IRR_2", kn, pct)), (
+        "Any commitment not delivered triggers the full PB call, so once one is missed the rest can be dropped too: "
+        "no overbuild, no BESS, no municipal or community payments, Chinese turbines on the European route."),
+        title_lines=2)
     rows = []
-    for name in cases:
+    for name, label in (("Base", "Base: deliver the bid"), ("Promise all, deliver nothing", "Promise all, deliver nothing")):
         k = sets.index(name) + 1
-        rows.append([labels[name], st("PB_Call_Applied_1", k, lambda v: fmt_eur_m(v, 2)),
-                     st("MVA_At_Risk_1", k, n1), st("Equity_COD_1", k, eur), st("Equity_COD_2", k, eur),
-                     st("COD_IRR_1", k, pct), st("COD_IRR_2", k, pct), st("HTM_IRR_1", k, pct),
-                     st("HTM_IRR_2", k, pct)])
-    s.table(["What is built", "PB call € m", "MVA lost", "Equity EU € m", "Equity CN € m", "Sale IRR EU",
-             "Sale IRR CN", "Hold IRR EU", "Hold IRR CN"], rows, key_rows={0}, top=TOP, height=0.59 + 4 * 0.62,
-            col_widths=[4.2] + [1.35] * 8, unit_col=None)
-    s.footnote("PB call 6 months after COD. Pro rata: the shortfall above the 10 % tolerance, wind and BESS tested "
-               "separately; full call: the whole PB. The connection right lost pro rata is a memo, not taken out of "
-               "generation. A PB call may also trigger the 3-year group exclusion. Equity = FEP equity to COD.")
+        rows.append([label, st("Points_1", k, pt), st("PB_Call_Applied_1", k, lambda v: fmt_eur_m(v, 2)),
+                     st("Equity_COD_1", k, eur), st("Equity_COD_2", k, eur), st("COD_IRR_1", k, pct),
+                     st("COD_IRR_2", k, pct), st("HTM_IRR_1", k, pct), st("HTM_IRR_2", k, pct),
+                     st("Buyer_IRR_U_1", k, pct)])
+    s.table(["Case", "Points EU", "PB call € m", "Equity EU € m", "Equity CN € m", "Sale IRR EU", "Sale IRR CN",
+             "Hold IRR EU", "Hold IRR CN", "Buyer IRR EU"], rows, key_rows={0}, top=TOP, height=0.59 + 2 * 0.62,
+            col_widths=[3.0] + [1.33] * 9, unit_col=None)
+    s.card("Before relying on it", [
+        ("Group exclusion: ", "a PB call may exclude the group from these tenders for three years."),
+        ("Municipality and community: ", "the promised payments are public commitments; not paying them is a "
+                                         "reputational and legal risk beyond the PB."),
+        ("Buyer: ", "a buyer at COD sees the called PB and the missing commitments in its due diligence."),
+        ("Reading: ", "the full call on any missed commitment follows Kiírás XIII.17 and GYIK 72; the pro-rata "
+                      "reading (GYIK 28/30) is the base.")],
+        left=4.92, top=5.0, width=15.0, height=1.9)
+    s.footnote(f("Deliver nothing: wind {w} MW (no overbuild), no BESS, no municipal one-off or community "
+                 "contribution; the European route installs Chinese turbines and sells at the Chinese price. The whole "
+                 "PB is called 6 months after COD. Equity = FEP equity to COD.",
+                 w=b("In_MVA", n0)))
 
     # ---- 9 Sensitivities ------------------------------------------------------------------------------------------
 
