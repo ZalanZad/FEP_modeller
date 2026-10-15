@@ -1,4 +1,4 @@
-"""Bana IC deck – 7 slides to SPEC.md §9, streamlined from reference/Bana_IC_20260109_vDSz.pptx.
+"""Bana IC deck – 10 slides to SPEC.md §9 and §21, streamlined from reference/Bana_IC_20260109_vDSz.pptx.
 
 Every figure is `Deck.bind` on the packaged, LibreOffice-recalculated workbook. The Dentons DD risk table and the
 deal narrative are qualitative and come from the original deck (the table is read from it at build time).
@@ -276,8 +276,9 @@ def build_deck(xlsm: Path, out: Path) -> Path:
     s = d.content("Bank feedback", f(
         "Hold IRR {h1} / {h2} at {g} gearing; {r1} / {r2} on Raiffeisen and {u1} / {u2} on UniCredit terms", r1=st("HTM_IRR_1", kr, pct), r2=st("HTM_IRR_2", kr, pct),
         u1=st("HTM_IRR_1", ku, pct), u2=st("HTM_IRR_2", ku, pct), h1=htm[0], h2=htm[1], g=b("In_Gearing", pct0)),
-        "Two bank meetings on the 50 MW wind + 10 MW BESS project; both indicative and verbal, with no commitment. "
-        "The base case keeps 55 % gearing.", title_lines=2)
+        f("Two bank meetings on the {m} MW wind + {bm} MW BESS project; both indicative and verbal, with no "
+          "commitment. The base case keeps {g} gearing.", m=b("In_MVA", n0), bm=b("Out_BESS_MW_1", n0),
+          g=b("In_Gearing", pct0)), title_lines=2)
     rows = [["Debt amount", "~€0.9m/MW (±10 %) on a ~€1.7m/MW wind capex estimate (ours is slightly higher); "
              "~48–58 % LTC", "LTC lower than Raiffeisen, due to the shorter tenor and higher DSCR"],
             ["Repayment", "15-year annuity; significant cash sweep, up to full", "~12-year annuity"],
@@ -305,9 +306,10 @@ def build_deck(xlsm: Path, out: Path) -> Path:
     s.table(["The model on each basis", "Debt terms", "Debt EU € m", "Debt CN € m", "Sale IRR EU", "Sale IRR CN",
              "Hold IRR EU", "Hold IRR CN", "DSCR EU", "DSCR CN"], rows, key_rows={0}, top=6.35, width=15.0,
             height=0.59 + 3 * 0.55, col_widths=[2.6, 3.2] + [1.15] * 8, align="LLRRRRRRRR", unit_col=None)
-    s.footnote("Bank terms as reported in the FEP notes of the Raiffeisen and UniCredit meetings (October 2026). "
-               "*UniCredit gave no amount: Raiffeisen's quantum scaled to its tenor and DSCR. Bank cases: 70 % LTC "
-               "cap, same 5 % rate; stored key-assumption sets.")
+    s.footnote(f("Bank terms as reported in the FEP notes of the Raiffeisen and UniCredit meetings (October 2026). "
+                 "*UniCredit gave no amount: Raiffeisen's quantum scaled to its tenor and DSCR. Bank cases: {c} LTC "
+                 "cap, same {r} rate; stored key-assumption sets.",
+                 c=b(set_cell("In_Gearing", "Raiffeisen terms"), pct0), r=b("In_Debt_Rate", pct)))
 
     # ---- 6 Returns: sale at COD vs hold ---------------------------------------------------------------------------
     s = d.content("Returns: sale at COD vs hold", f(

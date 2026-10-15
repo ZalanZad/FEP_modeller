@@ -29,14 +29,15 @@ OLD = {"Uses_Total": (101.75, 75.15), "Equity_COD": (44.23, 40.32), "COD_Profit"
 STEPS = [  # label, {input name: old value}, source
     ("CIT 9 %", {"In_CIT": 0.09}, "Bana v3 Inputs E12; new: 15 % Pillar Two minimum (user, 14-Oct-2026)"),
     ("P50 2,460 h", {"In_P50_Hours": 2460}, "Bana v3 Inputs E179; new: 2,600 h (user, 13-Oct-2026)"),
-    ("Debt share cap 60 % (both routes; old CN 50 %)", {"In_Gearing": 0.60}, "Bana v3 Inputs E217"),
+    ("Debt share 60 % (both routes; old CN 50 %)", {"In_Gearing": 0.60}, "Bana v3 Inputs E217"),
     ("Tenor 10 years", {"In_Debt_Tenor": 10}, "Bana v3 Inputs E220"),
 ]
 RESIDUAL = [
     "Revenue: the old hold case had the 90 €/MWh PPA for 10 years and Aurora Central merchant prices after "
     "(average 134.7 €/MWh over the life); the new model has the PPA for the whole life (user, 13-Oct-2026).",
     "Debt: old = gearing-sized annuity from the first full operating year with a 50 % cash sweep for 5 years; new = "
-    "debt share of cost capped by the DSCR capacity, sculpted repayment, no sweep (Rock / Alpha).",
+    "55 % of construction cost (capped by the DSCR capacity), 15-year level annuity from COD, optional sweep (0 in "
+    "the base).",
     "Timing: old purchase price and DD on 31-Jul-2026 (monthly grid); new price at closing 31-Dec-2026 after the "
     "award and DD at the bid date, quarterly grid.",
     "Tax: old 50 % loss cap with devex expensed and decommissioning at 30 k€/MW; new capitalises the purchase price, "
@@ -94,7 +95,7 @@ def run():
     lines += ["## Step sources", ""] + [f"- {label}: {src}." for label, _, src in STEPS]
     lines += ["", "## What the steps do not reproduce (change of method, by design)", ""]
     lines += [f"- {t}" for t in RESIDUAL]
-    lines += ["", "The old engine geared the Chinese route at 50 %; the new model has one cap for both. Tax losses still unused 5 years after the NTP lapse "
+    lines += ["", "The old engine geared the Chinese route at 50 %; the new model has one gearing for both. Tax losses still unused 5 years after the NTP lapse "
                   "in every step (Tao. 17. §), so the steps carry no tax shield the rule would not allow.", ""]
     (OUT / "reconciliation.md").write_text("\n".join(lines))
     return OUT / "reconciliation.md"
