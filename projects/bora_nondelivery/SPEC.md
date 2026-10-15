@@ -77,5 +77,9 @@ zero bid (all commitments at their zero level).
   - the full PB called at the sanction date (COD + 6 months), borne by the buyer's SPV;
   - a tax-depreciation base lower by the white-labelling saving (100 k€/MW × 100 MW).
   - Memo: buyer IRR if the seller bears the PB call.
-- **Output:** buyer project IRR for original and non-delivery, and the difference in pp. Show it per bid (= both bids, since the IRR
+- **Cases (revised 15-Oct-2026):**
+  - A – original plan: Bora base case (overbuild not built, BESS built, municipal and community paid, EU equipment) with the full PB call;
+  - B – non-delivery: zero-bid flows, full PB call, tax base −10 € m;
+  - zero bid (no call) as a reference.
+- **Output:** buyer project IRR for A, B and the zero bid, and Δ B − A in pp. Show it per bid (= both bids, since the IRR
   is the same) and the NPV at 8 % to COD.
