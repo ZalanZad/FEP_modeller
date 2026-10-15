@@ -5,28 +5,28 @@ Slide 1 – Cover,12-Oct-2026,Dashboard!E6,Dashboard!E6,2026-10-12 00:00:00,date
 Slide 2 – Decision and timetable,85,Out_Points_1,Dashboard!E25,85,0 dp
 Slide 2 – Decision and timetable,13.1,Dashboard!H103,Dashboard!H103,13.0935174770646,€ m 1 dp
 Slide 2 – Decision and timetable,22.2%,Out_RtB_IRR_1,Dashboard!E27,0.221510760619134,% 1 dp
-Slide 2 – Decision and timetable,0.8,Dashboard!I26,Dashboard!I26,-0.842759264050099,€ m 1 dp
-Slide 2 – Decision and timetable,2.4,Dashboard!I30,Dashboard!I30,-0.0237469331729081,€ m 1 dp
-Slide 2 – Decision and timetable,23.4,Dashboard!I32,Dashboard!I32,23.4141044711663,€ m 1 dp
+Slide 2 – Decision and timetable,0.8,Dashboard!I26,Dashboard!I26,-0.842759264050099,€ m 1 dp (magnitude)
+Slide 2 – Decision and timetable,3.0,Dashboard!I30,Dashboard!I30,-0.0299035678708159,pp 1 dp (magnitude)
+Slide 2 – Decision and timetable,31.9,Dashboard!I32,Dashboard!I32,31.9289126380823,€ m 1 dp
 Slide 2 – Decision and timetable,0,Dashboard!H25,Dashboard!H25,0,0 dp
 Slide 2 – Decision and timetable,7.4,Dashboard!H26,Dashboard!H26,7.38951800258242,€ m 1 dp
 Slide 2 – Decision and timetable,6.5,Out_RtB_Profit_1,Dashboard!E26,6.54675873853232,€ m 1 dp
 Slide 2 – Decision and timetable,25.8%,Dashboard!H27,Dashboard!H27,0.257826283818653,% 1 dp
 Slide 2 – Decision and timetable,49.6%,Dashboard!H28,Dashboard!H28,0.495635416758283,% 1 dp
-Slide 2 – Decision and timetable,37.8%,Out_COD_IRR_1,Dashboard!E28,0.378454368531697,% 1 dp
+Slide 2 – Decision and timetable,33.9%,Out_COD_IRR_1,Dashboard!E28,0.339207407992561,% 1 dp
 Slide 2 – Decision and timetable,11.9%,Dashboard!H30,Dashboard!H30,0.118654233690466,% 1 dp
-Slide 2 – Decision and timetable,9.5%,Out_HTM_IRR_1,Dashboard!E30,0.0949073005175575,% 1 dp
+Slide 2 – Decision and timetable,8.9%,Out_HTM_IRR_1,Dashboard!E30,0.0887506658196496,% 1 dp
 Slide 2 – Decision and timetable,147.8,Dashboard!H32,Dashboard!H32,147.799682151735,€ m 1 dp
-Slide 2 – Decision and timetable,171.2,Out_Commitment_Total_1,Dashboard!E32,171.213786622901,€ m 1 dp
-Slide 2 – Decision and timetable,342.4,Out_Commitment_Total_1,Dashboard!E32,171.213786622901,€ m 1 dp (sum of BORA 1 + BORA 2)
-Slide 2 – Decision and timetable,342.4,Out_Commitment_Total_2,Dashboard!F32,171.213786622901,€ m 1 dp (sum of BORA 1 + BORA 2)
+Slide 2 – Decision and timetable,179.7,Out_Commitment_Total_1,Dashboard!E32,179.728594789817,€ m 1 dp
+Slide 2 – Decision and timetable,359.5,Out_Commitment_Total_1,Dashboard!E32,179.728594789817,€ m 1 dp (sum of BORA 1 + BORA 2)
+Slide 2 – Decision and timetable,359.5,Out_Commitment_Total_2,Dashboard!F32,179.728594789817,€ m 1 dp (sum of BORA 1 + BORA 2)
 Slide 2 – Decision and timetable,30-Oct-2026,In_Bid_Date,Inputs!F52,2026-10-30 00:00:00,date
 Slide 2 – Decision and timetable,50,Dashboard!E12,Dashboard!E12,50,0 dp
-Slide 2 – Decision and timetable,3.00,Dashboard!E13,Dashboard!E13,3,€ m 2 dp
+Slide 2 – Decision and timetable,3.00,Dashboard!E13,Dashboard!E13,3,2 dp
 Slide 2 – Decision and timetable,51%,Dashboard!E14,Dashboard!E14,0.51,% 0 dp
 Slide 2 – Decision and timetable,51%,Dashboard!E15,Dashboard!E15,0.51,% 0 dp
 Slide 2 – Decision and timetable,4,Dashboard!E16,Dashboard!E16,4,0 dp
-Slide 2 – Decision and timetable,1.0x,Dashboard!E17,Dashboard!E17,1,x
+Slide 2 – Decision and timetable,1.0x,Dashboard!E17,Dashboard!E17,1,x 1 dp
 Slide 2 – Decision and timetable,0.016,Dashboard!E74,Dashboard!E74,0.00821917808219178,€ m 3 dp (sum of BORA 1 + BORA 2)
 Slide 2 – Decision and timetable,0.016,Dashboard!F74,Dashboard!F74,0.00821917808219178,€ m 3 dp (sum of BORA 1 + BORA 2)
 Slide 2 – Decision and timetable,2.8,Dashboard!E75,Dashboard!E75,1.39871232876712,€ m 1 dp (sum of BORA 1 + BORA 2)
@@ -39,41 +39,41 @@ Slide 2 – Decision and timetable,2.5,Dashboard!E77,Dashboard!E77,1.23287671232
 Slide 2 – Decision and timetable,2.5,Dashboard!F77,Dashboard!F77,1.23287671232877,€ m 1 dp (sum of BORA 1 + BORA 2)
 Slide 2 – Decision and timetable,30-Dec-2026,Dashboard!I77,Dashboard!I77,2026-12-30 00:00:00,date
 Slide 2 – Decision and timetable,31-Dec-2029,Dashboard!E87:F87,Dashboard!E87:F87,2029-12-31 00:00:00,date
-Slide 2 – Decision and timetable,12 Oct 2026,Dashboard!E6,Dashboard!E6,2026-10-12 00:00:00,date
+Slide 2 – Decision and timetable,12-Oct-2026,Dashboard!E6,Dashboard!E6,2026-10-12 00:00:00,date
 Slide 3 – Why these commitments,20,Dashboard!I12,Dashboard!I12,20,0 dp
-Slide 3 – Why these commitments,0.4,Dashboard!O12,Dashboard!O12,-0.00426661763368345,€ m 1 dp
-Slide 3 – Why these commitments,1.2,Dashboard!O15,Dashboard!O15,-0.012392661209204,€ m 1 dp
-Slide 3 – Why these commitments,0.6,Dashboard!O13,Dashboard!O13,-0.00608428062140405,€ m 1 dp
-Slide 3 – Why these commitments,2.0x,Curves!S19,Curves!S19,2,x
+Slide 3 – Why these commitments,0.4,Dashboard!O12,Dashboard!O12,-0.00426661763368345,pp 1 dp (magnitude)
+Slide 3 – Why these commitments,1.9,Dashboard!O15,Dashboard!O15,-0.0191443123610924,pp 1 dp (magnitude)
+Slide 3 – Why these commitments,0.6,Dashboard!O13,Dashboard!O13,-0.00608428062140405,pp 1 dp (magnitude)
+Slide 3 – Why these commitments,2.0x,Curves!S19,Curves!S19,2,x 1 dp
 Slide 3 – Why these commitments,50,Dashboard!E12,Dashboard!E12,50,0 dp
 Slide 3 – Why these commitments,0.0,Dashboard!K12,Dashboard!K12,0,€ m 1 dp
-Slide 3 – Why these commitments,−1.2,Dashboard!M12,Dashboard!M12,-0.011627183566342,€ m 1 dp
-Slide 3 – Why these commitments,−0.4,Dashboard!O12,Dashboard!O12,-0.00426661763368345,€ m 1 dp
+Slide 3 – Why these commitments,−1.2,Dashboard!M12,Dashboard!M12,-0.011627183566342,pp 1 dp
+Slide 3 – Why these commitments,−0.4,Dashboard!O12,Dashboard!O12,-0.00426661763368345,pp 1 dp
 Slide 3 – Why these commitments,0.0,Dashboard!Q12,Dashboard!Q12,0,€ m 1 dp
-Slide 3 – Why these commitments,3.00,Dashboard!E13,Dashboard!E13,3,€ m 2 dp
+Slide 3 – Why these commitments,3.00,Dashboard!E13,Dashboard!E13,3,2 dp
 Slide 3 – Why these commitments,15,Dashboard!I13,Dashboard!I13,15,0 dp
 Slide 3 – Why these commitments,0.0,Dashboard!K13,Dashboard!K13,0,€ m 1 dp
-Slide 3 – Why these commitments,−2.6,Dashboard!M13,Dashboard!M13,-0.0256631536392726,€ m 1 dp
-Slide 3 – Why these commitments,−0.6,Dashboard!O13,Dashboard!O13,-0.00608428062140405,€ m 1 dp
+Slide 3 – Why these commitments,−2.6,Dashboard!M13,Dashboard!M13,-0.0256631536392726,pp 1 dp
+Slide 3 – Why these commitments,−0.6,Dashboard!O13,Dashboard!O13,-0.00608428062140405,pp 1 dp
 Slide 3 – Why these commitments,0.0,Dashboard!Q13,Dashboard!Q13,0,€ m 1 dp
 Slide 3 – Why these commitments,51%,Dashboard!E14,Dashboard!E14,0.51,% 0 dp
 Slide 3 – Why these commitments,10,Dashboard!I14,Dashboard!I14,10,0 dp
 Slide 3 – Why these commitments,(0.5),Dashboard!K14,Dashboard!K14,-0.472016523939481,€ m 1 dp
-Slide 3 – Why these commitments,−1.1,Dashboard!M14,Dashboard!M14,-0.0114884312103539,€ m 1 dp
-Slide 3 – Why these commitments,−0.2,Dashboard!O14,Dashboard!O14,-0.00245398179669998,€ m 1 dp
-Slide 3 – Why these commitments,+1.4,Dashboard!Q14,Dashboard!Q14,1.41821917808219,€ m 1 dp
+Slide 3 – Why these commitments,−1.1,Dashboard!M14,Dashboard!M14,-0.0114884312103539,pp 1 dp
+Slide 3 – Why these commitments,−0.2,Dashboard!O14,Dashboard!O14,-0.00245398179669998,pp 1 dp
+Slide 3 – Why these commitments,+1.4,Dashboard!Q14,Dashboard!Q14,1.41821917808219,Δ € m 1 dp
 Slide 3 – Why these commitments,4,Dashboard!E16,Dashboard!E16,4,0 dp
 Slide 3 – Why these commitments,51%,Dashboard!E15,Dashboard!E15,0.51,% 0 dp
 Slide 3 – Why these commitments,15,Dashboard!I15,Dashboard!I15,15,0 dp
 Slide 3 – Why these commitments,(0.4),Dashboard!K15,Dashboard!K15,-0.370742740110629,€ m 1 dp
-Slide 3 – Why these commitments,−6.5,Dashboard!M15,Dashboard!M15,-0.0650761204818859,€ m 1 dp
-Slide 3 – Why these commitments,−1.2,Dashboard!O15,Dashboard!O15,-0.012392661209204,€ m 1 dp
-Slide 3 – Why these commitments,+2.8,Dashboard!Q15,Dashboard!Q15,2.79452054794521,€ m 1 dp
-Slide 3 – Why these commitments,1.0x,Dashboard!E17,Dashboard!E17,1,x
+Slide 3 – Why these commitments,−10.2,Dashboard!M15,Dashboard!M15,-0.102442043254027,pp 1 dp
+Slide 3 – Why these commitments,−1.9,Dashboard!O15,Dashboard!O15,-0.0191443123610924,pp 1 dp
+Slide 3 – Why these commitments,+2.8,Dashboard!Q15,Dashboard!Q15,2.79452054794521,Δ € m 1 dp
+Slide 3 – Why these commitments,1.0x,Dashboard!E17,Dashboard!E17,1,x 1 dp
 Slide 3 – Why these commitments,0,Dashboard!I17,Dashboard!I17,0,0 dp
 Slide 3 – Why these commitments,0.0,Dashboard!K17,Dashboard!K17,0,€ m 1 dp
-Slide 3 – Why these commitments,0.0,Dashboard!M17,Dashboard!M17,0,€ m 1 dp
-Slide 3 – Why these commitments,0.0,Dashboard!O17,Dashboard!O17,0,€ m 1 dp
+Slide 3 – Why these commitments,0.0,Dashboard!M17,Dashboard!M17,0,pp 1 dp
+Slide 3 – Why these commitments,0.0,Dashboard!O17,Dashboard!O17,0,pp 1 dp
 Slide 3 – Why these commitments,0.0,Dashboard!Q17,Dashboard!Q17,0,€ m 1 dp
 Slide 3 – Why these commitments,7.0,Dashboard!E76,Dashboard!E76,6.99356164383562,€ m 1 dp
 Slide 3 – Why these commitments,5,Dashboard!I18,Dashboard!I18,5,0 dp
@@ -81,18 +81,18 @@ Slide 3 – Why these commitments,5,Dashboard!I20,Dashboard!I20,5,0 dp
 Slide 3 – Why these commitments,12,Dashboard!I21,Dashboard!I21,12,0 dp
 Slide 3 – Why these commitments,3,Dashboard!I22,Dashboard!I22,3,0 dp
 Slide 3 – Why these commitments,0.0,Dashboard!K18:K22,Dashboard!K18:K22,0,€ m 1 dp
-Slide 3 – Why these commitments,0.0,Dashboard!M18:M22,Dashboard!M18:M22,0,€ m 1 dp
-Slide 3 – Why these commitments,0.0,Dashboard!O18:O22,Dashboard!O18:O22,0,€ m 1 dp
+Slide 3 – Why these commitments,0.0,Dashboard!M18:M22,Dashboard!M18:M22,0,pp 1 dp
+Slide 3 – Why these commitments,0.0,Dashboard!O18:O22,Dashboard!O18:O22,0,pp 1 dp
 Slide 3 – Why these commitments,0.0,Dashboard!Q18:Q22,Dashboard!Q18:Q22,0,€ m 1 dp
 Slide 3 – Why these commitments,600,In_Turbine,Inputs!F90,600,0 dp
 Slide 3 – Why these commitments,85,Out_Points_1,Dashboard!E25,85,0 dp
 Slide 3 – Why these commitments,(0.8),Dashboard!I26,Dashboard!I26,-0.842759264050099,€ m 1 dp
-Slide 3 – Why these commitments,−11.7,Dashboard!I28,Dashboard!I28,-0.117181048226587,€ m 1 dp
-Slide 3 – Why these commitments,−2.4,Dashboard!I30,Dashboard!I30,-0.0237469331729081,€ m 1 dp
-Slide 3 – Why these commitments,12 Oct 2026,Dashboard!E6,Dashboard!E6,2026-10-12 00:00:00,date
+Slide 3 – Why these commitments,−15.6,Dashboard!I28,Dashboard!I28,-0.156428008765722,pp 1 dp
+Slide 3 – Why these commitments,−3.0,Dashboard!I30,Dashboard!I30,-0.0299035678708159,pp 1 dp
+Slide 3 – Why these commitments,12-Oct-2026,Dashboard!E6,Dashboard!E6,2026-10-12 00:00:00,date
 Slide 4 – RtB exit,13.1,Dashboard!H103,Dashboard!H103,13.0935174770646,€ m 1 dp
 Slide 4 – RtB exit,1.25x,Out_RtB_MOIC_1,Dashboard!E104,1.24970223352323,x 2 dp
-Slide 4 – RtB exit,70,In_FEP_Share,Inputs!F37,0.7,0 dp
+Slide 4 – RtB exit,70,In_FEP_Share,Inputs!F37,0.7,"% 0 dp, number only"
 Slide 4 – RtB exit,55,Out_Exit_FEP_Net_MW_1,Dashboard!I99,55.3214001332242,0 dp
 Slide 4 – RtB exit,23,Out_Exit_ARES_Total_MW_1,Dashboard!I101,22.8415192740263,0 dp
 Slide 4 – RtB exit,100,Inputs!L74,Inputs!L74,100,0 dp
@@ -131,13 +131,13 @@ Slide 4 – RtB exit,150,In_RtB_Premium,Inputs!F74,150,0 dp
 Slide 4 – RtB exit,100,In_MVA,Inputs!F43,100,0 dp
 Slide 4 – RtB exit,12-Oct-2026,Dashboard!E6,Dashboard!E6,2026-10-12 00:00:00,date
 Slide 4 – RtB exit,151,Out_Wind_MW_1,Dashboard!E67,151,0 dp
-Slide 4 – RtB exit,12 Oct 2026,Dashboard!E6,Dashboard!E6,2026-10-12 00:00:00,date
-Slide 5 – Funding and capex,140.0,Out_Funding_Equity_To_COD,Dashboard!F48,139.999442112992,€ m 1 dp
+Slide 4 – RtB exit,12-Oct-2026,Dashboard!E6,Dashboard!E6,2026-10-12 00:00:00,date
+Slide 5 – Funding and capex,146.8,Out_Funding_Equity_To_COD,Dashboard!F48,146.797947022551,€ m 1 dp
 Slide 5 – Funding and capex,14.0,Out_Funding_Peak_Guarantee,Dashboard!H48,13.9871232876712,€ m 1 dp
-Slide 5 – Funding and capex,"1,642",Out_Capex_Total_MW,Dashboard!F64,1642.20224979066,0 dp
+Slide 5 – Funding and capex,"1,727",Out_Capex_Total_MW,Dashboard!F64,1727.35033145982,k€/MW 0 dp
 Slide 5 – Funding and capex,49.9,Dashboard!I43,Dashboard!I43,49.8802156212021,€ m 1 dp
 Slide 5 – Funding and capex,31-Dec-2029,Dashboard!E87:F87,Dashboard!E87:F87,2029-12-31 00:00:00,date
-Slide 5 – Funding and capex,71.1,Dashboard!F44,Dashboard!F44,71.1137176466246,€ m 1 dp
+Slide 5 – Funding and capex,77.6,Dashboard!F44,Dashboard!F44,77.6417176466245,€ m 1 dp
 Slide 5 – Funding and capex,31-Jul-2026,Dashboard!E35,Dashboard!E35,2026-07-31 00:00:00,date
 Slide 5 – Funding and capex,0.8,Dashboard!F35,Dashboard!F35,0.8,€ m 1 dp
 Slide 5 – Funding and capex,0.8,Dashboard!I35,Dashboard!I35,0.8,€ m 1 dp
@@ -166,16 +166,16 @@ Slide 5 – Funding and capex,49.3,Dashboard!I42,Dashboard!I42,49.270900552709,�
 Slide 5 – Funding and capex,31-Dec-2029,Dashboard!E43,Dashboard!E43,2029-12-31 00:00:00,date
 Slide 5 – Funding and capex,0.6,Dashboard!F43,Dashboard!F43,0.609315068493151,€ m 1 dp
 Slide 5 – Funding and capex,30-Sep-2031,Dashboard!E44,Dashboard!E44,2031-09-30 00:00:00,date
-Slide 5 – Funding and capex,121.0,Dashboard!I44,Dashboard!I44,120.993933267827,€ m 1 dp
+Slide 5 – Funding and capex,127.5,Dashboard!I44,Dashboard!I44,127.521933267827,€ m 1 dp
 Slide 5 – Funding and capex,30-Sep-2031,Dashboard!E45,Dashboard!E45,2031-09-30 00:00:00,date
-Slide 5 – Funding and capex,5.0,Dashboard!F45,Dashboard!F45,4.98227569523139,€ m 1 dp
-Slide 5 – Funding and capex,126.0,Dashboard!I45,Dashboard!I45,125.976208963058,€ m 1 dp
+Slide 5 – Funding and capex,5.3,Dashboard!F45,Dashboard!F45,5.25278060479041,€ m 1 dp
+Slide 5 – Funding and capex,132.8,Dashboard!I45,Dashboard!I45,132.774713872617,€ m 1 dp
 Slide 5 – Funding and capex,30-Sep-2031,Dashboard!E46,Dashboard!E46,2031-09-30 00:00:00,date
 Slide 5 – Funding and capex,4.0,Dashboard!F46,Dashboard!F46,4.02323314993432,€ m 1 dp
-Slide 5 – Funding and capex,130.0,Dashboard!I46,Dashboard!I46,129.999442112992,€ m 1 dp
+Slide 5 – Funding and capex,136.8,Dashboard!I46,Dashboard!I46,136.797947022551,€ m 1 dp
 Slide 5 – Funding and capex,30-Sep-2031,Dashboard!E47,Dashboard!E47,2031-09-30 00:00:00,date
 Slide 5 – Funding and capex,10.0,Dashboard!F47,Dashboard!F47,10,€ m 1 dp
-Slide 5 – Funding and capex,140.0,Dashboard!I47,Dashboard!I47,139.999442112992,€ m 1 dp
+Slide 5 – Funding and capex,146.8,Dashboard!I47,Dashboard!I47,146.797947022551,€ m 1 dp
 Slide 5 – Funding and capex,200,Out_Wind_Built_MW_1,Dashboard!E68,100,0 dp (sum of BORA 1 + BORA 2)
 Slide 5 – Funding and capex,200,Out_Wind_Built_MW_2,Dashboard!F68,100,0 dp (sum of BORA 1 + BORA 2)
 Slide 5 – Funding and capex,120.0,Dashboard!E51,Dashboard!E51,120,€ m 1 dp
@@ -194,62 +194,62 @@ Slide 5 – Funding and capex,10.8,Dashboard!E57,Dashboard!E57,10.75,€ m 1 dp
 Slide 5 – Funding and capex,54,Dashboard!F57,Dashboard!F57,53.75,0 dp
 Slide 5 – Funding and capex,24.0,Dashboard!E58,Dashboard!E58,24,€ m 1 dp
 Slide 5 – Funding and capex,120,Dashboard!F58,Dashboard!F58,120,0 dp
-Slide 5 – Funding and capex,24.5,Dashboard!E59,Dashboard!E59,24.48,€ m 1 dp
-Slide 5 – Funding and capex,122,Dashboard!F59,Dashboard!F59,122.4,0 dp
+Slide 5 – Funding and capex,40.8,Dashboard!E59,Dashboard!E59,40.8,€ m 1 dp
+Slide 5 – Funding and capex,204,Dashboard!F59,Dashboard!F59,204,0 dp
 Slide 5 – Funding and capex,40.4,Dashboard!E60,Dashboard!E60,40.3587748164384,€ m 1 dp
 Slide 5 – Funding and capex,202,Dashboard!F60,Dashboard!F60,201.793874082192,0 dp
 Slide 5 – Funding and capex,10.0,Dashboard!E61,Dashboard!E61,10,€ m 1 dp
 Slide 5 – Funding and capex,50,Dashboard!F61,Dashboard!F61,50,0 dp
 Slide 5 – Funding and capex,9.5,Dashboard!E62,Dashboard!E62,9.52144080476377,€ m 1 dp
 Slide 5 – Funding and capex,48,Dashboard!F62,Dashboard!F62,47.6072040238188,0 dp
-Slide 5 – Funding and capex,17.1,Dashboard!E63,Dashboard!E63,17.0932518004415,€ m 1 dp
-Slide 5 – Funding and capex,85,Dashboard!F63,Dashboard!F63,85.4662590022075,0 dp
-Slide 5 – Funding and capex,328.4,Out_Capex_Total,Dashboard!E64,328.440449958131,€ m 1 dp
-Slide 5 – Funding and capex,12 Oct 2026,Dashboard!E6,Dashboard!E6,2026-10-12 00:00:00,date
+Slide 5 – Funding and capex,17.8,Dashboard!E63,Dashboard!E63,17.8028681342734,€ m 1 dp
+Slide 5 – Funding and capex,89,Dashboard!F63,Dashboard!F63,89.0143406713672,0 dp
+Slide 5 – Funding and capex,345.5,Out_Capex_Total,Dashboard!E64,345.470066291963,€ m 1 dp
+Slide 5 – Funding and capex,12-Oct-2026,Dashboard!E6,Dashboard!E6,2026-10-12 00:00:00,date
 Slide 6 – COD and HTM value,8.0%,In_Discount_Rate,Inputs!F75,0.08,% 1 dp
-Slide 6 – COD and HTM value,9.5%,Out_HTM_IRR_1,Dashboard!E30,0.0949073005175575,% 1 dp
-Slide 6 – COD and HTM value,26.7,Out_HTM_NPV_1,Dashboard!E31,13.3631648488628,€ m 1 dp (sum of BORA 1 + BORA 2)
-Slide 6 – COD and HTM value,26.7,Out_HTM_NPV_2,Dashboard!F31,13.3631648488628,€ m 1 dp (sum of BORA 1 + BORA 2)
-Slide 6 – COD and HTM value,37.8%,Out_COD_IRR_1,Dashboard!E28,0.378454368531697,% 1 dp
-Slide 6 – COD and HTM value,13.9,Dashboard!I29,Dashboard!I29,-13.855689080335,€ m 1 dp
-Slide 6 – COD and HTM value,18.1,Dashboard!I31,Dashboard!I31,-18.0616639298542,€ m 1 dp
+Slide 6 – COD and HTM value,8.9%,Out_HTM_IRR_1,Dashboard!E30,0.0887506658196496,% 1 dp
+Slide 6 – COD and HTM value,16.3,Out_HTM_NPV_1,Dashboard!E31,8.14180305533397,€ m 1 dp (sum of BORA 1 + BORA 2)
+Slide 6 – COD and HTM value,16.3,Out_HTM_NPV_2,Dashboard!F31,8.14180305533397,€ m 1 dp (sum of BORA 1 + BORA 2)
+Slide 6 – COD and HTM value,33.9%,Out_COD_IRR_1,Dashboard!E28,0.339207407992561,% 1 dp
+Slide 6 – COD and HTM value,18.1,Dashboard!I29,Dashboard!I29,-18.0799682083012,€ m 1 dp (magnitude)
+Slide 6 – COD and HTM value,23.3,Dashboard!I31,Dashboard!I31,-23.2830257233831,€ m 1 dp (magnitude)
 Slide 6 – COD and HTM value,49.6%,Dashboard!H28,Dashboard!H28,0.495635416758283,% 1 dp
-Slide 6 – COD and HTM value,−11.7,Dashboard!I28,Dashboard!I28,-0.117181048226587,€ m 1 dp
+Slide 6 – COD and HTM value,−15.6,Dashboard!I28,Dashboard!I28,-0.156428008765722,pp 1 dp
 Slide 6 – COD and HTM value,44.6,Dashboard!H29,Dashboard!H29,44.6105521842832,€ m 1 dp
-Slide 6 – COD and HTM value,30.8,Out_COD_NPV_1,Dashboard!E29,30.7548631039482,€ m 1 dp
-Slide 6 – COD and HTM value,(13.9),Dashboard!I29,Dashboard!I29,-13.855689080335,€ m 1 dp
-Slide 6 – COD and HTM value,61.5,Out_COD_NPV_1,Dashboard!E29,30.7548631039482,€ m 1 dp (sum of BORA 1 + BORA 2)
-Slide 6 – COD and HTM value,61.5,Out_COD_NPV_2,Dashboard!F29,30.7548631039482,€ m 1 dp (sum of BORA 1 + BORA 2)
+Slide 6 – COD and HTM value,26.5,Out_COD_NPV_1,Dashboard!E29,26.530583975982,€ m 1 dp
+Slide 6 – COD and HTM value,(18.1),Dashboard!I29,Dashboard!I29,-18.0799682083012,€ m 1 dp
+Slide 6 – COD and HTM value,53.1,Out_COD_NPV_1,Dashboard!E29,26.530583975982,€ m 1 dp (sum of BORA 1 + BORA 2)
+Slide 6 – COD and HTM value,53.1,Out_COD_NPV_2,Dashboard!F29,26.530583975982,€ m 1 dp (sum of BORA 1 + BORA 2)
 Slide 6 – COD and HTM value,11.9%,Dashboard!H30,Dashboard!H30,0.118654233690466,% 1 dp
-Slide 6 – COD and HTM value,−2.4,Dashboard!I30,Dashboard!I30,-0.0237469331729081,€ m 1 dp
+Slide 6 – COD and HTM value,−3.0,Dashboard!I30,Dashboard!I30,-0.0299035678708159,pp 1 dp
 Slide 6 – COD and HTM value,31.4,Dashboard!H31,Dashboard!H31,31.4248287787171,€ m 1 dp
-Slide 6 – COD and HTM value,13.4,Out_HTM_NPV_1,Dashboard!E31,13.3631648488628,€ m 1 dp
-Slide 6 – COD and HTM value,(18.1),Dashboard!I31,Dashboard!I31,-18.0616639298542,€ m 1 dp
-Slide 6 – COD and HTM value,124.4,Out_COD_Proceeds_1,Dashboard!E112,124.442364391184,€ m 1 dp
+Slide 6 – COD and HTM value,8.1,Out_HTM_NPV_1,Dashboard!E31,8.14180305533397,€ m 1 dp
+Slide 6 – COD and HTM value,(23.3),Dashboard!I31,Dashboard!I31,-23.2830257233831,€ m 1 dp
+Slide 6 – COD and HTM value,121.9,Out_COD_Proceeds_1,Dashboard!E112,121.881251129122,€ m 1 dp
 Slide 6 – COD and HTM value,245.0,Out_COD_Price_1,Dashboard!E109,245,€ m 1 dp
-Slide 6 – COD and HTM value,1.78x,Out_COD_MOIC_1,Dashboard!E114,1.77775514692048,x 2 dp
-Slide 6 – COD and HTM value,4.89x,Out_HTM_MOIC_1,Dashboard!E117,4.89335391904422,x 2 dp
-Slide 6 – COD and HTM value,1.33x,Out_Min_DSCR_1,Dashboard!E118,1.32847346238474,x 2 dp
+Slide 6 – COD and HTM value,1.66x,Out_COD_MOIC_1,Dashboard!E114,1.66053073086095,x 2 dp
+Slide 6 – COD and HTM value,4.60x,Out_HTM_MOIC_1,Dashboard!E117,4.59742181090224,x 2 dp
+Slide 6 – COD and HTM value,1.26x,Out_Min_DSCR_1,Dashboard!E118,1.26316018482958,x 2 dp
 Slide 6 – COD and HTM value,30-Sep-2031,In_COD,Inputs!F24,2031-09-30 00:00:00,date
 Slide 6 – COD and HTM value,100,Out_Wind_Built_MW_1,Dashboard!E68,100,0 dp
 Slide 6 – COD and HTM value,90,In_PPA_Price,Inputs!F106,90,0 dp
 Slide 6 – COD and HTM value,60.0%,In_Gearing,Inputs!F118,0.6,% 1 dp
-Slide 6 – COD and HTM value,12 Oct 2026,Dashboard!E6,Dashboard!E6,2026-10-12 00:00:00,date
+Slide 6 – COD and HTM value,12-Oct-2026,Dashboard!E6,Dashboard!E6,2026-10-12 00:00:00,date
 Slide 7 – Risks and mitigants,2.8,Out_Commitment_Penalty_1,Dashboard!E81,1.41821917808219,€ m 1 dp (sum of BORA 1 + BORA 2)
 Slide 7 – Risks and mitigants,2.8,Out_Commitment_Penalty_2,Dashboard!F81,1.41821917808219,€ m 1 dp (sum of BORA 1 + BORA 2)
-Slide 7 – Risks and mitigants,67.5,Out_MVA_At_Risk_1,Dashboard!E83,33.7748344370861,€ m 1 dp (sum of BORA 1 + BORA 2)
-Slide 7 – Risks and mitigants,67.5,Out_MVA_At_Risk_2,Dashboard!F83,33.7748344370861,€ m 1 dp (sum of BORA 1 + BORA 2)
+Slide 7 – Risks and mitigants,67.5,Out_MVA_At_Risk_1,Dashboard!E83,33.7748344370861,1 dp (sum of BORA 1 + BORA 2)
+Slide 7 – Risks and mitigants,67.5,Out_MVA_At_Risk_2,Dashboard!F83,33.7748344370861,1 dp (sum of BORA 1 + BORA 2)
 Slide 7 – Risks and mitigants,10%,In_Tolerance_Cap,Inputs!F45,0.1,% 0 dp
 Slide 7 – Risks and mitigants,1.4,Out_Commitment_Penalty_1,Dashboard!E81,1.41821917808219,€ m 1 dp
-Slide 7 – Risks and mitigants,1.0x,Dashboard!E17,Dashboard!E17,1,x
-Slide 7 – Risks and mitigants,35.8%,Dashboard!J125,Dashboard!J125,0.357802790721696,% 1 dp
-Slide 7 – Risks and mitigants,9.1%,Dashboard!J127,Dashboard!J127,0.090505033756487,% 1 dp
-Slide 7 – Risks and mitigants,33.8,Out_MVA_At_Risk_1,Dashboard!E83,33.7748344370861,€ m 1 dp
-Slide 7 – Risks and mitigants,80.50,Dashboard!M121,Dashboard!M121,80.5,€ m 2 dp
+Slide 7 – Risks and mitigants,1.0x,Dashboard!E17,Dashboard!E17,1,x 1 dp
+Slide 7 – Risks and mitigants,31.8%,Dashboard!J125,Dashboard!J125,0.317836478854976,% 1 dp
+Slide 7 – Risks and mitigants,8.5%,Dashboard!J127,Dashboard!J127,0.0846861685089813,% 1 dp
+Slide 7 – Risks and mitigants,33.8,Out_MVA_At_Risk_1,Dashboard!E83,33.7748344370861,1 dp
+Slide 7 – Risks and mitigants,80.50,Dashboard!M121,Dashboard!M121,80.5,points (2 dp if fractional)
 Slide 7 – Risks and mitigants,100,In_MVA,Inputs!F43,100,0 dp
-Slide 7 – Risks and mitigants,164.2,Out_Cost_To_COD_1,Dashboard!E108,164.220224979066,€ m 1 dp
-Slide 7 – Risks and mitigants,217.9,Dashboard!I131,Dashboard!I131,217.899554834464,€ m 1 dp
-Slide 7 – Risks and mitigants,54.4%,Dashboard!I125,Dashboard!I125,0.544455538624024,% 1 dp
-Slide 7 – Risks and mitigants,11.5%,Dashboard!I127,Dashboard!I127,0.114882860757191,% 1 dp
+Slide 7 – Risks and mitigants,172.7,Out_Cost_To_COD_1,Dashboard!E108,172.735033145982,€ m 1 dp
+Slide 7 – Risks and mitigants,226.4,Dashboard!I131,Dashboard!I131,226.41436300138,€ m 1 dp
+Slide 7 – Risks and mitigants,51.4%,Dashboard!I125,Dashboard!I125,0.513549105607292,% 1 dp
+Slide 7 – Risks and mitigants,10.9%,Dashboard!I127,Dashboard!I127,0.10946601029228,% 1 dp
 Slide 7 – Risks and mitigants,6,In_Sanction_Lag,Inputs!F29,6,0 dp
-Slide 7 – Risks and mitigants,12 Oct 2026,Dashboard!E6,Dashboard!E6,2026-10-12 00:00:00,date
+Slide 7 – Risks and mitigants,12-Oct-2026,Dashboard!E6,Dashboard!E6,2026-10-12 00:00:00,date

@@ -5,7 +5,7 @@ We ask the IC to approve BORA 1 and BORA 2 with the same commitments, 85 points 
 **Why we bid this way** (each commitment alone vs the zero bid, per bid)
 - **Municipal contribution, 50 k€/MW: 20 points** for −0.4 pp of HTM IRR. Paid at COD, after our RtB exit: no FEP cash or security now.
 - **Overbuild, 51%: 10 points** for €(0.5)m of RtB profit. We will not build it, so the capacity rule forfeits the PB pro rata: €1.4m per bid (€2.8m for both), the PB on the extra MW.
-- **BESS power, 51% of MVA: 15 points**, sized with the overbuild; the costliest commitment at −1.2 pp of HTM IRR and €2.8m of extra security per bid (€5.6m for both), with BESS valued at cost.
+- **BESS power, 51% of MVA: 15 points**, sized with the overbuild; the costliest commitment at −1.9 pp of HTM IRR and €2.8m of extra security per bid (€5.6m for both), with BESS valued at cost.
 - **PB above the minimum: no.** 2.0x would add 5 points but tie up another €7.0m of guarantee per bid from award to exit.
 - **All other commitments accepted.** Partial award, shared connection, EU turbines and transformers (5 / 5 / 12 / 3 points) carry no financial burden. The community contribution of 3.00 €/MWh (15 points) costs −0.6 pp of HTM IRR.
 
