@@ -12,7 +12,8 @@ from fepm.ppt.deck import DASH, ROOT, Deck, fmt_eur_m, fmt_mult, fmt_num, fmt_pc
 
 SOURCE_DECK = ROOT / "reference" / "Bana_IC_20260109_vDSz.pptx"
 SECTIONS = ["Executive summary", "Risks and mitigants", "Technical overview and tender bid", "Funding to COD",
-            "Returns: sale at COD vs hold", "Sale price and buyer return", "Sensitivities"]
+            "Returns: sale at COD vs hold", "Sale price and buyer return", "Promise or build",
+            "Sensitivities"]
 TOP = 2.45                      # first free line under a two-line title and subtitle
 ROUTES = ("European", "Chinese")
 
@@ -350,7 +351,35 @@ def build_deck(xlsm: Path, out: Path) -> Path:
                "PB call. Buyer levered: pays the price less the senior debt, funds the DSRA and services the debt. "
                "Share deal: SPV tax, debt and depreciation continue; the unlevered IRR uses the SPV's actual tax.")
 
-    # ---- 8 Sensitivities ------------------------------------------------------------------------------------------
+    # ---- 8 Promise or build -----------------------------------------------------------------------------------------
+    cases = ["Base", "BESS not built", "Not built, pro rata", "Not built, full call"]
+    kb, kn = sets.index(cases[1]) + 1, sets.index(cases[2]) + 1
+    s = d.content("Promise or build", f(
+        "Promising the BESS without building it lifts the sale IRR to {b1} / {b2} for a €{p}m PB call",
+        b1=st("COD_IRR_1", kb, pct), b2=st("COD_IRR_2", kb, pct),
+        p=st("PB_Call_Applied_1", kb, lambda v: fmt_eur_m(v, 2))), f(
+        "The bid commits {o} overbuild ({c} MW) and {bs} BESS ({h} MWh), {pt} points in every case; leaving out the "
+        "overbuild as well cuts the sale IRR to {n1} / {n2}.", o=lever("Overbuild", 1, pct0), c=b("Out_Wind_MW_1", n0),
+        bs=lever("BESS", 1, pct0), h=b("Out_BESS_MWh_1", n0), pt=b("Out_Points_1", pt),
+        n1=st("COD_IRR_1", kn, pct), n2=st("COD_IRR_2", kn, pct)), title_lines=2)
+    labels = {"Base": f("Base: {w} MW wind and the BESS built", w=b("Out_Wind_Built_1", n0)), "BESS not built": "Wind as base, BESS not built",
+              "Not built, pro rata": "Neither built, PB lost pro rata (GYIK 28/30)",
+              "Not built, full call": "Neither built, full PB call (GYIK 72)"}
+    rows = []
+    for name in cases:
+        k = sets.index(name) + 1
+        rows.append([labels[name], st("PB_Call_Applied_1", k, lambda v: fmt_eur_m(v, 2)),
+                     st("MVA_At_Risk_1", k, n1), st("Equity_COD_1", k, eur), st("Equity_COD_2", k, eur),
+                     st("COD_IRR_1", k, pct), st("COD_IRR_2", k, pct), st("HTM_IRR_1", k, pct),
+                     st("HTM_IRR_2", k, pct)])
+    s.table(["What is built", "PB call € m", "MVA lost", "Equity EU € m", "Equity CN € m", "Sale IRR EU",
+             "Sale IRR CN", "Hold IRR EU", "Hold IRR CN"], rows, key_rows={0}, top=TOP, height=0.59 + 4 * 0.62,
+            col_widths=[4.2] + [1.35] * 8, unit_col=None)
+    s.footnote("PB call 6 months after COD. Pro rata: the shortfall above the 10 % tolerance, wind and BESS tested "
+               "separately; full call: the whole PB. The connection right lost pro rata is a memo, not taken out of "
+               "generation. A PB call may also trigger the 3-year group exclusion. Equity = FEP equity to COD.")
+
+    # ---- 9 Sensitivities ------------------------------------------------------------------------------------------
 
     s = d.content("Sensitivities", f(
         "A lower COD price hits the sale most ({c}); Robin Hood tax ({r}) and lower yield ({y}) hit the hold", c=st("COD_IRR_1", sets.index("COD price −10%") + 1, pct),
@@ -367,19 +396,6 @@ def build_deck(xlsm: Path, out: Path) -> Path:
     s.card("What to watch", [
         ("Turbine choice: ", "the permits name Goldwind; European turbines need a permit amendment and carry the "
                              "most capex risk."),
-        ("Promise, don't build: ", f("if neither the overbuild nor the BESS is built, the PB call is €{p1}m pro rata "
-                                     "(€{p2}m on a full call) and {mva} MVA of connection right may be lost; COD IRR "
-                                     "{c1} / {c2}, hold IRR {h1} / {h2} (pro rata). Not building only the BESS: "
-                                     "COD IRR {b1}, hold IRR {b2}.",
-                                     p1=st("PB_Call_Applied_1", sets.index("Not built, pro rata") + 1, eur),
-                                     p2=st("PB_Call_Applied_1", sets.index("Not built, full call") + 1, eur),
-                                     mva=st("MVA_At_Risk_1", sets.index("Not built, pro rata") + 1, n1),
-                                     c1=st("COD_IRR_1", sets.index("Not built, pro rata") + 1, pct),
-                                     c2=st("COD_IRR_2", sets.index("Not built, pro rata") + 1, pct),
-                                     h1=st("HTM_IRR_1", sets.index("Not built, pro rata") + 1, pct),
-                                     h2=st("HTM_IRR_2", sets.index("Not built, pro rata") + 1, pct),
-                                     b1=st("COD_IRR_1", sets.index("BESS not built") + 1, pct),
-                                     b2=st("HTM_IRR_1", sets.index("BESS not built") + 1, pct))),
         ("BESS 100 MWh: ", f("{p} points but COD IRR {c} and hold IRR {h} (European).",
                              p=st("Points_1", sets.index("BESS 100 MWh") + 1, pt),
                              c=st("COD_IRR_1", sets.index("BESS 100 MWh") + 1, pct),
@@ -401,7 +417,7 @@ def build_deck(xlsm: Path, out: Path) -> Path:
                                d2=st("Debt_COD_2", sets.index("Debt 6x EBITDA") + 1, eur),
                                h1=st("HTM_IRR_1", sets.index("Debt 6x EBITDA") + 1, pct),
                                h2=st("HTM_IRR_2", sets.index("Debt 6x EBITDA") + 1, pct)))],
-        left=15.45, top=TOP, width=4.45, height=7.9)
+        left=15.45, top=TOP, width=4.45, height=6.4)
     s.footnote(f("Each set changes only the inputs its name describes; tenor {t} years. Stored by the scenario macro with the tax "
                  "solver; base = live model. Model checks in every set: {ck}.",
                  t=b(set_cell("In_Debt_Tenor", "Tenor 10 years"), n0),

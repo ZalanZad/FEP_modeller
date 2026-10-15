@@ -176,3 +176,6 @@ pro rata is a memo (`mva_risk`), not in generation. 16 "BESS not built": wind as
 
 ## 16. BESS capex (user, 15-Oct-2026)
 100 k€ per MWh built (was 240 k€/MW), capex only: `In_BESS_Capex` × MWh × `In_BESS_Built`.
+
+## 17. Deck: "Promise or build" slide (user, 15-Oct-2026)
+Slide 8 compares the base build with sets 14-16 (PB call, MVA lost, equity, sale and hold IRR); 9 slides in total.
