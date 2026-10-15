@@ -190,3 +190,11 @@ Raiffeisen (base): debt €0.9m per built wind MW (±10 %), 15-year annuity, min
 (1.40x on merchant, not used: PPA for the whole life), cash sweep up to full (`In_Sweep`, 0 in the base; set 15 = 100 %).
 Debt = MIN(per-MW quantum, annuity capacity at the DSCR, 70 % LTC). UniCredit (set 12): 1.30x, 12-year annuity, same
 quantum. Repayment is a level annuity (scheduled) plus the sweep; DSCR on scheduled debt service.
+
+## 20. Two bank base cases (user, 15-Oct-2026; replaces "Raiffeisen base, UniCredit set 12" of §19)
+Set 1 "Base: Raiffeisen" (live model): €0.9m per built wind MW, 15-year annuity, 1.20x. Set 2 "Base: UniCredit": 12-year
+annuity, 1.30x, margin above 2.3 %. UniCredit gave no quantum, only "lower LTC than Raiffeisen", so its €/MW is the
+Raiffeisen quantum scaled by the annuity capacity ratio (PV factor 12 y ÷ 1.30 over PV factor 15 y ÷ 1.20 at 5 % =
+0.79) → €0.71m per MW. Same 5 % all-in rate. The other sets change one input from the Raiffeisen base (sets 3-15).
+Deck: slides 2, 5 and 6 show both banks; slide 8 drops the municipality legal/reputational risk (the commitments are
+made to MEKH in the bid; the sanction is the PB call).

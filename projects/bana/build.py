@@ -18,8 +18,8 @@ from fepm.xl.styles import FMT, apply
 HERE = Path(__file__).resolve().parent
 NAME = "Bana_Model"
 D = dt.date
-SETS = ["Base", "COD price −10%", "COD price +10%", "Turbine +10%", "Yield −10%", "PPA +10%", "Full PB call",
-        "Rate +1 pp", "Tenor 10 years", "Robin Hood 31%", "CIT 9%", "UniCredit terms",
+SETS = ["Base: Raiffeisen", "Base: UniCredit", "COD price −10%", "COD price +10%", "Turbine +10%", "Yield −10%",
+        "PPA +10%", "Full PB call", "Rate +1 pp", "Tenor 10 years", "Robin Hood 31%", "CIT 9%",
         "BESS 100 MWh", "Promise all, deliver nothing", "Full cash sweep"]
 TO_COD = 'SUMIF({end.all},"<="&In_COD,{self.all})'          # amount to COD
 EVENT = "N(AND({start}<={self.F},{end}>={self.F}))"           # line paid on its date in F
@@ -52,15 +52,15 @@ def inputs(m):
     a("Purchase_Price", "Purchase price to GEI", "EUR k", 4500, source="Bana v3 Inputs E283")
     a("DD", "Transaction and DD costs", "EUR k", 150, source="Bana v3 Inputs E25")
     a("Devex", "Devex to NTP incl. contingency", "EUR k", 500, source="Bana v3 Inputs E292")
-    a("COD_Price", "Sale price at COD per MW, EU turbines", "EUR k/MW", 2450, {2: f"=H{i.r}*(1-Sens_Step)", 3: f"=H{i.r}*(1+Sens_Step)"},
+    a("COD_Price", "Sale price at COD per MW, EU turbines", "EUR k/MW", 2450, {3: f"=H{i.r}*(1-Sens_Step)", 4: f"=H{i.r}*(1+Sens_Step)"},
       source="Bana v3 Inputs M230")
-    a("COD_Price_CN", "Sale price at COD per MW, CN turbines", "EUR k/MW", 2100, {2: f"=H{i.r}*(1-Sens_Step)", 3: f"=H{i.r}*(1+Sens_Step)"},
+    a("COD_Price_CN", "Sale price at COD per MW, CN turbines", "EUR k/MW", 2100, {3: f"=H{i.r}*(1-Sens_Step)", 4: f"=H{i.r}*(1+Sens_Step)"},
       source="Bana v3 Inputs N230")
     a("Sale_Costs", "Sale costs at COD", "EUR k", 500, source="Bana v3 Inputs E26")
     a("Discount_Rate", "FEP discount rate (NPV)", "%", 0.08, source="Bana v3 Inputs E253")
-    a("CIT", "Corporate income tax: 9 % + possible Pillar Two top-up (proxy)", "%", 0.15, {11: 0.09},
-      source="User 14-Oct-26; set 11: Tao. 19. §")
-    a("RH_On", "Robin Hood tax applies (1 = yes)", "flag", 0, {10: 1},
+    a("CIT", "Corporate income tax: 9 % + possible Pillar Two top-up (proxy)", "%", 0.15, {12: 0.09},
+      source="User 14-Oct-26; set 12: Tao. 19. §")
+    a("RH_On", "Robin Hood tax applies (1 = yes)", "flag", 0, {11: 1},
       source="User 14-Oct-26: sensitivity only (Thtv.)")
     a("RH_Rate", "Robin Hood tax on positive pre-tax profit", "%", 0.31, source="Thtv.; 41 % to 2025, 31 % from 2026")
     a("Sale_Gain_Taxed", "Gain on the COD share sale taxed (0 = exempt)", "flag", 0,
@@ -82,7 +82,7 @@ def inputs(m):
     a("BESS_Built", "BESS built (1 = yes)", "flag", 1, {14: 0}, source="User 13-Oct-26")
     a("Min_Hours", "Minimum BESS duration for ÖSZ-4", "h", 4, source="Kiírás Annex 8; GYIK Q5", fmt="money1")
     a("Tolerance_Cap", "Build shortfall tolerated without sanction", "%", 0.10, source="GYIK 28, 30")
-    a("Sanction_Regime", "Sanction regime (1 pro rata, 2 full PB call)", "flag", 1, {7: 2, 14: 2},
+    a("Sanction_Regime", "Sanction regime (1 pro rata, 2 full PB call)", "flag", 1, {8: 2, 14: 2},
       source="GYIK 28/30 (1); Kiírás XIII.17, GYIK 72 (2)")
     a("Sanction_Lag", "Sanction paid after COD", "months", 6, source="Kiírás XIII.17", fmt="int")
     a("Bench_BESS", "Security base: benchmark investment, BESS", "mHUF/MWh", 200, source="Kiírás Annex 2",
@@ -102,9 +102,9 @@ def inputs(m):
     a("Guarantee_Fee", "Bank guarantee fee on guarantees outstanding", "%", 0.06, source="Bana v3 Inputs E113")
 
     i.section("Capex")
-    a("Turbine", "Turbine supply, EU", "EUR k/MW", 950, {4: f"=H{i.r}*(1+Sens_Step)"},
+    a("Turbine", "Turbine supply, EU", "EUR k/MW", 950, {5: f"=H{i.r}*(1+Sens_Step)"},
       source="User 13-Oct-26 (Bana v3 E162)")
-    a("Turbine_CN", "Turbine supply, CN", "EUR k/MW", 500, {4: f"=H{i.r}*(1+Sens_Step)"}, source="Bana v3 Inputs I162")
+    a("Turbine_CN", "Turbine supply, CN", "EUR k/MW", 500, {5: f"=H{i.r}*(1+Sens_Step)"}, source="Bana v3 Inputs I162")
     a("Other_Wind", "Other wind capex (install, foundations, BoP, owner, land)", "EUR k/MW", 355,
       source="Bana v3 Inputs E163:E166, E169:E170")
     a("Substation", "Substation and 132 kV bay, EU", "EUR k", 12000, source="Bana v3 Inputs E167")
@@ -113,11 +113,11 @@ def inputs(m):
     a("BESS_Capex", "BESS capex, all-in (no BESS revenue or opex)", "EUR k/MWh", 100, source="User 15-Oct-26")
 
     i.section("Operations")
-    a("P50_Hours", "Net P50 hours", "h/yr", 2600, {5: f"=H{i.r}*(1-Sens_Step)"}, source="User 13-Oct-26",
+    a("P50_Hours", "Net P50 hours", "h/yr", 2600, {6: f"=H{i.r}*(1-Sens_Step)"}, source="User 13-Oct-26",
       fmt="money")
     a("Curtailment", "Curtailment", "%", 0.02, source="Bana v3 Inputs E181")
     a("Degradation", "Degradation per year", "%", 0.003, source="Bana v3 Inputs E182", fmt="0.00%")
-    a("PPA_Price", "PPA price at COD, whole life, 100 % of output", "EUR/MWh", 90, {6: 99},
+    a("PPA_Price", "PPA price at COD, whole life, 100 % of output", "EUR/MWh", 90, {7: 99},
       source="User 13-Oct-26", fmt="money1")
     a("PPA_Esc", "PPA escalation", "%", 0.01, source="Bana v3 Inputs E192")
     a("Var_Opex", "Variable opex (balancing 4, grid 1)", "EUR/MWh", 5, source="Bana v3 Inputs E194:E195",
@@ -134,17 +134,19 @@ def inputs(m):
       fmt="0.00%")
 
     i.section("Senior debt")
-    a("Debt_Per_MW", "Debt per built wind MW (bank indication)", "EUR k/MW", 900, source="Raiffeisen: 0.9 M€/MW ±10 %")
-    a("Gearing", "Maximum debt share of construction cost (LTC)", "%", 0.70, source="Info cap; Raiffeisen ~48-58 %")
+    a("Debt_Per_MW", "Debt per built wind MW (bank indication)", "EUR k/MW", 900, {2: 710},
+      source="Raiffeisen 0.9 M€/MW; UniCredit pro rata 12y/1.30x")
+    a("Gearing", "Maximum debt share of construction cost (LTC)", "%", 0.70,
+      source="Info cap; Raiffeisen ~48-58 %, UniCredit lower")
     a("Sweep", "Cash sweep, share of cash after debt service", "%", 0, {15: 1},
       source="Raiffeisen: significant, up to full")
     a("DSCR_Max_Low", "Info: DSCR for maximum debt, low", "x", 1.10, source="User 14-Oct-26", fmt="mult")
     a("DSCR_Max_High", "Info: DSCR for maximum debt, high", "x", 1.20, source="User 14-Oct-26", fmt="mult")
-    a("DSCR", "Minimum DSCR on PPA revenue (sizing)", "x", 1.20, {12: 1.30},
+    a("DSCR", "Minimum DSCR on PPA revenue (sizing)", "x", 1.20, {2: 1.30},
       source="Raiffeisen 1.20x; UniCredit 1.30x", fmt="mult")
-    a("Debt_Tenor", "Annuity tenor from COD", "years", 15, {9: 10, 12: 12}, source="Raiffeisen 15 y; UniCredit 12 y",
+    a("Debt_Tenor", "Annuity tenor from COD", "years", 15, {10: 10, 2: 12}, source="Raiffeisen 15 y; UniCredit 12 y",
       fmt="int")
-    a("Debt_Rate", "All-in fixed interest rate", "%", 0.05, {8: 0.06}, source="Bana v3 Inputs E218")
+    a("Debt_Rate", "All-in fixed interest rate", "%", 0.05, {9: 0.06}, source="Bana v3 E218; UniCredit margin >2.3 %")
     a("Upfront_Fee", "Upfront fee on the facility", "%", 0.0175, source="Bana v3 Inputs E219", fmt="0.00%")
     a("Commitment_Fee", "Commitment fee on undrawn debt", "%", 0.009, source="Bana v3 Inputs E222", fmt="0.00%")
     a("DSRA_Months", "DSRA: months of debt service, funded at COD", "months", 6, source="Bana v3 Inputs E268",
@@ -567,7 +569,7 @@ def dashboard(m):
     d.link("Checks failed in this set (0 = OK)", "#", "Model_Checks", out="Checks", fmt="int")
 
     d.scenario_results(outs=["Points", "Equity_COD", "COD_IRR", "COD_MOIC", "HTM_IRR", "HTM_MOIC", "Buyer_IRR_U", "Buyer_IRR_L",
-                              "Debt_COD", "Min_DSCR", "PB_Call_Applied", "MVA_At_Risk", "Checks"])
+                              "Debt_COD", "Debt_Share", "COD_Profit", "HTM_NPV", "Min_DSCR", "PB_Call_Applied", "MVA_At_Risk", "Checks"])
 
     d.panel_section("Key-assumption set")
     d.selector()
