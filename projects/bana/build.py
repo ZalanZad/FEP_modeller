@@ -19,8 +19,8 @@ HERE = Path(__file__).resolve().parent
 NAME = "Bana_Model"
 D = dt.date
 SETS = ["Base", "COD price −10%", "COD price +10%", "Turbine +10%", "Yield −10%", "PPA +10%", "Full PB call",
-        "Rate +1 pp", "Tenor 10 years", "Robin Hood 31%", "CIT 9%", "Debt 6x EBITDA",
-        "BESS 100 MWh", "Promise all, deliver nothing"]
+        "Rate +1 pp", "Tenor 10 years", "Robin Hood 31%", "CIT 9%", "UniCredit terms",
+        "BESS 100 MWh", "Promise all, deliver nothing", "Full cash sweep"]
 TO_COD = 'SUMIF({end.all},"<="&In_COD,{self.all})'          # amount to COD
 EVENT = "N(AND({start}<={self.F},{end}>={self.F}))"           # line paid on its date in F
 SHARE = "=MAX(0,MIN({self.F},{end})-MAX({self.E},{start})+1)/({self.F}-{self.E}+1)"   # share of a window
@@ -134,14 +134,16 @@ def inputs(m):
       fmt="0.00%")
 
     i.section("Senior debt")
-    a("Gearing", "Debt share cap of construction cost, both routes", "%", 0.55, {12: 0.70}, source="User 14-Oct-26")
-    a("Debt_Mult", "Debt sized at first full-year EBITDA x (0 = off)", "x", 0, {12: 6}, source="User 14-Oct-26",
-      fmt="money1")
+    a("Debt_Per_MW", "Debt per built wind MW (bank indication)", "EUR k/MW", 900, source="Raiffeisen: 0.9 M€/MW ±10 %")
+    a("Gearing", "Maximum debt share of construction cost (LTC)", "%", 0.70, source="Info cap; Raiffeisen ~48-58 %")
+    a("Sweep", "Cash sweep, share of cash after debt service", "%", 0, {15: 1},
+      source="Raiffeisen: significant, up to full")
     a("DSCR_Max_Low", "Info: DSCR for maximum debt, low", "x", 1.10, source="User 14-Oct-26", fmt="mult")
     a("DSCR_Max_High", "Info: DSCR for maximum debt, high", "x", 1.20, source="User 14-Oct-26", fmt="mult")
-    a("DSCR", "Target DSCR for sizing and sculpting", "x", 1.20, source="Rock Assumptions G549",
-      fmt="mult")
-    a("Debt_Tenor", "Tenor from COD", "years", 18, {9: 10}, source="Rock G540; set 9: Bana v3 E220", fmt="int")
+    a("DSCR", "Minimum DSCR on PPA revenue (sizing)", "x", 1.20, {12: 1.30},
+      source="Raiffeisen 1.20x; UniCredit 1.30x", fmt="mult")
+    a("Debt_Tenor", "Annuity tenor from COD", "years", 15, {9: 10, 12: 12}, source="Raiffeisen 15 y; UniCredit 12 y",
+      fmt="int")
     a("Debt_Rate", "All-in fixed interest rate", "%", 0.05, {8: 0.06}, source="Bana v3 Inputs E218")
     a("Upfront_Fee", "Upfront fee on the facility", "%", 0.0175, source="Bana v3 Inputs E219", fmt="0.00%")
     a("Commitment_Fee", "Commitment fee on undrawn debt", "%", 0.009, source="Bana v3 Inputs E222", fmt="0.00%")
@@ -339,20 +341,27 @@ def calc(m):
     c.paste("Tax", "Corporate income tax", "EUR k")
     c.row("cfads", "CFADS (EBITDA, guarantee fees, tax; after COD)", "EUR k",
           "=({ebitda}+{gfee}+{tax_paste})*({end}>In_COD)")
-    c.row("ds_cap", "Debt service at target DSCR (E: PV at COD = capacity)", "EUR k", "={cfads}/In_DSCR*{tenor}",
-          e="SUMPRODUCT({self.all}/{idx.all})*{idx.E}")
-    c.row("dtgt", "Debt target: EBITDA multiple (else the DSCR capacity)", "EUR k",
-          e="IF(In_Debt_Mult>0,In_Debt_Mult*{ebitda.E},{ds_cap.E})")
+    c.row("ds_cap", "CFADS ÷ target DSCR (E: annuity debt capacity, F: lowest quarter)", "EUR k",
+          '=IF({tenor}=1,{cfads}/In_DSCR,"")', e="PV({idx.F},In_Debt_Tenor*Months_In_Year/Months_Per_Period,-{self.F})",
+          f="MIN({self.all})", total="none")
+    c.row("dtgt", "Debt quantum: per built wind MW", "EUR k", e="In_Debt_Per_MW*{wind.F}")
     c.row("k", "Debt share of construction cost (E), share of capacity used (F)", "%",
-          e="MIN(In_Gearing,{ds_cap.E}/-{cost.E},{dtgt.E}/-{cost.E})", f="{self.E}*-{cost.E}/{ds_cap.E}", ef_fmt="pct", bold=True)
+          e="MIN(In_Gearing,{ds_cap.E}/-{cost.E},{dtgt.E}/-{cost.E})", f="{self.E}*-{cost.E}/{ds_cap.E}",
+          ef_fmt="pct", bold=True)
+    c.row("d_cod", "Debt at COD (E) and level annuity per quarter (F)", "EUR k", e="{k.E}*-{cost.E}",
+          f="PMT({idx.F},In_Debt_Tenor*Months_In_Year/Months_Per_Period,-{self.E})")
 
     c.section("Senior debt")
     c.row("d_int", "Interest paid", "EUR k", "=-{d_close@prev}*{idx.F}*({end}>In_COD)")
-    c.row("d_ds", "Debt service (sculpted)", "EUR k", "=-{ds_cap}*{k.F}")
+    c.row("d_sched", "Scheduled repayment (annuity)", "EUR k", "=-MIN({d_close@prev},{d_cod.F}+{d_int})*{tenor}")
+    c.row("d_service", "Scheduled debt service", "EUR k", "={d_int}+{d_sched}")
+    c.row("d_sweep", "Cash sweep", "EUR k",
+          "=-MIN({d_close@prev}+{d_sched},In_Sweep*MAX(0,{cfads}+{d_service}))*({end}>In_COD)")
+    c.row("d_ds", "Debt service incl. sweep", "EUR k", "={d_service}+{d_sweep}")
     c.row("d_open", "Opening balance", "EUR k", "={d_close@prev}", total="none")
     c.row("d_draw", "Drawdown", "EUR k", "=-{k.E}*{cost}")
     c.row("d_idc", "Interest capitalised", "EUR k", "={d_open}*{idx.F}*({end}<=In_COD)")
-    c.row("d_rep", "Repayment", "EUR k", "={d_ds}-{d_int}")
+    c.row("d_rep", "Repayment", "EUR k", "={d_sched}+{d_sweep}")
     c.row("d_close", "Closing balance (E: at COD)", "EUR k", "=SUM({d_open}:{d_rep})",
           e="SUMIF({end.all},In_COD,{self.all})", total="seed", bold=True)
     c.row("d_up", "Upfront fee", "EUR k", "=-In_Upfront_Fee*{d_close.E}*({d_open}=0)*({d_draw}>0)")
@@ -360,8 +369,8 @@ def calc(m):
           "=-In_Commitment_Fee*({d_draw.I}-SUM({d_draw.todate})+{d_draw})*{yf}*({constr}>0)")
     c.row("dsra", "DSRA funded at COD, released at the end (E: balance)", "EUR k",
           "={self.E}*({tenor_end}-{cod})",
-          e='-SUMIFS({d_ds.all},{end.all},">"&In_COD,{end.all},"<="&EDATE(In_COD,In_DSRA_Months))')
-    c.row("dscr", "DSCR (E: minimum)", "x", '=IF({d_ds}<0,{cfads}/-{d_ds},"")', e="MIN({self.all})",
+          e='-SUMIFS({d_service.all},{end.all},">"&In_COD,{end.all},"<="&EDATE(In_COD,In_DSRA_Months))')
+    c.row("dscr", "DSCR on scheduled debt service (E: minimum)", "x", '=IF({d_service}<0,{cfads}/-{d_service},"")', e="MIN({self.all})",
           total="none", fmt="mult", ef_fmt="mult")
 
     c.section("Tax")

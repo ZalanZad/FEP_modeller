@@ -264,9 +264,9 @@ def build_deck(xlsm: Path, out: Path) -> Path:
                  f("{r} p.a. on guarantees", r=b("In_Guarantee_Fee", pct0))])
     s.table(["Tender securities and fees", "Form", "€ m", "What happens"], rows, left=13.6, top=TOP, width=6.3,
             height=0.59 + 7 * 0.6, col_widths=[2.3, 1.05, 0.8, 2.15], align="LLRL", unit_col=1)
-    s.footnote(f("Debt share = senior debt at COD ÷ total uses. Debt draws pro rata with construction costs at up to "
-                 "{g1} of cost on both routes; interest capitalised to COD. Securities are the same on both "
-                 "routes; HUF amounts at {fx} HUF/EUR.", g1=b("In_Gearing", pct0),
+    s.footnote(f("Debt share = senior debt at COD ÷ total uses. Debt = €{q}m per built wind MW on both routes (bank "
+                 "indication), drawn pro rata with construction costs; interest capitalised to COD. Securities are the "
+                 "same on both routes; HUF amounts at {fx} HUF/EUR.", q=b("In_Debt_Per_MW", lambda v: f"{v / 1000:.1f}"),
                  fx=b("In_FX", n0)))
 
     # ---- 6 Returns: sale at COD vs hold ---------------------------------------------------------------------------
@@ -274,8 +274,9 @@ def build_deck(xlsm: Path, out: Path) -> Path:
         "A sale at COD turns €{e1}m of equity into €{n1}m ({m1}); holding earns {h1} at a {d1} DSCR (European)",
         e1=eq[0], n1=b("Out_COD_Proceeds_1", eur), m1=b("Out_COD_MOIC_1", x2), h1=htm[0],
         d1=b("Out_Min_DSCR_1", x2)), f(
-        "With Chinese turbines the sale returns {c2} and the hold {h2}; debt is capped at {g} of "
-        "construction cost on both routes.", c2=cod[1], h2=htm[1], g=b("In_Gearing", pct0)), title_lines=2)
+        "With Chinese turbines the sale returns {c2} and the hold {h2}; debt is €{d}m on both routes, a "
+        "{t}-year annuity.", c2=cod[1], h2=htm[1], d=b("Out_Debt_COD_1", eur), t=b("In_Debt_Tenor", n0)),
+        title_lines=2)
 
     def both_routes(key, fmt, cod_side=True, htm_side=True):
         v = o(key, fmt)
@@ -292,7 +293,7 @@ def build_deck(xlsm: Path, out: Path) -> Path:
             ["FEP MOIC", "x", *o("COD_MOIC", x2), *o("HTM_MOIC", x2)],
             ["FEP NPV", "€ m", *o("COD_NPV", eur), *o("HTM_NPV", eur)],
             ["Project IRR, actual tax, before financing", "%", DASH, DASH, *o("Project_IRR", pct)],
-            ["Minimum DSCR (sculpted repayment)", "x", DASH, DASH, *o("Min_DSCR", x2)],
+            ["Minimum DSCR (annuity)", "x", DASH, DASH, *o("Min_DSCR", x2)],
             ["Corporate income tax over the life", "€ m", DASH, DASH, *o("Tax_Life", eur)]]
     s.table(["FEP, post-tax", "Unit", "COD – European", "COD – Chinese", "Hold – European", "Hold – Chinese"], rows,
             key_rows={6}, top=TOP, width=10.3, height=0.59 + 12 * 0.52, col_widths=[3.7, 0.8, 1.45, 1.45, 1.45, 1.45])
@@ -301,10 +302,11 @@ def build_deck(xlsm: Path, out: Path) -> Path:
             {"European turbine": [nums["cod"][0], nums["htm"][0]], "Chinese turbine": [nums["cod"][1], nums["htm"][1]]},
             left=15.45, top=TOP, width=4.45, height=3.6, title="FEP IRR", number_format="0.0%", name="IRR chart")
     s.card("Debt and tax", [
-        ("Debt: ", f("{dscr} target DSCR over {t} years, {r} fixed; sized at the lower of the DSCR capacity and "
-                     "{g1} of cost on both routes; {u1} / {u2} of the DSCR capacity is used.",
-                     dscr=b("In_DSCR", x2), t=b("In_Debt_Tenor", n0), r=b("In_Debt_Rate", pct),
-                     g1=b("In_Gearing", pct0),
+        ("Debt (bank indication): ", f("€{q}m per built MW, {t}-year annuity, {r} fixed, minimum DSCR {dscr} on PPA "
+                     "revenue; LTC {l1} / {l2}; {u1} / {u2} of the DSCR capacity is used.",
+                     q=b("In_Debt_Per_MW", lambda v: f"{v / 1000:.1f}"), dscr=b("In_DSCR", x2),
+                     t=b("In_Debt_Tenor", n0), r=b("In_Debt_Rate", pct),
+                     l1=b("Out_Debt_Share_1", pct0), l2=b("Out_Debt_Share_2", pct0),
                      u1=b("Out_Capacity_Used_1", pct0), u2=b("Out_Capacity_Used_2", pct0))),
         ("Maximum debt, no cap: ", f("€{a}m at {xl} / €{c}m at {xh} DSCR European ({pa} / {pc} of uses); "
                                     "€{b}m / €{d}m Chinese.", a=b("Out_Debt_Max_Low_1", eur),
@@ -415,13 +417,16 @@ def build_deck(xlsm: Path, out: Path) -> Path:
                      ds=st("Min_DSCR_1", sets.index("Tenor 10 years") + 1, x2),
                      t=b(set_cell("In_Debt_Tenor", "Tenor 10 years"), n0),
                      h=st("HTM_IRR_1", sets.index("Tenor 10 years") + 1, pct))),
-        ("Higher gearing: ", f("debt at {m} first-year EBITDA, capped at {c} of cost, is €{d1}m / €{d2}m; hold IRR "
-                               "{h1} / {h2}.", m=b(set_cell("In_Debt_Mult", "Debt 6x EBITDA"), lambda v: f"{v:.0f}x"),
-                               c=b(set_cell("In_Gearing", "Debt 6x EBITDA"), pct0),
-                               d1=st("Debt_COD_1", sets.index("Debt 6x EBITDA") + 1, eur),
-                               d2=st("Debt_COD_2", sets.index("Debt 6x EBITDA") + 1, eur),
-                               h1=st("HTM_IRR_1", sets.index("Debt 6x EBITDA") + 1, pct),
-                               h2=st("HTM_IRR_2", sets.index("Debt 6x EBITDA") + 1, pct)))],
+        ("Bank terms: ", f("on the stricter terms ({d} DSCR, {t}-year annuity) debt is €{d1}m / €{d2}m and the hold "
+                           "IRR {h1} / {h2}; a full cash sweep gives {s1} / {s2}.",
+                           d=b(set_cell("In_DSCR", "UniCredit terms"), x2),
+                           t=b(set_cell("In_Debt_Tenor", "UniCredit terms"), n0),
+                           d1=st("Debt_COD_1", sets.index("UniCredit terms") + 1, eur),
+                           d2=st("Debt_COD_2", sets.index("UniCredit terms") + 1, eur),
+                           h1=st("HTM_IRR_1", sets.index("UniCredit terms") + 1, pct),
+                           h2=st("HTM_IRR_2", sets.index("UniCredit terms") + 1, pct),
+                           s1=st("HTM_IRR_1", sets.index("Full cash sweep") + 1, pct),
+                           s2=st("HTM_IRR_2", sets.index("Full cash sweep") + 1, pct)))],
         left=15.45, top=TOP, width=4.45, height=6.4)
     s.footnote(f("Each set changes only the inputs its name describes; tenor {t} years. Stored by the scenario macro with the tax "
                  "solver; base = live model. Model checks in every set: {ck}.",

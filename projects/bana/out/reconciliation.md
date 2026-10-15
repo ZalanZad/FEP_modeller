@@ -6,22 +6,22 @@ Old engine: `reference/Bana_IC_model_v3.xlsm`, figures as shown in `reference/Ba
 
 | Step | Total uses to COD | FEP equity to COD | FEP profit – sale at COD | FEP IRR – sale at COD | FEP MOIC – sale at COD | FEP IRR – hold to maturity | FEP MOIC – hold to maturity | Minimum DSCR |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| New model, base | 113.43 | 54.37 | 20.21 | 26.3% | 1.37x | 7.8% | 3.31x | 1.88x |
-| + CIT 9 % | 113.43 | 54.37 | 20.21 | 26.3% | 1.37x | 8.1% | 3.47x | 1.91x |
-| + P50 2,460 h | 113.43 | 54.37 | 20.21 | 26.3% | 1.37x | 7.2% | 3.14x | 1.79x |
-| + Debt share cap 60 % (both routes; old CN 50 %) | 113.81 | 49.39 | 19.83 | 27.3% | 1.40x | 7.3% | 3.29x | 1.64x |
-| + Tenor 10 years | 113.35 | 55.47 | 20.29 | 26.1% | 1.37x | 6.8% | 3.32x | 1.20x |
+| New model, base | 112.75 | 63.25 | 20.89 | 24.8% | 1.33x | 7.4% | 3.13x | 1.94x |
+| + CIT 9 % | 112.75 | 63.25 | 20.89 | 24.8% | 1.33x | 7.7% | 3.28x | 1.96x |
+| + P50 2,460 h | 112.75 | 63.25 | 20.89 | 24.8% | 1.33x | 6.9% | 3.00x | 1.84x |
+| + Debt share cap 60 % (both routes; old CN 50 %) | 112.75 | 63.25 | 20.89 | 24.8% | 1.33x | 6.9% | 3.00x | 1.84x |
+| + Tenor 10 years | 112.75 | 63.25 | 20.89 | 24.8% | 1.33x | 6.7% | 3.09x | 1.37x |
 | **Old engine (deck 09-Oct-2026)** | 101.75 | 44.23 | 20.25 | 26.4% | 1.46x | 9.2% | 5.64x | 1.09x |
 
 ## Chinese turbine
 
 | Step | Total uses to COD | FEP equity to COD | FEP profit – sale at COD | FEP IRR – sale at COD | FEP MOIC – sale at COD | FEP IRR – hold to maturity | FEP MOIC – hold to maturity | Minimum DSCR |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| New model, base | 85.08 | 41.69 | 29.39 | 41.0% | 1.71x | 11.7% | 4.74x | 2.48x |
-| + CIT 9 % | 85.08 | 41.69 | 29.39 | 41.0% | 1.71x | 12.2% | 5.01x | 2.55x |
-| + P50 2,460 h | 85.08 | 41.69 | 29.39 | 41.0% | 1.71x | 11.2% | 4.58x | 2.39x |
-| + Debt share cap 60 % (both routes; old CN 50 %) | 85.37 | 38.02 | 29.11 | 42.3% | 1.77x | 11.5% | 4.86x | 2.20x |
-| + Tenor 10 years | 85.37 | 38.02 | 29.11 | 42.3% | 1.77x | 10.4% | 5.08x | 1.44x |
+| New model, base | 85.52 | 36.02 | 28.95 | 43.1% | 1.80x | 11.8% | 5.31x | 1.89x |
+| + CIT 9 % | 85.52 | 36.02 | 28.95 | 43.1% | 1.80x | 12.3% | 5.62x | 1.93x |
+| + P50 2,460 h | 85.52 | 36.02 | 28.95 | 43.1% | 1.80x | 11.2% | 5.13x | 1.81x |
+| + Debt share cap 60 % (both routes; old CN 50 %) | 85.37 | 38.02 | 29.11 | 42.3% | 1.77x | 11.1% | 4.95x | 1.89x |
+| + Tenor 10 years | 85.37 | 38.02 | 29.11 | 42.3% | 1.77x | 10.4% | 5.08x | 1.41x |
 | **Old engine (deck 09-Oct-2026)** | 75.15 | 40.32 | 29.35 | 37.7% | 1.73x | 12.1% | 7.09x | 1.77x |
 
 ## Step sources

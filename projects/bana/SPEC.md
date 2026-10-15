@@ -184,3 +184,9 @@ Slide 8 compares the base build with sets 14-16 (PB call, MVA lost, equity, sale
 Set 14: the bid is unchanged (points kept), but nothing is delivered (`In_Deliver` = 0): no overbuild, no BESS, no municipal
 one-off or community contribution, Chinese turbines (and the Chinese COD price) on the European route. Any missed
 commitment triggers the full PB call (Kiírás XIII.17, GYIK 72), so the whole PB is called. Slide 8 compares it with the base.
+
+## 19. Debt on the bank indications (user, 15-Oct-2026; replaces the 55 % cap and the 6x EBITDA set)
+Raiffeisen (base): debt €0.9m per built wind MW (±10 %), 15-year annuity, minimum DSCR 1.20x on PPA revenue
+(1.40x on merchant, not used: PPA for the whole life), cash sweep up to full (`In_Sweep`, 0 in the base; set 15 = 100 %).
+Debt = MIN(per-MW quantum, annuity capacity at the DSCR, 70 % LTC). UniCredit (set 12): 1.30x, 12-year annuity, same
+quantum. Repayment is a level annuity (scheduled) plus the sweep; DSCR on scheduled debt service.
