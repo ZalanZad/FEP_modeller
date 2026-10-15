@@ -88,7 +88,7 @@ slide,shape,text,cell,value,note
 3,Table,0.0,Dashboard!M18:M22,0,
 3,Table,0.0,Dashboard!O18:O22,0,
 3,Table,0.0,Dashboard!Q18:Q22,0,
-3,Table,600,Inputs!F90,600,
+3,Table,600,Inputs!F91,600,
 3,Table,85,Dashboard!E25,85,
 3,Table,(0.8),Dashboard!I26,-0.842759264050099,
 3,Table,−15.6,Dashboard!I28,-0.156428008765722,
@@ -250,24 +250,59 @@ slide,shape,text,cell,value,note
 6,Footnote,8.0%,Inputs!F75,0.08,
 6,Footnote,30‑Sep‑2031,Inputs!F24,2031-09-30 00:00:00,
 6,Footnote,100,Dashboard!E68,100,
-6,Footnote,90,Inputs!F106,90,
-6,Footnote,60.0%,Inputs!F118,0.6,
+6,Footnote,90,Inputs!F107,90,
+6,Footnote,60.0%,Inputs!F119,0.6,
 6,Footnote,12 Oct 2026,Dashboard!E6,2026-10-12 00:00:00,
-7,Title,2.8,Dashboard!E81,1.41821917808219,sum
-7,Title,2.8,Dashboard!F81,1.41821917808219,sum
-7,Title,67.5,Dashboard!E83,33.7748344370861,sum
-7,Title,67.5,Dashboard!F83,33.7748344370861,sum
-7,Table,10%,Inputs!F45,0.1,
-7,Table,1.4,Dashboard!E81,1.41821917808219,
-7,Table,1.0x,Dashboard!E17,1,
-7,Table,31.8%,Dashboard!J125,0.317836478854976,
-7,Table,8.5%,Dashboard!J127,0.0846861685089813,
-7,Table,33.8,Dashboard!E83,33.7748344370861,
-7,Table,80.50,Dashboard!M121,80.5,
-7,Card,100,Inputs!F43,100,
-7,Card,172.7,Dashboard!E108,172.735033145982,
-7,Card,226.4,Dashboard!I131,226.41436300138,
-7,Card,51.4%,Dashboard!I125,0.513549105607292,
-7,Card,10.9%,Dashboard!I127,0.10946601029228,
-7,Footnote,6,Inputs!F29,6,
+7,Title,7.0,Dashboard!N131,6.99356164383562,
+7,Title,8.9%,Dashboard!H127,0.0887506658196496,
+7,Title,12.1%,Dashboard!N127,0.120651641354488,
+7,Subtitle,38.8,Dashboard!H135,172.735033145982,diff +
+7,Subtitle,38.8,Dashboard!N135,133.959264581938,diff -
+7,Subtitle,14.0,Dashboard!N131,6.99356164383562,sum
+7,Subtitle,14.0,Dashboard!N132,6.99356164383562,sum
+7,Table,85,Dashboard!H121,85,
+7,Table,85,Dashboard!N121,85,
+7,Table,0,Dashboard!N121,85,diff +
+7,Table,0,Dashboard!H121,85,diff -
+7,Table,1.4,Dashboard!H131,1.41821917808219,
+7,Table,7.0,Dashboard!N131,6.99356164383562,
+7,Table,+5.6,Dashboard!N131,6.99356164383562,diff +
+7,Table,+5.6,Dashboard!H131,1.41821917808219,diff -
+7,Table,172.7,Dashboard!H135,172.735033145982,
+7,Table,134.0,Dashboard!N135,133.959264581938,
+7,Table,(38.8),Dashboard!N135,133.959264581938,diff +
+7,Table,(38.8),Dashboard!H135,172.735033145982,diff -
+7,Table,33.9%,Dashboard!H125,0.339207407992561,
+7,Table,50.9%,Dashboard!N125,0.508514693618435,
+7,Table,+16.9,Dashboard!N125,0.508514693618435,diff +
+7,Table,+16.9,Dashboard!H125,0.339207407992561,diff -
+7,Table,8.9%,Dashboard!H127,0.0887506658196496,
+7,Table,12.1%,Dashboard!N127,0.120651641354488,
+7,Table,+3.2,Dashboard!N127,0.120651641354488,diff +
+7,Table,+3.2,Dashboard!H127,0.0887506658196496,diff -
+7,Table,8.0%,Inputs!F75,0.08,
+7,Table,8.1,Dashboard!H129,8.14180305533397,
+7,Table,33.1,Dashboard!N129,33.0745391842743,
+7,Table,+24.9,Dashboard!N129,33.0745391842743,diff +
+7,Table,+24.9,Dashboard!H129,8.14180305533397,diff -
+7,Footnote,49.6%,Dashboard!H28,0.495635416758283,
+7,Footnote,11.9%,Dashboard!H30,0.118654233690466,
 7,Footnote,12 Oct 2026,Dashboard!E6,2026-10-12 00:00:00,
+8,Title,2.8,Dashboard!E81,1.41821917808219,sum
+8,Title,2.8,Dashboard!F81,1.41821917808219,sum
+8,Title,67.5,Dashboard!E83,33.7748344370861,sum
+8,Title,67.5,Dashboard!F83,33.7748344370861,sum
+8,Table,10%,Inputs!F45,0.1,
+8,Table,1.4,Dashboard!E81,1.41821917808219,
+8,Table,1.0x,Dashboard!E17,1,
+8,Table,31.8%,Dashboard!J125,0.317836478854976,
+8,Table,8.5%,Dashboard!J127,0.0846861685089813,
+8,Table,33.8,Dashboard!E83,33.7748344370861,
+8,Table,80.50,Dashboard!M121,80.5,
+8,Card,100,Inputs!F43,100,
+8,Card,172.7,Dashboard!E108,172.735033145982,
+8,Card,226.4,Dashboard!I135,226.41436300138,
+8,Card,51.4%,Dashboard!I125,0.513549105607292,
+8,Card,10.9%,Dashboard!I127,0.10946601029228,
+8,Footnote,6,Inputs!F29,6,
+8,Footnote,12 Oct 2026,Dashboard!E6,2026-10-12 00:00:00,

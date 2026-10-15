@@ -191,22 +191,32 @@ class Deck:
         manifest with the displayed text and note "sum"; the total itself is never typed.
 
         `refs`: workbook names or `Sheet!Cell` strings, or Bound values (e.g. from `stored`)."""
-        comps = []
-        for r in refs:
-            if hasattr(r, "ref"):
-                comps.append((r.ref, r.value))
-            else:
-                comps.append(self._resolve(*r.split("!")) if "!" in r else self._resolve(r, None))
-        b = Bound(fmt(sum(v for _, v in comps)))
-        b.ref, b.value, b.components = "+".join(r for r, _ in comps), None, comps
+        return self._combine([self._ref_value(r) for r in refs], [1] * len(refs), fmt)
+
+    def bind_diff(self, a, b, fmt):
+        """`a` minus `b` shown as one figure (e.g. a case against the base). Both cells are bound and recorded in
+        the manifest with notes "diff +" and "diff -"; the difference itself is never typed."""
+        return self._combine([self._ref_value(a), self._ref_value(b)], [1, -1], fmt)
+
+    def _ref_value(self, r):
+        if hasattr(r, "ref"):
+            return r.ref, r.value
+        return self._resolve(*r.split("!")) if "!" in r else self._resolve(r, None)
+
+    def _combine(self, comps, signs, fmt):
+        b = Bound(fmt(sum(s * v for s, (_, v) in zip(signs, comps))))
+        b.ref = "".join(("+" if s > 0 else "-") + r for s, (r, _) in zip(signs, comps)).lstrip("+")
+        b.value, b.components = None, comps
+        b.notes = ["sum"] * len(comps) if all(s > 0 for s in signs) else \
+            ["diff +" if s > 0 else "diff -" for s in signs]
         for ref, value in comps:
             self._bound.setdefault(str(b), set()).add((ref, value))
         return b
 
     def _entries(self, slide_no, shape, b):
-        """Manifest rows of one Bound: one row per cell (sum components carry note "sum")."""
+        """Manifest rows of one Bound: one row per cell (components carry note "sum" or "diff +" / "diff -")."""
         if getattr(b, "components", None):
-            return [(slide_no, shape, str(b), ref, value, "sum") for ref, value in b.components]
+            return [(slide_no, shape, str(b), ref, value, note) for (ref, value), note in zip(b.components, b.notes)]
         return [(slide_no, shape, str(b), b.ref, b.value, "")]
 
     def stored(self, output_key, scenario: int, fmt=None):

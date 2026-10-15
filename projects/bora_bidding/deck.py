@@ -1,4 +1,4 @@
-"""Bora IC deck – 7 slides to SPEC.md §0 items 19, 21 and 22 (one strategy for both bids), text from
+"""Bora IC deck – 8 slides to SPEC.md §0 items 19, 21, 22 and 23 (one strategy for both bids), text from
 out/Bora_Bid_slide_text.md.
 
 Every figure is `Deck.bind` on the packaged workbook (LibreOffice-recalculated when `package` saves it, so it holds
@@ -327,7 +327,53 @@ def build_deck(xlsm: Path, out: Path) -> Path:
                  r=b("In_Discount_Rate", pct), cod=b("In_COD", date), mw=b("Out_Wind_Built_MW_1", n0),
                  ppa=b("In_PPA_Price", n0), g=b("In_Gearing", pct)))
 
-    # ---- 7 Risks and mitigants -------------------------------------------------------------------------------
+    # ---- 7 Nothing delivered after award (SPEC §0 item 23): stored Base vs "Nothing delivered", per bid --------
+    BASE, NOTHING = "Base", "Nothing delivered"
+
+    def case(key, fm, dfm):      # Base | Nothing delivered | Δ, BORA 1 (BORA 2 is identical)
+        base, nd = stored(f"{key}_1", BASE, fm), stored(f"{key}_1", NOTHING, fm)
+        return [base, nd, d.bind_diff(stored(f"{key}_1", NOTHING, None), stored(f"{key}_1", BASE, None), dfm)]
+
+    def spp(v):                  # signed percentage points: +3.2
+        return ("+" if round(v * 100, 1) > 0 else "") + pp(v)
+
+    def spts(v):
+        return ("+" if v > 0 else "") + pts(v)
+
+    s = d.content("Risks and mitigants", f(
+        "Delivering nothing after award costs the full PB of €{p}m per bid but lifts HTM IRR from {a} to {n}",
+        p=stored("Commitment_Penalty_1", NOTHING, eur), a=stored("HTM_IRR_1", BASE, pct),
+        n=stored("HTM_IRR_1", NOTHING, pct)), f(
+        "The BESS, municipal, community and EU-equipment costs fall away (€{c}m less to COD per bid); the price is "
+        "€{t}m of PB called on both bids and a possible group exclusion.",
+        c=d.bind_diff(stored("Cost_To_COD_1", BASE, None), stored("Cost_To_COD_1", NOTHING, None), eur),
+        t=d.bind_sum([stored("Commitment_Penalty_1", NOTHING, None), stored("Commitment_Penalty_2", NOTHING, None)],
+                     eur)), title_lines=2)
+    rows = [["Points", "points", *case("Points", pts, spts)],
+            ["PB called (base: pro-rata loss)", "€ m", *case("Commitment_Penalty", eur, fmt_delta)],
+            ["All-in cost to COD", "€ m", *case("Cost_To_COD", eur, fmt_delta)],
+            [IRR_COD, "% / pp", *case("COD_IRR", pct, spp)],
+            [IRR_HTM, "% / pp", *case("HTM_IRR", pct, spp)],
+            [f("FEP NPV – hold to maturity at {r}", r=b("In_Discount_Rate", pct)), "€ m",
+             *case("HTM_NPV", eur, fmt_delta)]]
+    s.table(["Per bid", "Unit", "Base", "Nothing delivered", "Δ"], rows, key_rows={1, 4}, top=TOP, width=SIDE_W,
+            height=0.59 + 6 * 0.5, col_widths=[4.48, 0.9, 1.4, 2.0, 1.2])
+    s.card("Sanctions if nothing is delivered", [
+        ("Award and points stand: ", "the sanction falls on the PB, not on the award or the score."),
+        ("Full PB call (Kiírás XIII.17; GYIK Q72): ", "any unproven points commitment calls the whole PB, "
+                                                       "wind and BESS."),
+        ("Group exclusion (Kiírás VII.2 n; GYIK Q71): ", "a called PB can exclude the group from capacity tenders "
+                                                          "for three years; it hits the group holding the SPV at the "
+                                                          "time of the call."),
+        ("Connection right kept (GYIK Q72): ", "a full call does not take the connection right.")],
+        left=CARD_L, top=TOP, width=CARD_W, height=0.59 + 6 * 0.5)
+    s.footnote(f("Nothing delivered: the bid as submitted; after award no BESS, overbuild, municipal one-off or "
+                 "community contribution, and Chinese turbines and substation in capex. White labelling: the EU sale "
+                 "price at COD and the EU gearing are kept. RtB route unaffected. Base PB = pro-rata loss on the "
+                 "unbuilt overbuild. Zero bid for reference: COD IRR {c}, HTM IRR {h}.",
+                 c=zero(IRR_COD, pct), h=zero(IRR_HTM, pct)))
+
+    # ---- 8 Risks and mitigants -------------------------------------------------------------------------------
     s = d.content("Risks and mitigants", f(        # writer's title tightened to two lines
         "Unbuilt overbuild: both bids lose €{p}m of PB and {v} MVA of connection right pro rata; a full call is "
         "unresolved", p=both("Commitment_Penalty", eur), v=both("MVA_At_Risk", n1)),
