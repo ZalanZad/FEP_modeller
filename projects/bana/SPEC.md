@@ -198,3 +198,10 @@ Raiffeisen quantum scaled by the annuity capacity ratio (PV factor 12 y ÷ 1.30 
 0.79) → €0.71m per MW. Same 5 % all-in rate. The other sets change one input from the Raiffeisen base (sets 3-15).
 Deck: slides 2, 5 and 6 show both banks; slide 8 drops the municipality legal/reputational risk (the commitments are
 made to MEKH in the bid; the sanction is the PB call).
+
+## 21. 55 % gearing base; bank terms as two sets (user, 15-Oct-2026; replaces §19-§20)
+Base: debt = 55 % of construction cost on both routes (`In_Gearing`), 15-year level annuity at 5 %, the 1.20x DSCR on PPA
+revenue as a sizing floor (not binding), PPA 90 €/MWh for the whole life. `In_Debt_Per_MW` = 0 in the base (off).
+Sets 15 "Raiffeisen terms" (€0.9m/MW, 15 y, 1.20x) and 16 "UniCredit terms" (€0.71m/MW = Raiffeisen scaled by the
+annuity capacity ratio, 12 y, 1.30x) lift the LTC cap to 70 % so the bank amount binds. Slide 6 "Bank feedback" reports
+what the banks said and the model on each basis; 10 slides, 16 sets.
