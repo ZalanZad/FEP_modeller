@@ -109,7 +109,7 @@ def inputs(m):
     a("Substation", "Substation and 132 kV bay, EU", "EUR k", 12000, source="Bana v3 Inputs E167")
     a("Substation_CN", "Substation and 132 kV bay, CN transformer", "EUR k", 10800, source="Bana v3 Inputs I167")
     a("Capex_Contingency", "Contingency on wind and substation capex", "%", 0.05, source="Bana v3 Inputs E171")
-    a("BESS_Capex", "BESS capex, all-in (no BESS revenue or opex)", "EUR k/MW", 240, source="User 12-Oct-26 (Bora)")
+    a("BESS_Capex", "BESS capex, all-in (no BESS revenue or opex)", "EUR k/MWh", 100, source="User 15-Oct-26")
 
     i.section("Operations")
     a("P50_Hours", "Net P50 hours", "h/yr", 2600, {5: f"=H{i.r}*(1-Sens_Step)"}, source="User 13-Oct-26",
@@ -310,7 +310,7 @@ def calc(m):
     c.row("subst", "Substation and 132 kV bay, this route", "EUR k",
           e="IF({osz9a.E}=1,In_Substation,In_Substation_CN)")
     c.row("capex", "Capex (E: total)", "EUR k", "=-{self.E}*{constr}",
-          e="(({tur.E}+In_Other_Wind)*{wind.F}+{subst.E})*(1+In_Capex_Contingency)+In_BESS_Capex*{bess.F}")
+          e="(({tur.E}+In_Other_Wind)*{wind.F}+{subst.E})*(1+In_Capex_Contingency)+In_BESS_Capex*{mwh.E}*In_BESS_Built")
     c.row("municipal", "Municipal one-off at COD", "EUR k", "=-{self.E}*{cod}", e="{osz1.E}*In_MVA")
     c.row("cost", "Construction cost (E: compounded to COD at the debt rate)", "EUR k",
           "={capex}+{conn}+{municipal}", e="SUMPRODUCT({self.all}/{idx.all})*{idx.E}", bold=True)

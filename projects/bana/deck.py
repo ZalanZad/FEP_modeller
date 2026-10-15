@@ -187,7 +187,7 @@ def build_deck(xlsm: Path, out: Path) -> Path:
             ["Grid node", "Ács Katódgyár (BAMO B 132.00)"],
             ["Connection / wind committed / built", f("{a} MVA / {c} MW / {w} MW", a=b("In_MVA", n0),
                                                       c=b("Out_Wind_MW_1", n0), w=b("Out_Wind_Built_1", n0))],
-            ["BESS committed and built", f("{m} MW / {h} MWh at {c} k€/MW", m=b("Out_BESS_MW_1", n0),
+            ["BESS committed and built", f("{m} MW / {h} MWh at {c} k€/MWh", m=b("Out_BESS_MW_1", n0),
                                            h=b("Out_BESS_MWh_1", n0), c=b("In_BESS_Capex", n0))],
             ["Energy yield and price", ""],
             ["Net P50 equivalent hours", f("{h} h", h=b("In_P50_Hours", n0))],
