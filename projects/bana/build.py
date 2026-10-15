@@ -19,7 +19,9 @@ HERE = Path(__file__).resolve().parent
 NAME = "Bana_Model"
 D = dt.date
 SETS = ["Base", "COD price −10%", "COD price +10%", "Turbine +10%", "Yield −10%", "PPA +10%", "Full PB call",
-        "Rate +1 pp", "Tenor 10 years", "Robin Hood 31%", "CIT 9%", "Debt 6x EBITDA"]
+        "Rate +1 pp", "Tenor 10 years", "Robin Hood 31%", "CIT 9%", "Debt 6x EBITDA",
+        "BESS 100 MWh", "Not built, pro rata", "Not built, full call",
+        "BESS not built"]
 TO_COD = 'SUMIF({end.all},"<="&In_COD,{self.all})'          # amount to COD
 EVENT = "N(AND({start}<={self.F},{end}>={self.F}))"           # line paid on its date in F
 SHARE = "=MAX(0,MIN({self.F},{end})-MAX({self.E},{start})+1)/({self.F}-{self.E}+1)"   # share of a window
@@ -71,12 +73,15 @@ def inputs(m):
     i.section("Tender and grid")
     i.add_constant("Points_Decimals", "Points rounded to decimals", "#", 2, "Kiírás X.1 b")
     a("MVA", "Net connection capacity", "MVA", 50, source="MEKH Annex 1; Bana v3 Inputs E281", fmt="money")
-    a("Overbuild_Built", "Overbuild built, share of MVA (bid: Dashboard)", "%", 0.10, source="User 13-Oct-26")
+    a("Overbuild_Built", "Overbuild built, share of MVA (bid: Dashboard)", "%", 0.10, {14: 0, 15: 0},
+      source="User 13-Oct-26")
+    a("BESS_Set", "BESS commitment, share of MVA (0 = Dashboard bid)", "%", 0, {13: 0.5},
+      source="User 15-Oct-26: 100 MWh = 25 MW x 4 h")
     a("Bottleneck_Loss", "Energy lost on overbuilt MW", "%", 0.05, source="Bora!N18 (as Bora)")
-    a("BESS_Built", "BESS built (1 = yes)", "flag", 1, source="User 13-Oct-26 (as Bora)")
+    a("BESS_Built", "BESS built (1 = yes)", "flag", 1, {14: 0, 15: 0, 16: 0}, source="User 13-Oct-26 (as Bora)")
     a("Min_Hours", "Minimum BESS duration for ÖSZ-4", "h", 4, source="Kiírás Annex 8; GYIK Q5", fmt="money1")
     a("Tolerance_Cap", "Build shortfall tolerated without sanction", "%", 0.10, source="GYIK 28, 30")
-    a("Sanction_Regime", "Sanction regime (1 pro rata, 2 full PB call)", "flag", 1, {7: 2},
+    a("Sanction_Regime", "Sanction regime (1 pro rata, 2 full PB call)", "flag", 1, {7: 2, 15: 2},
       source="GYIK 28/30 (1); Kiírás XIII.17, GYIK 72 (2)")
     a("Sanction_Lag", "Sanction paid after COD", "months", 6, source="Kiírás XIII.17", fmt="int")
     a("Bench_BESS", "Security base: benchmark investment, BESS", "mHUF/MWh", 200, source="Kiírás Annex 2",
@@ -231,12 +236,16 @@ def calc(m):
 
     c.section("Capacity (E: committed in the bid, F: built)")
     c.row("wind", "Wind", "MW", e=f"In_MVA*(1+{lev('Overbuild')})", f="In_MVA*(1+In_Overbuild_Built)", ef_fmt="money1")
-    c.row("bess", "BESS power", "MW", e=f"{lev('BESS')}*In_MVA", f="{self.E}*In_BESS_Built", ef_fmt="money1")
+    c.row("bshare", "BESS power, share of MVA (bid, or the set's commitment)", "%",
+          e=f"IF(In_BESS_Set>0,In_BESS_Set,{lev('BESS')})", ef_fmt="pct")
+    c.row("bess", "BESS power", "MW", e="{bshare.E}*In_MVA", f="{self.E}*In_BESS_Built", ef_fmt="money1")
     c.row("mwh", "BESS energy", "MWh", e="{bess.E}*" + lev("BESS_Hours"), ef_fmt="money1")
     c.row("loss", "Grid-bottleneck loss on built wind", "%", e="({wind.F}-In_MVA)/{wind.F}*In_Bottleneck_Loss",
           ef_fmt="0.000%")
     c.row("short", "Build shortfall vs commitment (E: wind, F: BESS)", "%", e="MAX(0,1-{wind.F}/{wind.E})",
           f="(1-In_BESS_Built)*({bess.E}>0)", ef_fmt="pct")
+    c.row("mva_risk", "Memo: connection right lost pro rata (GYIK 28/30)", "MVA",
+          e="({short.E}>In_Tolerance_Cap)*{short.E}*In_MVA", ef_fmt="money1")
 
     c.section("Tender points (E: commitment, F: weighted points)")
     band = lambda k: (f"INDEX(Osz{k}_Pts,1+SUMPRODUCT((Osz{k}_LB<{{self.E}})+(Osz{k}_LB={{self.E}})"  # noqa: E731
@@ -245,7 +254,7 @@ def calc(m):
     c.row("osz1", "ÖSZ-1 municipal one-off", "EUR k/MW", e=lev("Municipal"), f=band(1), ef_fmt="money2")
     c.row("osz2", "ÖSZ-2 community contribution", "EUR/MWh", e=lev("Community"), f=band(2), ef_fmt="money2")
     c.row("osz3", "ÖSZ-3 overbuild", "%", e=lev("Overbuild"), f=band(3), ef_fmt="money2")
-    c.row("osz4", "ÖSZ-4 BESS power, share of MVA", "%", e=lev("BESS"), f=band(4) + "*({self.E}>=Osz4_Min)",
+    c.row("osz4", "ÖSZ-4 BESS power, share of MVA", "%", e="{bshare.E}", f=band(4) + "*({self.E}>=Osz4_Min)",
           ef_fmt="money2")
     c.row("osz5", "ÖSZ-5 partial award", "flag", e=lev("Partial"), f=yes(5, 5), ef_fmt="money2")
     c.row("osz6", "ÖSZ-6 performance security multiple", "x", e=lev("PB_Mult"), f=band(6), ef_fmt="money2")
@@ -463,11 +472,13 @@ def dashboard(m):
     d.link("BESS energy committed", "MWh", "{mwh.E}", out="BESS_MWh", fmt="money1")
     d.link("BESS built", "MW", "{bess.F}", out="BESS_Built", fmt="money1")
     d.link("Wind build shortfall vs commitment", "%", "{short.E}", out="Shortfall", fmt="pct")
+    d.link("Memo: connection right lost pro rata", "MVA", "{mva_risk.E}", out="MVA_At_Risk", fmt="money1")
     d.link("Grid-bottleneck energy loss", "%", "{loss.E}", out="Bottleneck_Loss", fmt="0.00%")
     d.link("PB call if the pro-rata rule applies (GYIK 28/30)", "EUR m", "{sanc.E}", scale="Thousand",
            out="PB_Call_ProRata", fmt=m2)
     d.link("PB call if the full-call rule applies (GYIK 72)", "EUR m", "{sanc.F}", scale="Thousand",
            out="PB_Call_Full", fmt=m2)
+    d.link("PB call paid, selected regime", "EUR m", "-{sanction.I}", scale="Thousand", out="PB_Call_Applied", fmt=m2)
 
     d.section("Returns at a glance")
     for label, unit, t, scale, out in [
@@ -544,9 +555,8 @@ def dashboard(m):
     d.link("Tax losses lapsed", "EUR m", "-{lcf_lapse.I}", scale="Thousand", out="Tax_Losses_Lapsed", fmt=m2)
     d.link("Checks failed in this set (0 = OK)", "#", "Model_Checks", out="Checks", fmt="int")
 
-    d.scenario_results(outs=["Equity_COD", "COD_IRR", "COD_MOIC", "HTM_IRR", "HTM_MOIC", "Buyer_IRR_U", "Buyer_IRR_L",
-                              "Debt_COD", "Min_DSCR",
-                              "Checks"])
+    d.scenario_results(outs=["Points", "Equity_COD", "COD_IRR", "COD_MOIC", "HTM_IRR", "HTM_MOIC", "Buyer_IRR_U", "Buyer_IRR_L",
+                              "Debt_COD", "Min_DSCR", "PB_Call_Applied", "MVA_At_Risk", "Checks"])
 
     d.panel_section("Key-assumption set")
     d.selector()

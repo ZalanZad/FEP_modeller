@@ -168,3 +168,8 @@ Sensitivity only, never the base (`In_RH_On` = 0; set 10). Note for the IC: the 
   New engine option `Calc.xirr(..., start=)` and lint rule `x-xirr0`.
 - Set 12 "Debt 6x EBITDA": debt = 6 × first full-year EBITDA (`In_Debt_Mult`), cap raised to 70 %, still within the
   DSCR capacity. Buyer IRR added to the sensitivity table.
+
+## 15. More sets (user, 15-Oct-2026; engine limit raised to 16)
+13 "BESS 100 MWh": BESS commitment 50 % of MVA (25 MW × 4 h), built (`In_BESS_Set`). 14/15 "Not built, pro rata /
+full call": bid unchanged, neither the overbuild nor the BESS built (as Bora); PB call per regime; connection right lost
+pro rata is a memo (`mva_risk`), not in generation. 16 "BESS not built": wind as base, BESS not built, pro rata.

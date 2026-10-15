@@ -14,7 +14,7 @@ fully formula-driven, with nothing in it that the decision does not need.
 |---|---|---|
 | 1 | `Cover` | Project name, version, date, author, colour legend, and the master check status. |
 | 2 | `Summary` | Headline outputs for the live case, the stored scenario results table and the checks panel. Only links, no calculations. |
-| 3 | `Inputs` | Scalar inputs, one row each, with up to 12 scenario columns and a `Live` column. |
+| 3 | `Inputs` | Scalar inputs, one row each, with up to 16 scenario columns and a `Live` column. |
 | 4 | `Curves` | Time-series inputs (prices, indices, capex profiles, production), annual or by period. Curves are picked by name. |
 | 5 | `Calc` | The single calculation sheet on a uniform timeline. Use one sheet per asset only when the SPEC asks for it. |
 | 6 | `Checks` | Every check row, rolled up into one `Master_Check` cell (0 = OK). |
@@ -52,7 +52,7 @@ Periodicity is an input (quarterly by default, annual for simple bid models). Ne
 
 ## 4. Inputs sheet and scenario selection
 
-- Column layout: B label, C unit, D source/note, F `Live`, H:S scenario 1–12, T spare.
+- Column layout: B label, C unit, D source/note, F `Live`, H:W scenario 1–16, X spare.
 - Formula in `Live`: `=IF(INDEX($H r:$O r,1,Scenario_Selected)="",$H r,INDEX($H r:$O r,1,Scenario_Selected))`.
   A blank scenario cell inherits the base case (column H), so a scenario shows only what differs from base.
 - `Scenario_Selected` is a single input cell at the top, validated against the list of scenario names.
@@ -117,7 +117,7 @@ If a value cannot be a live formula (circularity, goal seek, a scenario snapshot
   - Each Delta feeds into Checks.
 - **Goal seek** (for example a bid price that hits a target IRR): a macro solves it and writes the result into a
   purple input cell. A check row verifies `ABS(achieved − target) < Tolerance`.
-- **Scenario runner**: `RunAllScenarios` loops `Scenario_Selected` over every set (up to 12), recalculates (and runs the solvers),
+- **Scenario runner**: `RunAllScenarios` loops `Scenario_Selected` over every set (up to 16), recalculates (and runs the solvers),
   and writes the headline outputs into the stored results table on `Summary`. Afterwards it restores the original
   scenario. A check verifies that the live case equals its stored column.
 - Macro source of truth: `vba/*.bas`. Macros refer to **named ranges only**, never to A1 addresses.

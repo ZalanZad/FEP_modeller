@@ -53,7 +53,7 @@ from .styles import apply
 
 J = 10                       # first timeline column
 HEADER = {"start": 3, "end": 4, "days": 5, "yf": 6, "year": 7, "period": 8}
-MAX_SETS = 12                # key-assumption sets: Inputs columns H.. (MODELLING_STANDARDS §4)
+MAX_SETS = 16                # key-assumption sets: Inputs columns H.. (MODELLING_STANDARDS §4)
 INPUT_W = 8 + MAX_SETS       # last Inputs column (spare after the sets)
 FIRST_ROW = 11               # first content row on Calc / Checks (panes frozen at J10)
 UNIT_FMT = {"EUR k": "money", "EUR m": "money1", "%": "pct", "x": "mult", "date": "date", "flag": "flag",
@@ -315,7 +315,7 @@ class Cover:
 
 # =========================================================================================
 class Inputs:
-    """B label, C unit, D source, F Live, H:S scenarios 1-12, T spare (MODELLING_STANDARDS §4)."""
+    """B label, C unit, D source, F Live, H:W scenarios 1-16, X spare (MODELLING_STANDARDS §4)."""
 
     def __init__(self, model, ws, start, periodicity):
         self.m, self.ws, self.r = model, ws, 4

@@ -357,22 +357,33 @@ def build_deck(xlsm: Path, out: Path) -> Path:
         r=st("HTM_IRR_1", sets.index("Robin Hood 31%") + 1, pct), y=st("HTM_IRR_1", sets.index("Yield −10%") + 1, pct)),
         "FEP and buyer (unlevered) IRR by key-assumption set, each change on its own; the sale at COD does not depend on yield or PPA price "
         "because its price is fixed per MW.", title_lines=2)
-    rows = [[name, *[st(k, i, x2 if "DSCR" in k else pct) for k in
+    rows = [[name, st("Points_1", i, pt), *[st(k, i, x2 if "DSCR" in k else pct) for k in
                      ("COD_IRR_1", "COD_IRR_2", "Buyer_IRR_U_1", "Buyer_IRR_U_2", "HTM_IRR_1", "HTM_IRR_2",
                       "Min_DSCR_1", "Min_DSCR_2")]]
             for i, name in enumerate(sets, 1)]
-    s.table(["Key-assumption set", "COD EU", "COD CN", "Buyer EU", "Buyer CN", "Hold EU", "Hold CN", "DSCR EU",
-             "DSCR CN"], rows, key_rows={0}, top=TOP, width=10.3, height=0.59 + len(sets) * 0.46,
-            col_widths=[2.3] + [1.0] * 8, unit_col=None)
+    s.table(["Key-assumption set", "Points EU", "COD EU", "COD CN", "Buyer EU", "Buyer CN", "Hold EU", "Hold CN",
+             "DSCR EU", "DSCR CN"], rows, key_rows={0}, top=TOP, width=10.4, height=0.59 + len(sets) * 0.42,
+            col_widths=[2.0, 0.8] + [0.95] * 8, unit_col=None)
     s.card("What to watch", [
         ("Turbine choice: ", "the permits name Goldwind; European turbines need a permit amendment and carry the "
                              "most capex risk."),
-        ("Overbuild: ", f("{w} MW built against {c} MW committed. Pro rata (GYIK 28/30) there is no PB call; if the "
-                          "full-call reading (GYIK 72) applies, the €{pb}m PB is lost: COD IRR {ci}, hold IRR {hi} "
-                          "(European).", w=b("Out_Wind_Built_1", n0), c=b("Out_Wind_MW_1", n0),
-                          pb=b("Out_PB_Call_Full_1", lambda v: fmt_eur_m(v, 2)),
-                          ci=st("COD_IRR_1", sets.index("Full PB call") + 1, pct),
-                          hi=st("HTM_IRR_1", sets.index("Full PB call") + 1, pct))),
+        ("Promise, don't build: ", f("if neither the overbuild nor the BESS is built, the PB call is €{p1}m pro rata "
+                                     "(€{p2}m on a full call) and {mva} MVA of connection right may be lost; COD IRR "
+                                     "{c1} / {c2}, hold IRR {h1} / {h2} (pro rata). Not building only the BESS: "
+                                     "COD IRR {b1}, hold IRR {b2}.",
+                                     p1=st("PB_Call_Applied_1", sets.index("Not built, pro rata") + 1, eur),
+                                     p2=st("PB_Call_Applied_1", sets.index("Not built, full call") + 1, eur),
+                                     mva=st("MVA_At_Risk_1", sets.index("Not built, pro rata") + 1, n1),
+                                     c1=st("COD_IRR_1", sets.index("Not built, pro rata") + 1, pct),
+                                     c2=st("COD_IRR_2", sets.index("Not built, pro rata") + 1, pct),
+                                     h1=st("HTM_IRR_1", sets.index("Not built, pro rata") + 1, pct),
+                                     h2=st("HTM_IRR_2", sets.index("Not built, pro rata") + 1, pct),
+                                     b1=st("COD_IRR_1", sets.index("BESS not built") + 1, pct),
+                                     b2=st("HTM_IRR_1", sets.index("BESS not built") + 1, pct))),
+        ("BESS 100 MWh: ", f("{p} points but COD IRR {c} and hold IRR {h} (European).",
+                             p=st("Points_1", sets.index("BESS 100 MWh") + 1, pt),
+                             c=st("COD_IRR_1", sets.index("BESS 100 MWh") + 1, pct),
+                             h=st("HTM_IRR_1", sets.index("BESS 100 MWh") + 1, pct))),
         ("Robin Hood tax: ", f("not in the base; if the {r} levy applies (its exemption covers only KÁT/METÁR "
                                "plants), the hold IRR falls to {h} / {h2}.", r=b("In_RH_Rate", pct0),
                                h=st("HTM_IRR_1", sets.index("Robin Hood 31%") + 1, pct),
@@ -390,8 +401,8 @@ def build_deck(xlsm: Path, out: Path) -> Path:
                                d2=st("Debt_COD_2", sets.index("Debt 6x EBITDA") + 1, eur),
                                h1=st("HTM_IRR_1", sets.index("Debt 6x EBITDA") + 1, pct),
                                h2=st("HTM_IRR_2", sets.index("Debt 6x EBITDA") + 1, pct)))],
-        left=15.45, top=TOP, width=4.45, height=6.4)
-    s.footnote(f("Each set changes one input, as named (the EBITDA set also raises the debt cap); tenor {t} years. Stored by the scenario macro with the tax "
+        left=15.45, top=TOP, width=4.45, height=7.9)
+    s.footnote(f("Each set changes only the inputs its name describes; tenor {t} years. Stored by the scenario macro with the tax "
                  "solver; base = live model. Model checks in every set: {ck}.",
                  t=b(set_cell("In_Debt_Tenor", "Tenor 10 years"), n0),
                  ck=d.bind_sum([st(f"Checks_{r}", k, None) for r in (1, 2) for k in range(1, len(sets) + 1)],
