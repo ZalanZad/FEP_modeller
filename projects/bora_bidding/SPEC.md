@@ -106,6 +106,15 @@ v2 (12-Oct-2026) replaces v1. It adds the logic recovered from the old engine (`
       It sums to the all-in cost to COD.
     - Placement: compact Dashboard blocks after the commitment overview; one deck slide "Funding and capex".
 12. **Inputs (user):** BESS capex 100 k€/MWh on built BESS MWh (= 400 k€/MW at 4 h; user 15-Oct-26, was 240 k€/MW); BORA 2 community contribution 2.01 €/MWh (scores ÖSZ-2 points, 68.25 total).
+23. **Key-assumption set "Nothing delivered" (user, 15-Oct-2026).** The bid stays as it is (every commitment except
+    brownfield and PB above the minimum, 85 points); after award nothing is delivered. The award and the points stand.
+    - New input `In_Delivered` (points commitments delivered, 1 = yes; base 1, this set 0), plus `In_BESS_Built` 0,
+      `In_Overbuild_Built` 0 and `In_Sanction_Regime` 2 (full PB call) in this set.
+    - When 0: no municipal one-off, no community contribution, Chinese turbines and substation in capex
+      (white labelling: the EU sale price at COD and the EU gearing stay). Points do not change.
+    - The deck shows it beside the base and the zero bid (COD and HTM per bid). The RtB route is not affected.
+24. **BESS capex (user, 15-Oct-2026; standing assumption for every project):** 100 k€/MWh on the BESS MWh,
+    i.e. 400 k€/MW for a 4-hour BESS.
 
 ## 1. Decision
 The IC is asked to approve the tender commitments for two 100 MVA capacity bids at the Szombathely OVIT node,

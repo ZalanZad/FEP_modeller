@@ -24,6 +24,9 @@ Working language: English (code, workbooks, decks, docs). Chat replies to the us
 7. Every figure in a deck is read from the recalculated workbook and carries its cell reference.
    Never retype a number into a slide.
 
+## Standing assumptions (user decisions; apply unless a SPEC says otherwise)
+- BESS capex: 100 k€/MWh on the BESS MWh (400 k€/MW at 4 h). User, 15-Oct-2026.
+
 ## Workflow
 1. **Plan (main session, Fable):** write `projects/<name>/SPEC.md` before anything is built. It covers the decision,
    scenarios, model architecture (sheets, rows, timeline), inputs with sources, outputs and the deck storyline.
