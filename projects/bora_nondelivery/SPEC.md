@@ -59,3 +59,23 @@ Summary ends with a short "Sanction" note block (≤ 6 lines, with citations; ex
 - A capacity shortfall above 10 % → PB and connection right lost pro rata (XII.12; GYIK 28/30/44).
 - A called PB excludes the whole company group from capacity tenders for 3 years (Kiírás VII.2 n; GYIK Q71). It applies to the group at the
   time of the call, which may be the buyer's group after a sale.
+
+## 7. COD buyer's project IRR (user, 15-Oct-2026)
+Question: what project IRR does a buyer at COD earn when the developer delivers nothing? Compare it with the original project, i.e. the
+zero bid (all commitments at their zero level).
+- **Buyer's project IRR:** unlevered and post-tax, XIRR on: − purchase price at COD + the project's operating cash flows after COD.
+  - Operating cash flow = EBITDA − CIT × MAX(0, EBITDA − tax depreciation).
+  - In a share deal the SPV keeps its own asset tax base: capex incl. connection fees and municipal, over 20 years. The purchase price
+    does not enter it.
+- **Purchase price:** the same in both cases, 2,450 k€/MW × 100 MW built per bid (Bora model `In_COD_Price`). No price effect.
+- **Original (zero bid):**
+  - Take the zero-bid project's quarterly revenue, opex and EBITDA after COD from the Bora model. Use a private LibreOffice copy with
+    every lever at its zero level (BESS hours kept), Calc_1 rows.
+  - Enter them as a sourced data block on the Curves sheet (source "Bora model, zero bid, Calc_1 row …").
+  - Use the zero bid's tax-depreciation base from the same run.
+- **Non-delivery:** the same operating cash flows. There is no community or municipal payment, no BESS and no overbuild, as in the zero bid. Then:
+  - the full PB called at the sanction date (COD + 6 months), borne by the buyer's SPV;
+  - a tax-depreciation base lower by the white-labelling saving (100 k€/MW × 100 MW).
+  - Memo: buyer IRR if the seller bears the PB call.
+- **Output:** buyer project IRR for original and non-delivery, and the difference in pp. Show it per bid (= both bids, since the IRR
+  is the same) and the NPV at 8 % to COD.
