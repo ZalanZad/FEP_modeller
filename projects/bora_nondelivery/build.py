@@ -1,8 +1,10 @@
 """Bora non-delivery case – savings at COD vs the performance security called. Built to SPEC.md v1.
 
-Cover | Summary | Inputs | Calc | Checks, annual 2031-2061 (the community stream only; the rest are row constants).
+Cover | Summary | Inputs | Curves | Calc | Checks, annual 2031-2061 (community stream and the COD buyer's cash flows).
 Calc rows carry E = per bid and F = both bids unless the label says otherwise. No macros (nothing is stored).
+Curves holds the zero-bid operating cash flows read from the Bora model by extract_zero_bid.py (data/zero_bid.csv).
 """
+import csv
 import datetime as dt
 from pathlib import Path
 
@@ -12,6 +14,7 @@ from fepm.xl.styles import Alignment, Font, FONT, SIZE, apply
 D = dt.date
 NAME = "Bora_NonDelivery"
 BOTH = "{self.E}*In_Bids"                                    # F column: both bids
+ZERO_BID = list(csv.DictReader(open(Path(__file__).resolve().parent / "data" / "zero_bid.csv", newline="")))
 
 
 # =========================================================================================== inputs
@@ -58,6 +61,38 @@ def inputs(m):
     a("Tolerance_Cap", "Capacity shortfall tolerated without sanction", "%", 0.10, source="Kiírás XIII.15; GYIK 28, 44")
     a("Bora_PB", "PB per bid in the Bora model", "EUR k", 6993.56164383562,
       source="Bora model Dashboard (Out_Sanction_Full_1)", fmt="money1")
+    a("Sanction_Lag", "PB called after COD", "months", 6, source="Kiírás XIII.17; Bora model Inputs", fmt="int")
+
+    i.section("COD buyer (per bid)")
+    a("COD_Price", "Purchase price at COD per built MW", "EUR k/MW", 2450, source="Bora model Inputs (In_COD_Price)")
+    a("ZB_Tax_Base", "Tax depreciation base, zero bid", "EUR k", float(ZERO_BID[0]["tax_base"]),
+      source="Bora model, zero bid, Calc_1 E122", fmt="money")
+    a("Dep_Years", "Tax depreciation period", "years", 20, source="Bora model Inputs (old E213)", fmt="int")
+
+
+# =========================================================================================== curves
+def curves(m):
+    """Zero-bid quarterly operating cash flows after COD, per bid (vertical block: date, revenue, opex, EBITDA)."""
+    cv, ws = m.curves, m.curves.ws
+    cv.r += 1
+    for col in range(1, m.last + 1):
+        apply(ws.cell(cv.r, col), "section")
+    ws.cell(cv.r, 1, "x")
+    ws.cell(cv.r, 3, "Zero bid: operating cash flows after COD, per bid")
+    ws.cell(cv.r, 5, "Bora model, zero bid, Calc_1 rows 112-119")
+    cv.r += 1
+    apply(ws.cell(cv.r, 4, "EUR k"), "unit")
+    for col, h in ((5, "Period end"), (6, "Revenue"), (9, "Opex"), (10, "EBITDA")):
+        apply(ws.cell(cv.r, col, h), "header")
+    first = cv.r + 1
+    for d in ZERO_BID:
+        cv.r += 1
+        apply(ws.cell(cv.r, 5, D.fromisoformat(d["period_end"])), "input", "date")
+        for col, k in ((6, "revenue"), (9, "opex"), (10, "ebitda")):
+            apply(ws.cell(cv.r, col, float(d[k])), "input", "money1")
+    for name, col in (("ZB_Date", "E"), ("ZB_Revenue", "F"), ("ZB_Opex", "I"), ("ZB_EBITDA", "J")):
+        m.define(name, f"Curves!${col}${first}:${col}${cv.r}")
+    cv.r += 1
 
 
 # =========================================================================================== calc
@@ -110,6 +145,25 @@ def calc(m):
           e="({short.E}>In_Tolerance_Cap)*{short.E}*In_MVA", f=BOTH, ef_fmt="money1")
     c.row("excl", "3-year group exclusion", "text", e='IF({pb.E}<0,"Yes","No")', ef_fmt="text")
 
+    c.section("COD buyer's project IRR, per bid (E: IRR, F: NPV at COD)")
+    c.event("cod", "COD: purchase", "In_COD")
+    c.event("sanc", "PB called (COD + lag)", "EDATE(In_COD,In_Sanction_Lag)")
+    c.row("cf_date", "Cash-flow date (COD in the COD year)", "date", "=IF({cod},In_COD,{end})", total="none")
+    c.row("ebitda", "EBITDA, zero bid", "EUR k", '=SUMIFS(ZB_EBITDA,ZB_Date,">="&{start},ZB_Date,"<="&{end})')
+    c.row("dep", "Tax depreciation share", "factor",
+          "=MAX(0,MIN({self.F},{end})-MAX({self.E},{start})+1)/({self.F}-{self.E}+1)", e="In_COD+1",
+          f="EDATE(In_COD,In_Dep_Years*Months_In_Year)", ef_fmt="date")
+    c.row("base", "Tax depreciation base (E: original, F: non-delivery)", "EUR k", e="In_ZB_Tax_Base",
+          f="{self.E}-{white.E}")
+    tax = "={ebitda}-In_CIT*MAX(0,{ebitda}-{base.%s}*{dep})-In_COD_Price*In_Wind_ND*{cod}"
+    irr = dict(e="XIRR({self.all},{cf_date.all})", f="XNPV(In_Rate,{self.all},{cf_date.all})", ef_fmt="money")
+    c.row("cf_o", "Buyer cash flow: original, zero bid", "EUR k", tax % "E", **irr, bold=True)
+    c.row("cf_m", "Buyer cash flow: non-delivery, seller bears the PB", "EUR k", tax % "F", **irr)
+    c.row("cf_n", "Buyer cash flow: non-delivery, buyer bears the PB", "EUR k", "={cf_m}+{pb.E}*{sanc}", **irr,
+          bold=True)
+    c.row("d_irr", "IRR change vs original (E: buyer bears PB, F: seller)", "%", e="{cf_n.E}-{cf_o.E}",
+          f="{cf_m.E}-{cf_o.E}", ef_fmt="0.00%")
+
 
 # =========================================================================================== checks
 def checks(m):
@@ -120,6 +174,10 @@ def checks(m):
     k.add_check("PB per bid = Bora model PB (EUR 6,993.6 k)", "=--(ABS(-{pb.E}-In_Bora_PB)>Tolerance)",
                 per_period=False)
     k.add_check("Community PV: XNPV = SUMPRODUCT", "=--(ABS({com.E}-{com_pv.E})>Tolerance)", per_period=False)
+    k.add_check("Zero-bid data: revenue + opex = EBITDA",
+                "=--(ABS(SUM(ZB_Revenue)+SUM(ZB_Opex)-SUM(ZB_EBITDA))>Tolerance)", per_period=False)
+    k.add_check("Zero-bid EBITDA all on the timeline", "=--(ABS(SUM(ZB_EBITDA)-{ebitda.I})>Tolerance)",
+                per_period=False)
 
 
 # =========================================================================================== summary
@@ -192,6 +250,23 @@ def summary(m):
     line("Memo: PB lost under the pro-rata reading (XII.12)", "EUR m", "pb_pro", "PB_ProRata")
 
     r[0] += 1
+    bar("COD buyer's project IRR (unlevered, post-tax; per bid = both bids)",
+        headers=("Item", "Unit", "Both bids", "Per bid", ""))
+    for key, label, out in (("cf_o", "Buyer project IRR: original (zero bid)", "Buyer_IRR_Original"),
+                            ("cf_n", "Buyer project IRR: non-delivery", "Buyer_IRR_NonDelivery")):
+        line(label, "%", key, out, fmt="0.00%")
+    line("Change, non-delivery vs original", "pp", "d_irr", "Buyer_IRR_Delta", fmt="0.00%")
+    line("Memo: buyer IRR if the seller bears the PB call", "%", "cf_m", "Buyer_IRR_Seller_PB", fmt="0.00%")
+    for key, label, out in (("cf_o", "Buyer NPV at 8 % to COD: original", "Buyer_NPV_Original"),
+                            ("cf_n", "Buyer NPV at 8 % to COD: non-delivery", "Buyer_NPV_NonDelivery")):
+        ws.cell(r[0], 3, label)
+        apply(ws.cell(r[0], 4, "EUR m"), "unit")
+        put(5, f"={c.ref(key, 'F')}*In_Bids/Thousand", "money1")
+        put(6, f"={c.ref(key, 'F')}/Thousand", "money1")
+        m.define(f"Out_{out}", f"Summary!$E${r[0]}")
+        r[0] += 1
+
+    r[0] += 1
     bar("Memo")
     line("Points lost after the award: none, the award stands")
     line("3-year group exclusion, as the PB is called", "text", "excl", fmt="text")
@@ -209,8 +284,9 @@ def summary(m):
 def build_model(out: Path) -> Path:
     m = Model("Bora non-delivery case", "Savings at COD vs the performance security called", periods=31,
               periodicity="annual", start=D(2031, 1, 1), scenarios=["Base"], version="v1", author="FEP",
-              date=D(2026, 10, 15))
+              date=D(2026, 10, 15), curves=True)
     inputs(m)
+    curves(m)
     calc(m)
     checks(m)
     summary(m)
