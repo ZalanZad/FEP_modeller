@@ -81,6 +81,7 @@ def dd_table():
 
 def build_deck(xlsm: Path, out: Path) -> Path:
     d = Deck(xlsm, source=Path(xlsm).name, sections=SECTIONS, date_cell=("Dashboard", "E6"))
+    d.source = f"{Path(xlsm).stem}_{d.date:%Y%m%d}{Path(xlsm).suffix}"   # the dated copy that is sent
     f = d.f
     names = d.wb.defined_names
 

@@ -7,6 +7,7 @@ Scenarios.bas stores the key-assumption sets.
 """
 import datetime as dt
 import importlib.util
+import shutil
 from pathlib import Path
 
 from openpyxl.utils import get_column_letter as L
@@ -18,6 +19,7 @@ from fepm.xl.styles import FMT, apply
 HERE = Path(__file__).resolve().parent
 NAME = "Bana_Model"
 D = dt.date
+DATE = D(2026, 10, 15)                                      # model date; dated copies of the outputs
 SETS = ["Base: Raiffeisen", "Base: UniCredit", "COD price −10%", "COD price +10%", "Turbine +10%", "Yield −10%",
         "PPA +10%", "Full PB call", "Rate +1 pp", "Tenor 10 years", "Robin Hood 31%", "CIT 9%",
         "BESS 100 MWh", "Promise all, deliver nothing", "Full cash sweep"]
@@ -592,7 +594,7 @@ def dashboard(m):
 # =========================================================================================== build
 def model():
     m = Model("Project Bana", "50 MVA onshore wind, Ács Katódgyár – sale at COD vs hold to maturity", periods=136,
-              periodicity="quarterly", start=D(2026, 10, 1), scenarios=SETS, version="v2", date=D(2026, 10, 14),
+              periodicity="quarterly", start=D(2026, 10, 1), scenarios=SETS, version="v2", date=DATE,
               curves=True, layout="dashboard", calc_sheets=["Calc_1", "Calc_2"],
               bids=["European turbine", "Chinese turbine"], extra_cols=len(SETS), source_col=False)
     inputs(m)
@@ -630,4 +632,7 @@ def build(out: Path):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     xlsm = build_model(out)
-    return {"model": xlsm, "deck": build_deck(xlsm, out)}
+    deck = build_deck(xlsm, out)
+    for f in (xlsm, deck):                                  # dated copies to send: Bana_Model_20261015.xlsm
+        shutil.copy(f, out / f"{f.stem}_{DATE:%Y%m%d}{f.suffix}")
+    return {"model": xlsm, "deck": deck}
