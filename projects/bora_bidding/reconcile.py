@@ -1,8 +1,8 @@
 """Bora bid model – reconciliation against the old engine (SPEC v2 §3 saved values, §8 deliberate fixes, §0 user decisions).
 
 For each headline and bid: saved value (meeting file, reproduced by the old-engine shadows) → each §8 fix applied one at
-a time in the shadows (data/old_engine/old_rtb.py, old_htm.py) → each user decision (SPEC §0 items 1, 4, 5, 12) as its own
-"user decision" step → new-structure residual → the recalculated workbook at key-assumption set "Overbuild built".
+a time in the shadows (data/old_engine/old_rtb.py, old_htm.py) → each user decision (SPEC §0 items 1, 4, 5, 12, 21, 24) as its
+own "user decision" step → new-structure residual → the recalculated workbook at key-assumption set "Overbuild built".
 CN values: that set with the input switch In_CN_Turbine = 1 in a private LibreOffice copy. Then set "Overbuild built" →
 Base (overbuild not built) per bid. Writes out/reconciliation.md and checks the written tables against the workbook.
 
@@ -38,9 +38,13 @@ IRR_COD = "FEP IRR (HTM!G352, XIRR rows 359/362)"
 IRR_HTM = "FEP IRR (HTM!G139, IRR on row 129)"
 ALLIN = "All-in cost to COD (Bora row 87)"
 COD = dt.date(2031, 9, 30)
-# The user's decisions (SPEC §0 items 1, 4, 5, 12; 12-Oct-2026). The workbook inputs must equal them (checked in main).
-UD_EXPECT = dict(rtb_premium=150.0, turbine_eu=600.0, ppa_price=90.0, bess_capex=400.0, community_b2=2.01)
+# The user's decisions (SPEC §0 items 1, 4, 5, 12, 21, 24). The workbook inputs must equal them (checked in main).
+UD_EXPECT = dict(rtb_premium=150.0, turbine_eu=600.0, ppa_price=90.0, bess_capex=400.0)
 UD = dict(UD_EXPECT, ppa_tenor=30)
+LEVERS = ["Municipal", "Community", "Overbuild", "BESS", "BESS_Hours", "PB_Mult", "Partial", "Brownfield", "Shared",
+          "EU_Turbine", "EU_Transformer"]
+B1_LEVERS = {k: v for k, v in R.J["strategies"]["S2"].items() if k not in ("name", "cells")}   # BORA 1 commitments
+B2_AS_B1 = {"strat_over": {"S3": B1_LEVERS}}       # SPEC §0 item 21: BORA 2 takes BORA 1's commitments
 
 
 def todate(x):
@@ -57,7 +61,7 @@ def col(n):
 
 # =========================================================================================== workbook (LibreOffice)
 OUTS = ["Points", "Wind_MW", "Wind_Built_MW", "BESS_MW", "RtB_Price", "Distributable", "RtB_Profit", "RtB_IRR",
-        "Split_ARES", "Cost_To_COD", "COD_Price_Effect", "COD_Debt", "COD_Proceeds", "COD_Profit", "COD_IRR", "HTM_IRR",
+        "Exit_ARES_Total", "Cost_To_COD", "COD_Price_Effect", "COD_Debt", "COD_Proceeds", "COD_Profit", "COD_IRR", "HTM_IRR",
         "Commitment_Total", "Commitment_Penalty"]
 ROWS = {"htm_cf": "FEP equity cash flow – hold to maturity", "contrib": "FEP contributions to COD",
         "gen": "Net generation", "rev": "Revenue", "ebitda": "EBITDA", "int": "Interest paid",
@@ -110,8 +114,8 @@ def read_workbook():
     with Office(XLSM) as lo:
         inp = {k: lo.get(f"In_{k}") for k in ("Award_Date", "PB_Days", "PB_Release", "Life", "RtB_Premium", "Turbine",
                                                "PPA_Price", "BESS_Capex")}
-        inp["Community"] = list(lo._range("Dash_Community").getDataArray()[0])
-        inp["BESS_Hours"] = lo._range("Dash_BESS_Hours").getDataArray()[0][0]
+        inp["levers"] = {k: list(lo._range(f"Dash_{k}").getDataArray()[0]) for k in LEVERS}
+        inp["BESS_Hours"] = inp["levers"]["BESS_Hours"][0]
         orig = {ref: lo.get(ref) for _, _, over, _ in plan for ref in over}
         for tag, name, over, rows in plan:
             lo.set("Scenario_Name", name)
@@ -182,7 +186,7 @@ def steps(pb_date, pb_release):
 
 
 def user_steps(s):
-    """The user's later decisions as bridge steps (own toggles in old_rtb / old_htm); BORA 2 only for the community."""
+    """The user's later decisions as bridge steps (own toggles in old_rtb / old_htm); U5 for BORA 2 only."""
     out = [
         ("U1", "User decision: RtB price 150 k€/MVA fixed, no price effect", dict(pass_through=0.0), {}, "rb"),
         ("U2", "User decision: EU turbine 600 k€/MW (was 950)",
@@ -194,14 +198,14 @@ def user_steps(s):
          dict(g_over={"bess_capex_keur_per_mw": UD["bess_capex"]}), dict(bess_capex=UD["bess_capex"]), "b"),
     ]
     if s == "S3":
-        out.append(("U5", "User decision: BORA 2 community 2.01 €/MWh (was 2.0)",
-                    dict(strat_over={"S3": {"community_eur_per_mwh": UD["community_b2"]}}),
-                    dict(community=UD["community_b2"]), "b"))
+        out.append(("U5", "User decision: BORA 2 takes BORA 1's commitments (151 MW wind, 51 MW BESS, community 3)",
+                    B2_AS_B1, dict(levers="S2"), "rb"))
     return out
 
 
 def htm_kwargs(s, rk, hk, cod):
     hk = dict(hk)
+    hk.pop("levers", None)                               # HTM shadow strategy swap (see hs)
     ov = hk.pop("ov", {})
     if hk.pop("devex", False):
         rr = R.compute(s, **rk)
@@ -220,9 +224,15 @@ def rtb_vals(s, rk):
                 dev=r["developer_total"] / K, points=r["points"])
 
 
+def hs(s, hk):
+    """old_htm strategy: BORA 2 with BORA 1's commitments (U5) runs on S2's levers; after fix 10a (no deemed exit) the
+    levers are the only strategy-specific HTM input, so this equals S3 with S2's levers."""
+    return hk.get("levers", s)
+
+
 def build_vals(s, rk, hk, cod):
     kw = htm_kwargs(s, rk, hk, cod)
-    x = {rt: H.compute(s, rt, **kw) for rt in ("COD-EU", "COD-CN", "HTM-EU", "HTM-CN")}
+    x = {rt: H.compute(hs(s, hk), rt, **kw) for rt in ("COD-EU", "COD-CN", "HTM-EU", "HTM-CN")}
     return dict(c2c_eu=x["COD-EU"]["cost_to_cod"][ALLIN] / K, c2c_cn=x["COD-CN"]["cost_to_cod"][ALLIN] / K,
                 cod_eu=x["COD-EU"]["cod"][IRR_COD], cod_cn=x["COD-CN"]["cod"][IRR_COD],
                 htm_eu=x["HTM-EU"]["htm"][IRR_HTM], htm_cn=x["HTM-CN"]["htm"][IRR_HTM], raw=x)
@@ -240,7 +250,7 @@ def run_bridge(s, stp, cod):
              ["detail"]["devex_return_G131"] / K for f in ("line", "portfolio")}
     kw = htm_kwargs(s, rk, hk, cod)                      # COD IRR with the per-line floor instead of the portfolio floor
     kw["devex"] = dict(kw["devex"], g280=floor["line"] * K)
-    floor["irr_line"] = H.compute(s, "COD-EU", **kw)["cod"][IRR_COD]
+    floor["irr_line"] = H.compute(hs(s, hk), "COD-EU", **kw)["cod"][IRR_COD]
     floor["irr_portfolio"] = rows[-1][3]["cod_eu"]
     return rows, floor
 
@@ -342,10 +352,13 @@ def main():
     wbv, refs = cell_refs()
     findings = []
     UD.update(rtb_premium=inp["RtB_Premium"], turbine_eu=inp["Turbine"], ppa_price=inp["PPA_Price"],
-              bess_capex=inp["BESS_Capex"] * inp["BESS_Hours"], community_b2=inp["Community"][1], ppa_tenor=int(inp["Life"]))
+              bess_capex=inp["BESS_Capex"] * inp["BESS_Hours"], ppa_tenor=int(inp["Life"]))
     for k, v in UD_EXPECT.items():
         if abs(UD[k] - v) > 1e-9:
             findings.append(f"Workbook input for the user decision '{k}' is {UD[k]}, expected {v}.")
+    for k, (v1, v2) in inp["levers"].items():
+        if v1 != v2:
+            findings.append(f"Lever {k}: BORA 2 {v2} differs from BORA 1 {v1} (SPEC §0 item 21: one strategy).")
     pb_date = todate(inp["Award_Date"]) + dt.timedelta(days=int(inp["PB_Days"]))
     stp_fix = steps(pb_date, todate(inp["PB_Release"]))
     s3, cn = W["s3_eu"], W["s3_cn"]
@@ -367,8 +380,9 @@ def main():
     # ---- 1. ties without a bridge
     md += ["## 1. Headlines that tie without a bridge", ""]
     sv = R.J["saved_bora"]
-    shadow_pts = {s: R.compute(s, pass_through=0.0, **({"strat_over": {"S3": {"community_eur_per_mwh": UD["community_b2"]}}}
-                                                       if s == "S3" else {}))["points"] for _, s, _ in BIDS}
+    shadow = {s: R.compute(s, pass_through=0.0, **(B2_AS_B1 if s == "S3" else {})) for _, s, _ in BIDS}
+    shadow_val = {35: lambda x: x["points"]["total_eu"], 36: lambda x: x["points"]["total_cn"],
+                  22: lambda x: x["installed_wind_mw"], 23: lambda x: x["bess_mw"], 41: lambda x: x["gross_premium"] / K}
     rows = []
     for label, key, okey, run, fmt in [("Points, EU turbine", 35, "Points", "s3_eu", "{:.2f}"),
                                        ("Points, CN turbine", 36, "Points", "s3_cn", "{:.2f}"),
@@ -380,17 +394,15 @@ def main():
             c = {"S2": "F", "S3": "G"}[s]
             a, w = sv[s][f"Bora!{c}{key}"], W[run][f"{okey}_{b}"]
             cells += [fmt.format(a), fmt.format(w)]
-            if key in (35, 36):
-                tag = "total_eu" if key == 35 else "total_cn"
-                if abs(shadow_pts[s][tag] - w) > 1e-6:
-                    findings.append(f"{label} {b}: shadow with the user decisions {shadow_pts[s][tag]} vs model {w}.")
-            elif abs(a - w) > 1e-6:
-                findings.append(f"{label} {b}: saved {a} vs model {w} (`{refs.get(f'{okey}_{b}')}`).")
+            x = shadow_val[key](shadow[s])
+            if abs(x - w) > 1e-6:
+                findings.append(f"{label} {b}: shadow with the user decisions {x} vs model {w} "
+                                f"(`{refs.get(f'{okey}_{b}')}`).")
         rows.append([label] + cells + [f"`{refs.get(okey + '_1')}`, `{refs.get(okey + '_2')}`"])
     md += table(["Item", "BORA 1 saved", "BORA 1 model", "BORA 2 saved", "BORA 2 model", "Cells (B1, B2)"], rows)
-    md += ["", "BORA 2 points +0.75 (EU and CN): user decision, community 2.01 €/MWh scores ÖSZ-2 (the shadow's tender "
-           "tables give 68.25 / 53.25). The RtB price is 150 k€/MVA × 100 MVA = 15.00 with no price effect (user decision, "
-           "step U1 below); saved effective prices were 3.93 / 10.08.", ""]
+    md += ["", "BORA 2 now takes BORA 1's commitments (user decision, SPEC §0 item 21; step U5 below): 85 / 70 points, "
+           "151 MW wind and 51 MW BESS, as the shadow with that decision gives. The RtB price is 150 k€/MVA × 100 MVA = "
+           "15.00 with no price effect (user decision, step U1 below); saved effective prices were 3.93 / 10.08.", ""]
 
     # ---- 2. RtB bridge
     md += ["## 2. RtB exit bridge (set \"Overbuild built\")", ""]
@@ -412,9 +424,9 @@ def main():
         if s == "S2":
             body[0][-1] += " ¹"
         md += table(["#", "Step", "Price effect", "RtB price", "Distributable", "FEP RtB profit", "FEP RtB IRR"], body)
-        md += ["", f"Steps with no effect here: {', '.join(zero)}; U2–U5 do not reach the RtB route (the price is fixed).",
+        md += ["", f"Steps with no effect here: {', '.join(zero)}; U2–U4 do not reach the RtB route (the price is fixed).",
                f"Developer at the exit (DSA + 30 %): saved {m2(rows_[0][2]['dev'])}, shadow {m2(last['dev'])}, "
-               f"workbook {m2(s3[f'Split_ARES_{b}'])}."]
+               f"workbook {m2(s3[f'Exit_ARES_Total_{b}'])}."]
         if s == "S2":
             md += ["¹ Excel's XIRR failed in the meeting file (2.98e-09); −3.91 % is the true root (LibreOffice, shadow). "
                    "The model shows `n/a` plus a check when XIRR fails (fix 6)."]
@@ -422,7 +434,7 @@ def main():
     md += ["Cells (B1 / B2): " + ", ".join(
         f"{lab} `{refs.get(o + '_1')}` / `{refs.get(o + '_2')}`"
         for lab, o in (("RtB price", "RtB_Price"), ("distributable", "Distributable"), ("profit", "RtB_Profit"),
-                       ("IRR", "RtB_IRR"), ("developer", "Split_ARES"))) + ".", ""]
+                       ("IRR", "RtB_IRR"), ("developer", "Exit_ARES_Total"))) + ".", ""]
 
     # ---- 3. build / COD / HTM bridge
     md += ["## 3. Build, sale at COD and hold to maturity (set \"Overbuild built\"; CN = same set, `In_CN_Turbine` = 1)", ""]

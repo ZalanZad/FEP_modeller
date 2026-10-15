@@ -20,7 +20,7 @@ OLD = HERE / "data" / "old_engine"
 NAME = "Bora_Bid_Model"
 D = dt.date
 START, NTP = D(2026, 7, 1), D(2029, 9, 30)                 # model start; NTP (devex years run to the NTP year)
-SETS = ["Base", "Overbuild built", "Full PB call", "Freeze off", "Low premium", "ÖSZ-4 on wind"]
+SETS = ["Base", "Overbuild built", "Full PB call", "Freeze off", "Low premium", "ÖSZ-4 on wind", "Nothing delivered"]
 EXIT = 'SUMIF({end.all},"<="&{exit.E},{self.all})'          # amount to the RtB exit
 TO_COD = 'SUMIF({end.all},"<="&In_COD,{self.all})'          # amount to COD
 EVENT = "N(AND({start}<={self.F},{end}>={self.F}))"           # line paid on its date in F
@@ -103,8 +103,9 @@ def inputs(m):
 
     i.section("Build switches")
     a("Overbuild_Built", "Overbuild built (1 = yes)", "flag", 0, {2: 1}, source="SPEC v2 §6 (set = meeting file)")
-    a("BESS_Built", "BESS built (1 = yes)", "flag", 1, source="SPEC v2 §6")
-    a("Sanction_Regime", "Sanction regime (1 pro rata, 2 full call)", "flag", 1, {3: 2},
+    a("BESS_Built", "BESS built (1 = yes)", "flag", 1, {7: 0}, source="SPEC v2 §6")
+    a("Delivered", "Points commitments delivered (1 = yes)", "flag", 1, {7: 0}, source="User 15-Oct-26")
+    a("Sanction_Regime", "Sanction regime (1 pro rata, 2 full call)", "flag", 1, {3: 2, 7: 2},
       source="GYIK 28/30 (1); Kiírás XIII.17, GYIK 72 (2)")
     a("Bottleneck_Loss", "Energy lost on overbuilt MW", "%", 0.05, source="Bora!N18")
 
@@ -377,14 +378,15 @@ def calc(m):
     c.row("excl", "3-year group exclusion possible (if the PB loss counts as a call)", "flag", e="N({sanction.I}<0)", ef_fmt="flag")
 
     c.section("Build and debt")
-    c.row("tur", "Wind capex per built MW (E: turbine, live route; F: other)", "EUR k/MW",
-          e="IF(In_CN_Turbine=1,In_Turbine_CN,In_Turbine)",
+    c.row("cn", "Chinese equipment bought (1 = yes)", "flag", e="MAX(In_CN_Turbine,1-In_Delivered)", ef_fmt="flag")
+    c.row("tur", "Wind capex per built MW (E: turbine bought; F: other)", "EUR k/MW",
+          e="IF({cn.E}=1,In_Turbine_CN,In_Turbine)",
           f="In_Installation+In_Foundations+In_BoP+In_Owner+In_Easements")
-    c.row("subst", "Substation and 132 kV bay, live route", "EUR k",
-          e="IF(In_CN_Turbine=1,In_Substation_CN,In_Substation)")
+    c.row("subst", "Substation and 132 kV bay, as bought", "EUR k",
+          e="IF({cn.E}=1,In_Substation_CN,In_Substation)")
     c.row("capex", "Capex on built MW (E: total)", "EUR k", "=-{self.E}*{constr}",
           e="(({tur.E}+{tur.F})*{wind.F}+{subst.E})*(1+In_Capex_Contingency)+In_BESS_Capex*{mwh.F}")
-    c.row("municipal", "Municipal one-off at COD", "EUR k", "=-{self.E}*{cod}", e="{osz1.E}*In_MVA")
+    c.row("municipal", "Municipal one-off at COD", "EUR k", "=-{self.E}*{cod}", e="{osz1.E}*In_MVA*In_Delivered")
     c.subheader("Senior debt")
     c.row("d_open", "Opening balance", "EUR k", "={d_close@prev}", total="none")
     c.row("d_draw", "Drawdown (E: debt size)", "EUR k", "={self.E}*{constr}",
@@ -415,7 +417,7 @@ def calc(m):
     c.row("lease", "Land lease", "EUR k", "=-In_Lease*{wind.F}*{esc}*{lease_w}*{yf}")
     c.row("levies", "MEKH fee and HIPA", "EUR k", "=-{rev}*(In_MEKH+In_HIPA)")
     c.row("opex_cont", "Opex contingency", "EUR k", "=In_Opex_Contingency*({opex_var}+{opex_fix}+{lease}-{rev}*In_MEKH)")
-    c.row("community", "Community contribution (ÖSZ-2)", "EUR k", "=-{osz2.E}*{gen}/Thousand")
+    c.row("community", "Community contribution (ÖSZ-2)", "EUR k", "=-{osz2.E}*In_Delivered*{gen}/Thousand")
     c.row("ebitda", "EBITDA", "EUR k", "=SUM({rev}:{community})", bold=True)
 
     c.section("Tax")
@@ -465,7 +467,7 @@ def calc(m):
     c.section("Sale at COD")
     c.row("cod_contrib", "FEP contributions to COD", "EUR k", "=({dev_cf}+{build}+{d_draw}+{ebitda})*({end}<=In_COD)")
     c.row("cod_com", "Buyer: community contribution vs reference (E: PV at COD)", "EUR k",
-          "=-({osz2.E}-In_Ref_Community)*{gen}*(1-In_CIT)/Thousand", e="SUMPRODUCT({self.all},{df_cod.all})")
+          "=-({osz2.E}*In_Delivered-In_Ref_Community)*{gen}*(1-In_CIT)/Thousand", e="SUMPRODUCT({self.all},{df_cod.all})")
     c.row("v_price", "COD price (E: gross, F: price effect)", "EUR k",
           e="IF(In_CN_Turbine=1,In_COD_Price_CN,In_COD_Price)*{wind.F}*(1-{loss.E})",
           f="In_Pass_Through*({cod_com.E}+SUMPRODUCT({sanction.all},{df_cod.all}))")
@@ -707,7 +709,8 @@ def dashboard(m):
     d.link("FEP MOIC – hold to maturity", "x", "{htm_moic.E}", out="HTM_MOIC")
     d.link("Minimum DSCR (memo)", "x", "{dscr.E}", out="Min_DSCR")
 
-    d.scenario_results(outs=["Points", "Distributable", "RtB_Profit", "Cost_To_COD", "COD_IRR", "HTM_IRR"])
+    d.scenario_results(outs=["Points", "Distributable", "RtB_Profit", "Cost_To_COD", "COD_IRR", "HTM_IRR",
+                                 "HTM_NPV", "Commitment_Penalty"])
 
     d.panel_section("Key-assumption set")
     d.selector()
@@ -719,7 +722,7 @@ def dashboard(m):
             ("Gearing, EU", "%", "In_Gearing", None), ("Debt rate", "%", "In_Debt_Rate", None),
             ("Discount rate", "%", "In_Discount_Rate", None), ("COD", "date", "In_COD", None), ("FX", "HUF/EUR", "In_FX", None),
             ("Interest freeze on", "flag", "In_Freeze_On", None), ("Overbuild built", "flag", "In_Overbuild_Built", None),
-            ("BESS built", "flag", "In_BESS_Built", None),
+            ("BESS built", "flag", "In_BESS_Built", None), ("Commitments delivered", "flag", "In_Delivered", None),
             ("Sanction regime (1 pro rata, 2 full)", "flag", "In_Sanction_Regime", None),
             ("ÖSZ-4 basis (0 MVA, 1 wind)", "flag", "In_OSZ4_Basis", None)]:
         d.panel_link(label, unit, ref, fmt=f)
