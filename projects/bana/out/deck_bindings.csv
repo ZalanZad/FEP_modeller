@@ -339,6 +339,7 @@ slide,shape,text,cell,value,note
 8,Table,7.3%,Dashboard!U123,0.0734997500785467,
 8,Card,30,Inputs!F29,30,
 8,Footnote,50,Inputs!F51,50,
+8,Footnote,6,Inputs!F60,6,
 8,Footnote,14 Oct 2026,Dashboard!E6,2026-10-14 00:00:00,
 9,Title,9.6%,Dashboard!J109,0.0960567323467009,
 9,Title,5.6%,Dashboard!R113,0.0556701340401207,
@@ -491,7 +492,7 @@ slide,shape,text,cell,value,note
 9,Card,7.2%,Dashboard!Q113,0.0715084121207986,
 9,Card,7.0%,Dashboard!V113,0.0696866922154781,
 9,Card,10.4%,Dashboard!V114,0.10372140364497,
-9,Footnote,10,Inputs!Q103,10,
+9,Footnote,15,Inputs!F103,15,
 9,Footnote,all pass,Dashboard!H131,0,sum
 9,Footnote,all pass,Dashboard!I131,0,sum
 9,Footnote,all pass,Dashboard!J131,0,sum

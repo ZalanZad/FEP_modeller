@@ -45,7 +45,7 @@ turbine adds 12 tender points but needs a permit amendment. Both turbine routes 
 | Sheet | Content |
 |---|---|
 | `Dashboard` | The bid (levers, blue on yellow), returns at a glance, funding to COD, securities, sale at COD, HTM debt and tax, stored results by key-assumption set; key-assumption panel on the right. |
-| `Inputs` | Scalar inputs, Live + 11 key-assumption sets (§12). Short source per row. |
+| `Inputs` | Scalar inputs, Live + 15 key-assumption sets (§20). Short source per row. |
 | `Curves` | Tender band tables (ÖSZ-1, -2, -6) and yes/no points (as Bora). |
 | `Calc_1`, `Calc_2` | Identical. Calc_1 = **European turbine**, Calc_2 = **Chinese turbine**. Column levers via `calc.lever`. |
 | `Checks` | Every check → `Master_Check`. |
@@ -133,7 +133,7 @@ See §12 (11 sets).
 Levers in range; debt within the DSCR capacity and repaid by the tenor end; DSCR ≥ target; sources = uses to COD;
 solver deltas = 0; stored = live; XIRR returned numbers. The checks result is stored for every key-assumption set.
 
-## 9. Deck (`out/Bana_IC.pptx`, FEP template, 8 slides (§12), every figure bound)
+## 9. Deck (`out/Bana_IC.pptx`, FEP template, 9 slides (§17), every figure bound)
 1. Cover. 2. Executive summary (narrative from the deck, condensed, plus key numbers). 3. Risks and mitigants
 (Dentons DD table, unchanged). 4. Technical overview and tender bid. 5. Funding to COD (uses and sources,
 securities). 6. Returns: sale at COD vs hold, with debt and tax. 7. Sensitivities (stored sets).

@@ -239,7 +239,7 @@ def build_deck(xlsm: Path, out: Path) -> Path:
     s.table(["Tender bid", "Commitment", "European", "Chinese"], rows, key_rows={7}, left=13.35, top=TOP,
             width=6.55, height=0.59 + 8 * 0.6, col_widths=[2.35, 1.9, 1.15, 1.15], align="LLRR", unit_col=None)
     s.footnote(f("Points are the model's own score on the MEKH 2026 bands (Kiírás Annex 3-4). ÖSZ-4 is scored on net "
-                 "MVA (as Bora); BESS at capex only, no revenue or opex, not in the COD price. Brownfield (ÖSZ-7) is "
+                 "MVA; BESS at capex only, no revenue or opex, not in the COD price. Brownfield (ÖSZ-7) is "
                  "not available. Build shortfall {sh} against the commitment, inside the "
                  "{t} tolerance (GYIK 28/30). The municipal one-off is paid at COD.",
                  sh=b("Out_Shortfall_1", pct), t=b("In_Tolerance_Cap", pct0)))
@@ -412,8 +412,8 @@ def build_deck(xlsm: Path, out: Path) -> Path:
         left=4.92, top=5.0, width=15.0, height=1.9)
     s.footnote(f("Deliver nothing: wind {w} MW (no overbuild), no BESS, no municipal one-off or community "
                  "contribution; the European route installs Chinese turbines and sells at the Chinese price. The whole "
-                 "PB is called 6 months after COD. Equity = FEP equity to COD.",
-                 w=b("In_MVA", n0)))
+                 "PB is called {lag} months after COD. Equity = FEP equity to COD.",
+                 w=b("In_MVA", n0), lag=b("In_Sanction_Lag", n0)))
 
     # ---- 9 Sensitivities ------------------------------------------------------------------------------------------
 
@@ -451,9 +451,9 @@ def build_deck(xlsm: Path, out: Path) -> Path:
                            s1=st("HTM_IRR_1", sets.index("Full cash sweep") + 1, pct),
                            s2=st("HTM_IRR_2", sets.index("Full cash sweep") + 1, pct)))],
         left=15.45, top=TOP, width=4.45, height=6.4)
-    s.footnote(f("Each set changes only the inputs its name describes, from the Raiffeisen base; tenor {t} years. Stored by the scenario macro with the tax "
-                 "solver; base = live model. Model checks in every set: {ck}.",
-                 t=b(set_cell("In_Debt_Tenor", "Tenor 10 years"), n0),
+    s.footnote(f("Each set changes only the inputs its name describes, from the Raiffeisen base ({t}-year tenor). Stored "
+                 "by the scenario macro with the tax solver; base = live model. Model checks in every set: {ck}.",
+                 t=b("In_Debt_Tenor", n0),
                  ck=d.bind_sum([st(f"Checks_{r}", k, None) for r in (1, 2) for k in range(1, len(sets) + 1)],
                                lambda v: "all pass" if v == 0 else "FAIL")))
     return d.save(out / "Bana_IC.pptx")
