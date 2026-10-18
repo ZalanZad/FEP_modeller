@@ -53,7 +53,7 @@ from .styles import apply
 
 J = 10                       # first timeline column
 HEADER = {"start": 3, "end": 4, "days": 5, "yf": 6, "year": 7, "period": 8}
-MAX_SETS = 16                # key-assumption sets: Inputs columns H.. (MODELLING_STANDARDS §4)
+MAX_SETS = 18                # key-assumption sets: Inputs columns H.. (MODELLING_STANDARDS §4)
 INPUT_W = 8 + MAX_SETS       # last Inputs column (spare after the sets)
 FIRST_ROW = 11               # first content row on Calc / Checks (panes frozen at J10)
 UNIT_FMT = {"EUR k": "money", "EUR m": "money1", "%": "pct", "x": "mult", "date": "date", "flag": "flag",

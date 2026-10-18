@@ -205,3 +205,10 @@ revenue as a sizing floor (not binding), PPA 90 €/MWh for the whole life. `In_
 Sets 15 "Raiffeisen terms" (€0.9m/MW, 15 y, 1.20x) and 16 "UniCredit terms" (€0.71m/MW = Raiffeisen scaled by the
 annuity capacity ratio, 12 y, 1.30x) lift the LTC cap to 70 % so the bank amount binds. Slide 6 "Bank feedback" reports
 what the banks said and the model on each basis; 10 slides, 16 sets.
+
+## 22. Upside case (user, 18-Oct-2026)
+Sets 17 "Upside: PPA 100" and 18 "Upside: PPA 105" (key-assumption limit raised to 18 in the engine): net P50 2,850 h
+(user; no Bana EYA in the data room – only the old IC paper's 2,460 h – so to be confirmed), zero bid (`In_Zero_Bid` = 1:
+no overbuild and no BESS committed or built, ÖSZ-1/2 at the minimum 10 k€/MW and 2 €/MWh that Kiírás fn 1 says may
+become mandatory, 0 points on both), PPA 100 / 105 €/MWh for the whole life, 60 % gearing. Turbine route and PB multiple
+unchanged. Slide 10 "Upside case" compares them with the base; the sale at COD is the same in both, as the price is per MW.

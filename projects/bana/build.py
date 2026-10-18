@@ -19,11 +19,11 @@ from fepm.xl.styles import FMT, apply
 HERE = Path(__file__).resolve().parent
 NAME = "Bana_Model"
 D = dt.date
-DATE = D(2026, 10, 15)                                      # model date; dated copies of the outputs
+DATE = D(2026, 10, 18)                                      # model date; dated copies of the outputs
 SETS = ["Base", "COD price −10%", "COD price +10%", "Turbine +10%", "Yield −10%",
         "PPA +10%", "Full PB call", "Rate +1 pp", "Tenor 10 years", "Robin Hood 31%", "CIT 9%",
         "BESS 100 MWh", "Promise all, deliver nothing", "Full cash sweep",
-        "Raiffeisen terms", "UniCredit terms"]
+        "Raiffeisen terms", "UniCredit terms", "Upside: PPA 100", "Upside: PPA 105"]
 TO_COD = 'SUMIF({end.all},"<="&In_COD,{self.all})'          # amount to COD
 EVENT = "N(AND({start}<={self.F},{end}>={self.F}))"           # line paid on its date in F
 SHARE = "=MAX(0,MIN({self.F},{end})-MAX({self.E},{start})+1)/({self.F}-{self.E}+1)"   # share of a window
@@ -75,8 +75,10 @@ def inputs(m):
     i.section("Tender and grid")
     i.add_constant("Points_Decimals", "Points rounded to decimals", "#", 2, "Kiírás X.1 b")
     a("MVA", "Net connection capacity", "MVA", 50, source="MEKH Annex 1; Bana v3 Inputs E281", fmt="money")
-    a("Overbuild_Built", "Overbuild built, share of MVA (bid: Dashboard)", "%", 0.10, {13: 0},
+    a("Overbuild_Built", "Overbuild built, share of MVA (bid: Dashboard)", "%", 0.10, {13: 0, 17: 0, 18: 0},
       source="User 13-Oct-26")
+    a("Zero_Bid", "Zero bid: no overbuild or BESS, minimum ÖSZ-1/2 (1 = yes)", "flag", 0, {17: 1, 18: 1},
+      source="Kiírás fn 1: 10 k€/MW, 2 €/MWh may be mandatory")
     a("Deliver", "Commitments delivered (0 = none: no municipal, community, EU kit)", "flag", 1, {13: 0},
       source="User 15-Oct-26")
     a("BESS_Set", "BESS commitment, share of MVA (0 = Dashboard bid)", "%", 0, {12: 0.5},
@@ -116,11 +118,12 @@ def inputs(m):
     a("BESS_Capex", "BESS capex, all-in (no BESS revenue or opex)", "EUR k/MWh", 100, source="User 15-Oct-26")
 
     i.section("Operations")
-    a("P50_Hours", "Net P50 hours", "h/yr", 2600, {5: f"=H{i.r}*(1-Sens_Step)"}, source="User 13-Oct-26",
+    a("P50_Hours", "Net P50 hours", "h/yr", 2600, {5: f"=H{i.r}*(1-Sens_Step)", 17: 2850, 18: 2850},
+      source="User 13-Oct-26; upside 2,850 h (EYA not in data room)",
       fmt="money")
     a("Curtailment", "Curtailment", "%", 0.02, source="Bana v3 Inputs E181")
     a("Degradation", "Degradation per year", "%", 0.003, source="Bana v3 Inputs E182", fmt="0.00%")
-    a("PPA_Price", "PPA price at COD, whole life, 100 % of output", "EUR/MWh", 90, {6: 99},
+    a("PPA_Price", "PPA price at COD, whole life, 100 % of output", "EUR/MWh", 90, {6: 99, 17: 100, 18: 105},
       source="User 13-Oct-26", fmt="money1")
     a("PPA_Esc", "PPA escalation", "%", 0.01, source="Bana v3 Inputs E192")
     a("Var_Opex", "Variable opex (balancing 4, grid 1)", "EUR/MWh", 5, source="Bana v3 Inputs E194:E195",
@@ -137,8 +140,8 @@ def inputs(m):
       fmt="0.00%")
 
     i.section("Senior debt")
-    a("Gearing", "Debt share of construction cost (LTC), both routes", "%", 0.55, {15: 0.70, 16: 0.70},
-      source="User 14-Oct-26; bank sets: 70 % info cap")
+    a("Gearing", "Debt share of construction cost (LTC), both routes", "%", 0.55, {15: 0.70, 16: 0.70, 17: 0.60, 18: 0.60},
+      source="User 14-Oct-26; bank sets 70 % cap; upside 60 %")
     a("Debt_Per_MW", "Debt per built wind MW (0 = gearing only)", "EUR k/MW", 0, {15: 900, 16: 710},
       source="Raiffeisen 0.9 M€/MW; UniCredit pro rata 12y/1.30x")
     a("Sweep", "Cash sweep, share of cash after debt service", "%", 0, {14: 1},
@@ -243,9 +246,9 @@ def calc(m):
     fmt("idx", "F", "0.000%")
 
     c.section("Capacity (E: committed in the bid, F: built)")
-    c.row("wind", "Wind", "MW", e=f"In_MVA*(1+{lev('Overbuild')})", f="In_MVA*(1+In_Overbuild_Built)", ef_fmt="money1")
+    c.row("wind", "Wind", "MW", e=f"In_MVA*(1+{lev('Overbuild')}*(1-In_Zero_Bid))", f="In_MVA*(1+In_Overbuild_Built)", ef_fmt="money1")
     c.row("bshare", "BESS power, share of MVA (bid, or the set's commitment)", "%",
-          e=f"IF(In_BESS_Set>0,In_BESS_Set,{lev('BESS')})", ef_fmt="pct")
+          e=f"IF(In_BESS_Set>0,In_BESS_Set,{lev('BESS')})*(1-In_Zero_Bid)", ef_fmt="pct")
     c.row("bess", "BESS power", "MW", e="{bshare.E}*In_MVA", f="{self.E}*In_BESS_Built", ef_fmt="money1")
     c.row("mwh", "BESS energy", "MWh", e="{bess.E}*" + lev("BESS_Hours"), ef_fmt="money1")
     c.row("loss", "Grid-bottleneck loss on built wind", "%", e="({wind.F}-In_MVA)/{wind.F}*In_Bottleneck_Loss",
@@ -259,9 +262,9 @@ def calc(m):
     band = lambda k: (f"INDEX(Osz{k}_Pts,1+SUMPRODUCT((Osz{k}_LB<{{self.E}})+(Osz{k}_LB={{self.E}})"  # noqa: E731
                       f"*Osz{k}_Incl))*Osz{k}_W")
     yes = lambda k, w: f"{{self.E}}*Osz{k}_Pts*Osz{w}_W"  # noqa: E731
-    c.row("osz1", "ÖSZ-1 municipal one-off", "EUR k/MW", e=lev("Municipal"), f=band(1), ef_fmt="money2")
-    c.row("osz2", "ÖSZ-2 community contribution", "EUR/MWh", e=lev("Community"), f=band(2), ef_fmt="money2")
-    c.row("osz3", "ÖSZ-3 overbuild", "%", e=lev("Overbuild"), f=band(3), ef_fmt="money2")
+    c.row("osz1", "ÖSZ-1 municipal one-off", "EUR k/MW", e=f"IF(In_Zero_Bid=1,Osz1_Min,{lev('Municipal')})", f=band(1), ef_fmt="money2")
+    c.row("osz2", "ÖSZ-2 community contribution", "EUR/MWh", e=f"IF(In_Zero_Bid=1,Osz2_Min,{lev('Community')})", f=band(2), ef_fmt="money2")
+    c.row("osz3", "ÖSZ-3 overbuild", "%", e="{wind.E}/In_MVA-1", f=band(3), ef_fmt="money2")
     c.row("osz4", "ÖSZ-4 BESS power, share of MVA", "%", e="{bshare.E}", f=band(4) + "*({self.E}>=Osz4_Min)",
           ef_fmt="money2")
     c.row("osz5", "ÖSZ-5 partial award", "flag", e=lev("Partial"), f=yes(5, 5), ef_fmt="money2")
@@ -575,7 +578,7 @@ def dashboard(m):
     d.link("Checks failed in this set (0 = OK)", "#", "Model_Checks", out="Checks", fmt="int")
 
     d.scenario_results(outs=["Points", "Equity_COD", "COD_IRR", "COD_MOIC", "HTM_IRR", "HTM_MOIC", "Buyer_IRR_U", "Buyer_IRR_L",
-                              "Debt_COD", "Debt_Share", "COD_Profit", "HTM_NPV", "Min_DSCR", "PB_Call_Applied", "MVA_At_Risk", "Checks"])
+                              "Debt_COD", "Debt_Share", "Uses_Total", "COD_Profit", "HTM_NPV", "Min_DSCR", "PB_Call_Applied", "MVA_At_Risk", "Checks"])
 
     d.panel_section("Key-assumption set")
     d.selector()

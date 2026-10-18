@@ -13,7 +13,7 @@ from fepm.ppt.deck import DASH, ROOT, Deck, fmt_eur_m, fmt_mult, fmt_num, fmt_pc
 SOURCE_DECK = ROOT / "reference" / "Bana_IC_20260109_vDSz.pptx"
 SECTIONS = ["Executive summary", "Risks and mitigants", "Technical overview and tender bid", "Funding to COD", "Bank feedback",
             "Returns: sale at COD vs hold", "Sale price and buyer return", "Promise or build",
-            "Sensitivities"]
+            "Upside case", "Sensitivities"]
 TOP = 2.45                      # first free line under a two-line title and subtitle
 ROUTES = ("European", "Chinese")
 
@@ -427,6 +427,62 @@ def build_deck(xlsm: Path, out: Path) -> Path:
                  "PB is called {lag} months after COD. Equity = FEP equity to COD.",
                  w=b("In_MVA", n0), lag=b("In_Sanction_Lag", n0)))
 
+    # ---- 10 Upside case: higher yield, zero bid, higher PPA, 60 % gearing -----------------------------------------
+    k1, k2 = sets.index("Upside: PPA 100") + 1, sets.index("Upside: PPA 105") + 1
+    s = d.content("Upside case", f(
+        "With {hr} h, a zero bid and a {p1} / {p2} €/MWh PPA, the hold IRR rises to {a1} / {a2} (European) from {h1}",
+        hr=b(set_cell("In_P50_Hours", "Upside: PPA 100"), n0), p1=b(set_cell("In_PPA_Price", "Upside: PPA 100"), n0),
+        p2=b(set_cell("In_PPA_Price", "Upside: PPA 105"), n0), a1=st("HTM_IRR_1", k1, pct),
+        a2=st("HTM_IRR_1", k2, pct), h1=htm[0]), f(
+        "But the zero bid scores only {z1} points European ({z2} Chinese) against {b1} ({b2}), so winning the tender "
+        "becomes the main risk.", z1=st("Points_1", k1, pt), z2=st("Points_2", k1, pt), b1=p[0], b2=p[1]),
+        title_lines=2)
+    def upside(name, key, fmt):  # an input's value in the base (live) or in an upside set
+        return b(key, fmt) if name == "Base" else b(set_cell(key, name), fmt)
+    cols = [("Base", 1), ("Upside: PPA 100", k1), ("Upside: PPA 105", k2)]
+    rows = [["What changes", "", "", "", ""],
+            ["Net P50 hours", "h", *[upside(n, "In_P50_Hours", n0) for n, _ in cols]],
+            ["Bid: overbuild / BESS", "% of MVA",
+             f("{o} / {b_}", o=lever("Overbuild", 1, pct0), b_=lever("BESS", 1, pct0)), "none", "none"],
+            ["Bid: municipal / community", "k€/MW, €/MWh",
+             f("{m} / {c}", m=lever("Municipal", 1, n0), c=lever("Community", 1, dp1)),
+             *[f("{m} / {c}", m=b("Osz1_Min", n0), c=b("Osz2_Min", dp1)) for _ in (1, 2)]],
+            ["PPA price, whole life", "€/MWh", *[upside(n, "In_PPA_Price", n0) for n, _ in cols]],
+            ["Gearing (debt / construction cost)", "%", *[upside(n, "In_Gearing", pct0) for n, _ in cols]],
+            ["Results (European / Chinese)", "", "", "", ""],
+            ["Tender points", "points", *[f("{a} / {c}", a=st("Points_1", k, pt), c=st("Points_2", k, pt))
+                                          for _, k in cols]],
+            ["Total uses to COD", "€ m", *[f("{a} / {c}", a=st("Uses_Total_1", k, eur), c=st("Uses_Total_2", k, eur))
+                                          for _, k in cols]],
+            ["FEP equity to COD", "€ m", *[f("{a} / {c}", a=st("Equity_COD_1", k, eur), c=st("Equity_COD_2", k, eur))
+                                          for _, k in cols]],
+            ["FEP IRR, sale at COD", "%", *[f("{a} / {c}", a=st("COD_IRR_1", k, pct), c=st("COD_IRR_2", k, pct))
+                                           for _, k in cols]],
+            ["FEP IRR, hold", "%", *[f("{a} / {c}", a=st("HTM_IRR_1", k, pct), c=st("HTM_IRR_2", k, pct))
+                                    for _, k in cols]],
+            ["FEP NPV, hold", "€ m", *[f("{a} / {c}", a=st("HTM_NPV_1", k, eur), c=st("HTM_NPV_2", k, eur))
+                                      for _, k in cols]],
+            ["Minimum DSCR", "x", *[f("{a} / {c}", a=st("Min_DSCR_1", k, x2), c=st("Min_DSCR_2", k, x2))
+                                   for _, k in cols]],
+            ["Buyer IRR, unlevered", "%", *[f("{a} / {c}", a=st("Buyer_IRR_U_1", k, pct),
+                                                c=st("Buyer_IRR_U_2", k, pct)) for _, k in cols]]]
+    s.table(["Case", "Unit", "Base", "Upside: PPA 100", "Upside: PPA 105"], rows, sections={0, 6}, key_rows={11},
+            top=TOP, width=10.4, height=0.59 + 15 * 0.46, col_widths=[3.5, 1.3, 1.9, 1.85, 1.85])
+    s.card("Why, and what to check", [
+        ("Yield: ", f("{hr} h instead of {h}; the EYA is not in the data room, so this needs the study first.",
+                      hr=b(set_cell("In_P50_Hours", "Upside: PPA 100"), n0), h=b("In_P50_Hours", n0))),
+        ("Zero bid: ", f("no overbuild and no BESS; municipal {m} k€/MW and community {c} €/MWh, the minimum the "
+                         "law may make mandatory anyway. Total uses fall from €{a}m to €{u}m (European).",
+                         m=b("Osz1_Min", n0), c=b("Osz2_Min", dp1), a=b("Out_Uses_Total_1", eur),
+                         u=st("Uses_Total_1", k1, eur))),
+        ("PPA: ", "COD is 2030 at the earliest, which leaves two years to sign a bankable long-term PPA. Aurora is "
+                  "conservative, and today's high prices may last longer than expected."),
+        ("Sale at COD: ", "the same in both upside cases, because the sale price is fixed per MW; a higher PPA "
+                          "would support a higher price.")],
+        left=15.45, top=TOP, width=4.45, height=7.6)
+    s.footnote("Upside sets change only the inputs in the table, from the base; the zero bid keeps the turbine route "
+               "and the PB multiple. Stored by the scenario macro with the tax solver.")
+
     # ---- 9 Sensitivities ------------------------------------------------------------------------------------------
 
     s = d.content("Sensitivities", f(
@@ -437,9 +493,9 @@ def build_deck(xlsm: Path, out: Path) -> Path:
     rows = [[name, st("Points_1", i, pt), *[st(k, i, x2 if "DSCR" in k else pct) for k in
                      ("COD_IRR_1", "COD_IRR_2", "Buyer_IRR_U_1", "Buyer_IRR_U_2", "HTM_IRR_1", "HTM_IRR_2",
                       "Min_DSCR_1", "Min_DSCR_2")]]
-            for i, name in enumerate(sets, 1)]
+            for i, name in enumerate(sets, 1) if not name.startswith("Upside")]
     s.table(["Key-assumption set", "Points EU", "COD EU", "COD CN", "Buyer EU", "Buyer CN", "Hold EU", "Hold CN",
-             "DSCR EU", "DSCR CN"], rows, key_rows={0}, top=TOP, width=10.4, height=0.59 + len(sets) * 0.42,
+             "DSCR EU", "DSCR CN"], rows, key_rows={0}, top=TOP, width=10.4, height=0.59 + len(rows) * 0.42,
             col_widths=[2.0, 0.8] + [0.95] * 8, unit_col=None)
     s.card("What to watch", [
         ("Turbine choice: ", "the permits name Goldwind; European turbines need a permit amendment and carry the "
