@@ -206,9 +206,11 @@ Sets 15 "Raiffeisen terms" (€0.9m/MW, 15 y, 1.20x) and 16 "UniCredit terms" (�
 annuity capacity ratio, 12 y, 1.30x) lift the LTC cap to 70 % so the bank amount binds. Slide 6 "Bank feedback" reports
 what the banks said and the model on each basis; 10 slides, 16 sets.
 
-## 22. Upside case (user, 18-Oct-2026)
-Sets 17 "Upside: PPA 100" and 18 "Upside: PPA 105" (key-assumption limit raised to 18 in the engine): net P50 2,850 h
-(user; no Bana EYA in the data room – only the old IC paper's 2,460 h – so to be confirmed), zero bid (`In_Zero_Bid` = 1:
-no overbuild and no BESS committed or built, ÖSZ-1/2 at the minimum 10 k€/MW and 2 €/MWh that Kiírás fn 1 says may
-become mandatory, 0 points on both), PPA 100 / 105 €/MWh for the whole life, 60 % gearing. Turbine route and PB multiple
-unchanged. Slide 10 "Upside case" compares them with the base; the sale at COD is the same in both, as the price is per MW. 18 sets, 11 slides.
+## 22. Three cases (user, 18-Oct-2026)
+Case 1 = base. Set 17 "Case 2: zero bid": net P50 2,850 h (user; no Bana EYA in the data room – only the old IC paper's
+2,460 h – so to be confirmed), full zero bid (`In_Zero_Bid` = 1: no overbuild or BESS committed or built, no municipal or
+community payment; a law may still make 10 k€/MW and 2 €/MWh mandatory, Kiírás fn 1), PPA 100 €/MWh, 60 % gearing.
+Set 18 "Case 3: 20 %+ IRR": case 2 plus PPA 105, 70 % gearing, 18-year tenor at 4.5 %, BoP and other wind capex −15 %
+(300 k€/MW), chosen as the mildest combination that takes the Chinese hold IRR above 20 % (22.0 %; European 16.1 %;
+Europe needs ~15 % cheaper turbines and ~115 €/MWh for 20 %). Turbine route and PB multiple unchanged. Slide 10
+"Three cases"; 18 sets, 11 slides.

@@ -23,7 +23,7 @@ DATE = D(2026, 10, 18)                                      # model date; dated 
 SETS = ["Base", "COD price −10%", "COD price +10%", "Turbine +10%", "Yield −10%",
         "PPA +10%", "Full PB call", "Rate +1 pp", "Tenor 10 years", "Robin Hood 31%", "CIT 9%",
         "BESS 100 MWh", "Promise all, deliver nothing", "Full cash sweep",
-        "Raiffeisen terms", "UniCredit terms", "Upside: PPA 100", "Upside: PPA 105"]
+        "Raiffeisen terms", "UniCredit terms", "Case 2: zero bid", "Case 3: 20 %+ IRR"]
 TO_COD = 'SUMIF({end.all},"<="&In_COD,{self.all})'          # amount to COD
 EVENT = "N(AND({start}<={self.F},{end}>={self.F}))"           # line paid on its date in F
 SHARE = "=MAX(0,MIN({self.F},{end})-MAX({self.E},{start})+1)/({self.F}-{self.E}+1)"   # share of a window
@@ -77,8 +77,8 @@ def inputs(m):
     a("MVA", "Net connection capacity", "MVA", 50, source="MEKH Annex 1; Bana v3 Inputs E281", fmt="money")
     a("Overbuild_Built", "Overbuild built, share of MVA (bid: Dashboard)", "%", 0.10, {13: 0, 17: 0, 18: 0},
       source="User 13-Oct-26")
-    a("Zero_Bid", "Zero bid: no overbuild or BESS, minimum ÖSZ-1/2 (1 = yes)", "flag", 0, {17: 1, 18: 1},
-      source="Kiírás fn 1: 10 k€/MW, 2 €/MWh may be mandatory")
+    a("Zero_Bid", "Full zero bid: no overbuild, BESS, municipal or community (1 = yes)", "flag", 0, {17: 1, 18: 1},
+      source="User 18-Oct-26")
     a("Deliver", "Commitments delivered (0 = none: no municipal, community, EU kit)", "flag", 1, {13: 0},
       source="User 15-Oct-26")
     a("BESS_Set", "BESS commitment, share of MVA (0 = Dashboard bid)", "%", 0, {12: 0.5},
@@ -110,8 +110,8 @@ def inputs(m):
     a("Turbine", "Turbine supply, EU", "EUR k/MW", 950, {4: f"=H{i.r}*(1+Sens_Step)"},
       source="User 13-Oct-26 (Bana v3 E162)")
     a("Turbine_CN", "Turbine supply, CN", "EUR k/MW", 500, {4: f"=H{i.r}*(1+Sens_Step)"}, source="Bana v3 Inputs I162")
-    a("Other_Wind", "Other wind capex (install, foundations, BoP, owner, land)", "EUR k/MW", 355,
-      source="Bana v3 Inputs E163:E166, E169:E170")
+    a("Other_Wind", "Other wind capex (install, foundations, BoP, owner, land)", "EUR k/MW", 355, {18: 300},
+      source="Bana v3 E163:E166, E169:E170; case 3: -15 %")
     a("Substation", "Substation and 132 kV bay, EU", "EUR k", 12000, source="Bana v3 Inputs E167")
     a("Substation_CN", "Substation and 132 kV bay, CN transformer", "EUR k", 10800, source="Bana v3 Inputs I167")
     a("Capex_Contingency", "Contingency on wind and substation capex", "%", 0.05, source="Bana v3 Inputs E171")
@@ -119,7 +119,7 @@ def inputs(m):
 
     i.section("Operations")
     a("P50_Hours", "Net P50 hours", "h/yr", 2600, {5: f"=H{i.r}*(1-Sens_Step)", 17: 2850, 18: 2850},
-      source="User 13-Oct-26; upside 2,850 h (EYA not in data room)",
+      source="User 13-Oct-26; cases 2-3: 2,850 h (EYA not in data room)",
       fmt="money")
     a("Curtailment", "Curtailment", "%", 0.02, source="Bana v3 Inputs E181")
     a("Degradation", "Degradation per year", "%", 0.003, source="Bana v3 Inputs E182", fmt="0.00%")
@@ -140,8 +140,8 @@ def inputs(m):
       fmt="0.00%")
 
     i.section("Senior debt")
-    a("Gearing", "Debt share of construction cost (LTC), both routes", "%", 0.55, {15: 0.70, 16: 0.70, 17: 0.60, 18: 0.60},
-      source="User 14-Oct-26; bank sets 70 % cap; upside 60 %")
+    a("Gearing", "Debt share of construction cost (LTC), both routes", "%", 0.55, {15: 0.70, 16: 0.70, 17: 0.60, 18: 0.70},
+      source="User 14-Oct-26; bank sets 70 % cap; cases 2-3")
     a("Debt_Per_MW", "Debt per built wind MW (0 = gearing only)", "EUR k/MW", 0, {15: 900, 16: 710},
       source="Raiffeisen 0.9 M€/MW; UniCredit pro rata 12y/1.30x")
     a("Sweep", "Cash sweep, share of cash after debt service", "%", 0, {14: 1},
@@ -150,9 +150,10 @@ def inputs(m):
     a("DSCR_Max_High", "Info: DSCR for maximum debt, high", "x", 1.20, source="User 14-Oct-26", fmt="mult")
     a("DSCR", "Minimum DSCR on PPA revenue (sizing)", "x", 1.20, {16: 1.30},
       source="Raiffeisen 1.20x; UniCredit 1.30x", fmt="mult")
-    a("Debt_Tenor", "Annuity tenor from COD", "years", 15, {9: 10, 16: 12}, source="Raiffeisen 15 y; UniCredit 12 y",
+    a("Debt_Tenor", "Annuity tenor from COD", "years", 15, {9: 10, 16: 12, 18: 18},
+      source="Raiffeisen 15 y; UniCredit 12 y; case 3: 18 y",
       fmt="int")
-    a("Debt_Rate", "All-in fixed interest rate", "%", 0.05, {8: 0.06}, source="Bana v3 Inputs E218")
+    a("Debt_Rate", "All-in fixed interest rate", "%", 0.05, {8: 0.06, 18: 0.045}, source="Bana v3 Inputs E218; case 3: 4.5 %")
     a("Upfront_Fee", "Upfront fee on the facility", "%", 0.0175, source="Bana v3 Inputs E219", fmt="0.00%")
     a("Commitment_Fee", "Commitment fee on undrawn debt", "%", 0.009, source="Bana v3 Inputs E222", fmt="0.00%")
     a("DSRA_Months", "DSRA: months of debt service, funded at COD", "months", 6, source="Bana v3 Inputs E268",
@@ -262,8 +263,8 @@ def calc(m):
     band = lambda k: (f"INDEX(Osz{k}_Pts,1+SUMPRODUCT((Osz{k}_LB<{{self.E}})+(Osz{k}_LB={{self.E}})"  # noqa: E731
                       f"*Osz{k}_Incl))*Osz{k}_W")
     yes = lambda k, w: f"{{self.E}}*Osz{k}_Pts*Osz{w}_W"  # noqa: E731
-    c.row("osz1", "ÖSZ-1 municipal one-off", "EUR k/MW", e=f"IF(In_Zero_Bid=1,Osz1_Min,{lev('Municipal')})", f=band(1), ef_fmt="money2")
-    c.row("osz2", "ÖSZ-2 community contribution", "EUR/MWh", e=f"IF(In_Zero_Bid=1,Osz2_Min,{lev('Community')})", f=band(2), ef_fmt="money2")
+    c.row("osz1", "ÖSZ-1 municipal one-off", "EUR k/MW", e=f"{lev('Municipal')}*(1-In_Zero_Bid)", f=band(1), ef_fmt="money2")
+    c.row("osz2", "ÖSZ-2 community contribution", "EUR/MWh", e=f"{lev('Community')}*(1-In_Zero_Bid)", f=band(2), ef_fmt="money2")
     c.row("osz3", "ÖSZ-3 overbuild", "%", e=f"{lev('Overbuild')}*(1-In_Zero_Bid)", f=band(3), ef_fmt="money2")
     c.row("osz4", "ÖSZ-4 BESS power, share of MVA", "%", e="{bshare.E}", f=band(4) + "*({self.E}>=Osz4_Min)",
           ef_fmt="money2")
