@@ -636,11 +636,20 @@ def build_deck(xlsm: Path, out: Path) -> Path:
     return mod.build_deck(xlsm, out)
 
 
+def build_cases_deck(xlsm: Path, out: Path) -> Path:
+    """Three-case deck (deck_cases.py, SPEC.md §22)."""
+    spec = importlib.util.spec_from_file_location("bana_cases", HERE / "deck_cases.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.build_deck(xlsm, out)
+
+
 def build(out: Path):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     xlsm = build_model(out)
     deck = build_deck(xlsm, out)
+    build_cases_deck(xlsm, out / "cases")
     for f in (xlsm, deck):                                  # dated copies to send: Bana_Model_20261015.xlsm
         shutil.copy(f, out / f"{f.stem}_{DATE:%Y%m%d}{f.suffix}")
     return {"model": xlsm, "deck": deck}

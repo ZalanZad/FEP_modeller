@@ -214,3 +214,5 @@ Set 18 "Case 3: 20 %+ IRR": case 2 plus PPA 105, 70 % gearing, 18-year tenor at 
 (300 k€/MW), chosen as the mildest combination that takes the Chinese hold IRR above 20 % (22.0 %; European 16.1 %;
 Europe needs ~15 % cheaper turbines and ~115 €/MWh for 20 %). Turbine route and PB multiple unchanged. Slide 10
 "Three cases"; 18 sets, 11 slides.
+Separate 5-slide deck on the three cases (`deck_cases.py` → `out/cases/Bana_Cases.pptx`): cover, summary, assumptions,
+returns by case and route, what it takes and the risks; built with the model, every figure bound.
