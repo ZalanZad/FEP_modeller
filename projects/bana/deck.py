@@ -1,4 +1,4 @@
-"""Bana IC deck – 10 slides to SPEC.md §9 and §21, streamlined from reference/Bana_IC_20260109_vDSz.pptx.
+"""Bana IC deck – 11 slides to SPEC.md §9, §21 and §22, streamlined from reference/Bana_IC_20260109_vDSz.pptx.
 
 Every figure is `Deck.bind` on the packaged, LibreOffice-recalculated workbook. The Dentons DD risk table and the
 deal narrative are qualitative and come from the original deck (the table is read from it at build time).
@@ -103,6 +103,8 @@ def build_deck(xlsm: Path, out: Path) -> Path:
         return lever(key, i, pt, grid="IJ"[i - 1])
 
     sets = [c.value for row in d.wb["Inputs"][next(names["Scenario_Names"].destinations)[1]] for c in row]
+
+    names_row = next(names["Scenario_Names"].destinations)[1].split("$")[-1]
 
     def set_cell(name, set_name):  # an input's value in one key-assumption set (Inputs column H = set 1)
         row = next(names[name].destinations)[1].split("$")[-1]
@@ -500,7 +502,8 @@ def build_deck(xlsm: Path, out: Path) -> Path:
     s.card("What to watch", [
         ("Turbine choice: ", "the permits name Goldwind; European turbines need a permit amendment and carry the "
                              "most capex risk."),
-        ("BESS 100 MWh: ", f("{p} points but COD IRR {c} and hold IRR {h} (European).",
+        (f("{n}: ", n=b(f"Inputs!{chr(ord('H') + sets.index('BESS 100 MWh'))}{names_row}", str)),
+         f("{p} points but COD IRR {c} and hold IRR {h} (European).",
                              p=st("Points_1", sets.index("BESS 100 MWh") + 1, pt),
                              c=st("COD_IRR_1", sets.index("BESS 100 MWh") + 1, pct),
                              h=st("HTM_IRR_1", sets.index("BESS 100 MWh") + 1, pct))),

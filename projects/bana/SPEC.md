@@ -45,7 +45,7 @@ turbine adds 12 tender points but needs a permit amendment. Both turbine routes 
 | Sheet | Content |
 |---|---|
 | `Dashboard` | The bid (levers, blue on yellow), returns at a glance, funding to COD, securities, sale at COD, HTM debt and tax, stored results by key-assumption set; key-assumption panel on the right. |
-| `Inputs` | Scalar inputs, Live + 15 key-assumption sets (§20). Short source per row. |
+| `Inputs` | Scalar inputs, Live + 18 key-assumption sets (§22). Short source per row. |
 | `Curves` | Tender band tables (ÖSZ-1, -2, -6) and yes/no points (as Bora). |
 | `Calc_1`, `Calc_2` | Identical. Calc_1 = **European turbine**, Calc_2 = **Chinese turbine**. Column levers via `calc.lever`. |
 | `Checks` | Every check → `Master_Check`. |
@@ -133,7 +133,7 @@ See §12 (11 sets).
 Levers in range; debt within the DSCR capacity and repaid by the tenor end; DSCR ≥ target; sources = uses to COD;
 solver deltas = 0; stored = live; XIRR returned numbers. The checks result is stored for every key-assumption set.
 
-## 9. Deck (`out/Bana_IC.pptx`, FEP template, 9 slides (§17), every figure bound)
+## 9. Deck (`out/Bana_IC.pptx`, FEP template, 11 slides (§22), every figure bound)
 1. Cover. 2. Executive summary (narrative from the deck, condensed, plus key numbers). 3. Risks and mitigants
 (Dentons DD table, unchanged). 4. Technical overview and tender bid. 5. Funding to COD (uses and sources,
 securities). 6. Returns: sale at COD vs hold, with debt and tax. 7. Sensitivities (stored sets).
@@ -211,4 +211,4 @@ Sets 17 "Upside: PPA 100" and 18 "Upside: PPA 105" (key-assumption limit raised 
 (user; no Bana EYA in the data room – only the old IC paper's 2,460 h – so to be confirmed), zero bid (`In_Zero_Bid` = 1:
 no overbuild and no BESS committed or built, ÖSZ-1/2 at the minimum 10 k€/MW and 2 €/MWh that Kiírás fn 1 says may
 become mandatory, 0 points on both), PPA 100 / 105 €/MWh for the whole life, 60 % gearing. Turbine route and PB multiple
-unchanged. Slide 10 "Upside case" compares them with the base; the sale at COD is the same in both, as the price is per MW.
+unchanged. Slide 10 "Upside case" compares them with the base; the sale at COD is the same in both, as the price is per MW. 18 sets, 11 slides.

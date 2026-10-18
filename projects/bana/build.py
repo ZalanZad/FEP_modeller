@@ -264,7 +264,7 @@ def calc(m):
     yes = lambda k, w: f"{{self.E}}*Osz{k}_Pts*Osz{w}_W"  # noqa: E731
     c.row("osz1", "ÖSZ-1 municipal one-off", "EUR k/MW", e=f"IF(In_Zero_Bid=1,Osz1_Min,{lev('Municipal')})", f=band(1), ef_fmt="money2")
     c.row("osz2", "ÖSZ-2 community contribution", "EUR/MWh", e=f"IF(In_Zero_Bid=1,Osz2_Min,{lev('Community')})", f=band(2), ef_fmt="money2")
-    c.row("osz3", "ÖSZ-3 overbuild", "%", e="{wind.E}/In_MVA-1", f=band(3), ef_fmt="money2")
+    c.row("osz3", "ÖSZ-3 overbuild", "%", e=f"{lev('Overbuild')}*(1-In_Zero_Bid)", f=band(3), ef_fmt="money2")
     c.row("osz4", "ÖSZ-4 BESS power, share of MVA", "%", e="{bshare.E}", f=band(4) + "*({self.E}>=Osz4_Min)",
           ef_fmt="money2")
     c.row("osz5", "ÖSZ-5 partial award", "flag", e=lev("Partial"), f=yes(5, 5), ef_fmt="money2")
