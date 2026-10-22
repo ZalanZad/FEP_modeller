@@ -83,7 +83,7 @@ def hand_checks(wb):
     bess = N("Dash_BESS_Capex_MWh") * v(21) * bess_mw / 1000
     ind = (v(85) - v(83)) * mva / fx                    # indirect fee net of the TSO security credit, mHUF → € m
     direct = v(84) * mva / fx
-    muni = v(233) * mva / 1000
+    muni = N("Dash_Municipal") * mva / 1000
     idc, fees = wb["HTM"]["G79"].value / 1000, -wb["HTM"]["G85"].value / 1000
     allin = wind + subst + cont + bess + ind + direct + muni + idc + fees
     out += [("All-in cost to COD, € m", allin, S("All-in cost to COD")),
@@ -115,7 +115,7 @@ def hand_checks(wb):
     w = {k: u[f"ÖSZ-{k} weight"] for k in "123456789"}
     ob, bs = N("Dash_Overbuild"), N("Dash_BESS_Share")
     ratio = bs / (1 + ob * N("Dash_OSZ4_Basis"))
-    total = (pts("1", v(233)) * w["1"] + pts("2", v(234)) * w["2"] + pts("3", ob) * w["3"] + pts("3", ratio) * w["4"]
+    total = (pts("1", N("Dash_Municipal")) * w["1"] + pts("2", N("Dash_Community")) * w["2"] + pts("3", ob) * w["3"] + pts("3", ratio) * w["4"]
              + pts("6", N("Dash_PB_Mult")) * w["6"]
              + 100 * (N("Dash_Partial") * w["5"] + N("Dash_Brownfield") * w["7"]
                       + N("Dash_Shared") * w["8"])

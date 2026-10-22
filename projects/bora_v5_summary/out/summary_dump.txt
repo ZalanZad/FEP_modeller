@@ -5,7 +5,7 @@ Master check (section 8) |  | OK |  |
 Connection capacity (100 MVA per bid) | MVA | 100 |  | 
 Number of bids | # | 1 |  | 
 Overbuild (ÖSZ-3) | % of MVA | 0.4 | 9 | 
-BESS power (ÖSZ-4; points on the scored ratio below) | % of MVA | 0.4 | 13.5 | 
+BESS power (ÖSZ-4; points on the ratio scored, Inputs block U) | % of MVA | 0.4 | 13.5 | 
 ÖSZ-4 basis (0 = MVA, 1 = installed wind) | flag | 0 |  | 
 BESS duration | h | 4 |  | 
 BESS capex | k€/MWh | 100 |  | 
@@ -28,7 +28,6 @@ BESS power | MW | 40 |  |
 BESS energy | MWh | 160 |  | 
 Wind built above connection capacity | MW | 26 |  | 
 Bottleneck loss applied to generation | % | 0.0103175 |  | 
-BESS ratio scored for ÖSZ-4 (basis in section 1) | % | 0.4 |  | 
 k€/MW = per built wind MW; k€/MVA = per connection MVA |  |  |  | 
 3. Build cost to COD |  |  |  | 
  |  | € m | k€/MW built | k€/MVA
@@ -116,18 +115,18 @@ Project IRR, pre-tax | % | 0.103248 | 0.0909715 | 0.0806108 | 0.0717045 | 0.0639
 Project NPV, pre-tax at 8 % | € m | 33.5259 | 17.2837 | 1.04155 | -15.2007 | -31.4429
 8. Checks |  |  |  | 
  |  | Fails | Status | 
-MOIC engine checks | # | 0 | OK | 
-HTM engine checks | # | 0 | OK | 
+Sale-at-RtB engine checks | # | 0 | OK | 
+Build-and-operate engine checks | # | 0 | OK | 
 Deposits schedule internal check | # | 0 | OK | 
-Capex breakdown = HTM capex + IDC + fees | # | 0 | OK | 
+Capex breakdown = engine capex + IDC + fees | # | 0 | OK | 
 Stored results = live case | # | 0 | OK | 
 ÖSZ-1 offer within the offerable range | # | 0 | OK | 
 ÖSZ-2 offer within the offerable range | # | 0 | OK | 
 ÖSZ-4 BESS ratio at least the minimum | # | 0 | OK | 
+Cash_Flow foots to the equity cash flow | # | 0 | OK | 
 Capacity: BESS MW ≤ wind MW, duration ≥ minimum | # | 0 | OK | 
 Master check (number of failing rows) | # | 0 | OK | 
 9. Key assumptions, live case |  |  |  | 
-Turbine supply | k€/MW | 950 |  | 
 Net P50 hours (IC paper 27-Jul-26) | h/yr | 2460 |  | 
 PPA price, first operating year | €/MWh | 90 |  | 
 PPA escalation | % | 0.01 |  | 
@@ -143,7 +142,7 @@ RtB date | date | 2029-03-31 |  |
 Sale date (RtB route) | date | 2029-09-30 |  | 
 COD | date | 2031-06-30 |  | 
 Operating life | years | 30 |  | 
-A.RES bought out at RtB in HTM (1 = yes) | flag | 1 |  | 
+A.RES bought out at RtB in the build case (1 = yes) | flag | 1 |  | 
 DSRA | months | 0 |  | 
 Cash sweep | % | 0 |  | 
 Lump sums scaled from the 200 MVA source (factor) | x | 0.5 |  | 
@@ -156,17 +155,20 @@ Total spending (development, build, financing) | EUR k | -231.497 | -1837.28 | -
 Revenue | EUR k | 909 | 7214.29 | 9090 | 0 | 0 | 0 | … | 16712.5
 Operating costs | EUR k | -263.299 | -2089.67 | -2632.99 | 0 | 0 | 0 | … | -5833.72
 EBITDA (NOI) | EUR k | 645.702 | 5124.62 | 6457.02 | 0 | 0 | 0 | … | 10878.8
-Tax | EUR k | -31.2854 | -248.297 | -312.854 | 0 | 0 | 0 | … | -979.089
-Unlevered post-tax cash flow | EUR k | 376.226 | 2985.92 | 3762.26 | -1572.31 | -793.261 | -1241.96 | … | 6119.68
+Tax (levered) | EUR k | -31.2854 | -248.297 | -312.854 | 0 | 0 | 0 | … | -979.089
 Debt drawdown | EUR k | 131.661 | 1044.93 | 1316.61 | 0 | 0 | 0 | … | 0
-Debt service | EUR k | -204.073 | -1619.63 | -2040.73 | 0 | 0 | 0 | … | 0
+Debt service (incl. cash sweep and DSRA) | EUR k | -204.073 | -1619.63 | -2040.73 | 0 | 0 | 0 | … | 0
+Decommissioning and terminal value | EUR k | -3.78 | -30 | -37.8 | 0 | 0 | 0 | … | -3780
 Equity cash flow | EUR k | 306.727 | 2434.34 | 3067.27 | -1572.31 | -793.261 | -1241.96 | … | 6119.68
 Cumulative equity cash flow | EUR k |  |  |  | -1572.31 | -2365.57 | -3607.53 | … | 306727
+Check: rows above do not add up to the equity cash flow | # | 0 |  |  | 0 | 0 | 0 | … | 0
 ***END*** |  |  |  |  |  |  |  | … | 
 == HTM block 17, sale at COD (G result; timeline: first three years … last year) ==
 17. Sale at COD – buyer earns the unlevered discount rate |  |  |  |  |  | … | 
+COD year (the sale is at 31-Dec) | year | 2031 |  |  |  | … | 
+Discount factor at the COD year (row 12) | x | 0.680583 |  |  |  | … | 
 Post-COD unlevered post-tax cash flow | k€ | 591676 | 0 | 0 | 0 | … | 6119.68
-COD sale price (buyer NPV = 0 at Inputs E224), 31-Dec of the COD year | k€ | 226171 |  |  |  | … | 
+COD sale price (buyer NPV = 0 at Inputs E224) | k€ | 226171 |  |  |  | … | 
 COD sale price per MW built | k€/MW | 1795.01 |  |  |  | … | 
 COD sale price per MVA | k€/MVA | 2261.71 |  |  |  | … | 
 Debt repaid at the sale (closing balance, COD year) | k€ | 138812 |  |  |  | … | 

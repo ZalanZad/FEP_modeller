@@ -193,9 +193,12 @@ Verification, in this order:
    bottleneck factor ((built − MVA) ÷ built). BESS is built in full. Dashboard section 2 shows "Wind committed (bid)" 280
    and "Wind built (bid less 10 %, no sanction)" 252; the per-MW column header reads "k€/MW built".
    HTM G32 and G150 (capex per MW) divide by `In_Wind_Built`, label "Capex per MW built".
-3. **Cash_Flow, fewer rows:** Total spending | Revenue | Operating costs | EBITDA (NOI) | Tax | Unlevered post-tax cash
-   flow | Debt drawdown | Debt service | Equity cash flow | Cumulative equity cash flow. Nothing else; drop the tie-out check
-   row (and its Dashboard check row).
+3. **Cash_Flow is an equity cash-flow statement that foots** (amended after the final audit): Total spending
+   (development, build, financing) | Revenue | Operating costs | EBITDA (NOI) | Tax (levered) | Debt drawdown | Debt
+   service (incl. cash sweep and DSRA) | Decommissioning and terminal value | Equity cash flow (= HTM 123) | Cumulative
+   equity cash flow. Spending + EBITDA + tax + drawdown + debt service + decommissioning = equity cash flow every year
+   (revenue and operating costs are inside EBITDA); a check row counts the years that do not foot and feeds
+   Master_Check (with its Dashboard check row). No unlevered row on this sheet.
 4. **NOI on the Dashboard section 4:** label "EBITDA (NOI), first full year" and add one row "EBITDA (NOI), lifetime" (HTM G70).
 5. **Wording:** replace "both bids" everywhere by "BORA 1 + BORA 2 (2 × 100 MVA)" in section headers; elsewhere drop it.
 

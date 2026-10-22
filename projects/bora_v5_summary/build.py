@@ -18,12 +18,13 @@ from pathlib import Path
 import openpyxl
 from openpyxl.styles import Alignment, Font
 from openpyxl.utils import get_column_letter as L
+from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.worksheet.dimensions import ColumnDimension
 from openpyxl.workbook.defined_name import DefinedName
 from openpyxl.worksheet.formula import ArrayFormula
 
 from fepm.recalc import recalc
-from fepm.xl.builder import STORED_CHECK, _bar, _banner, _columns, _end, _ok_format, _status, _validate, _write
+from fepm.xl.builder import STORED_CHECK, _bar, _banner, _columns, _end, _ok_format, _status, _write
 from fepm.xl.macros import VBA_DIR, package
 from fepm.xl.styles import FMT, FONT, SIZE, STYLES, apply
 
@@ -37,17 +38,17 @@ LAST = 11                                                  # Dashboard columns A
 BAND_COL = 17                                              # Q: points bands (J:P are hidden spare cases)
 
 # Levers: the Dashboard section 1 inputs (Dash_*) and the case cells of SPEC §4 / §8.3 (Inputs G = EU, H = CN turbine).
-NEW = {"Dash_MVA": 100, "In_Exit_Profit_Charge": 0, "Dash_Overbuild": 0.40, "Dash_BESS_Share": 0.40, "Dash_PB_Mult": 1.0, "Dash_Build_Shortfall": 0.10,
+NEW = {"Dash_MVA": 100, "Dash_Municipal": 50, "Dash_Community": 3, "In_Exit_Profit_Charge": 0, "Dash_Overbuild": 0.40, "Dash_BESS_Share": 0.40, "Dash_PB_Mult": 1.0, "Dash_Build_Shortfall": 0.10,
        "cases": {"G7": "EU turbine", "H7": "CN turbine",
                  "G8": "EU turbines 950 k€/MW, 60 % gearing, 90 €/MWh PPA on all output for 30 years",
                  "H8": "As EU turbine, but CN turbines 500 k€/MW and 50 % gearing",
-                 "G78": 0, "G233": 50, "G234": 3, "G162": 950, "H162": 500, "G190": 0, "H190": None,
+                 "G78": 0, "G162": 950, "H162": 500, "G190": 0, "H190": None,
                  "G193": 30, "G217": 0.60, "H217": 0.50, "G220": 15, "G11": 365, "G268": 0, "G269": 0}}
-SOURCE = {"Dash_MVA": 200, "In_Exit_Profit_Charge": 1, "Dash_Overbuild": 0.0,    # the v5 file as received:
+SOURCE = {"Dash_MVA": 200, "Dash_Municipal": 20, "Dash_Community": 2, "In_Exit_Profit_Charge": 1, "Dash_Overbuild": 0.0,    # the v5 file as received:
           "Dash_BESS_Share": 0.50, "Dash_PB_Mult": 1.5, "Dash_Build_Shortfall": 0.0,
           "cases": {"G7": "EU turbine", "H7": "CN turbine",                         # its cases 2 and 3
                     "G8": "v5 case 2 (regression)", "H8": "v5 case 3 (regression)",
-                    "G78": 0.05, "G233": 20, "G234": 2, "G162": 950, "H162": 500, "G190": 0, "H190": 1,
+                    "G78": 0.05, "G162": 950, "H162": 500, "G190": 0, "H190": 1,
                     "G193": 10, "G217": 0.50, "H217": 0, "G220": 10, "G11": 370, "G268": 6, "G269": 0.5}}
 # Dashboard section 1 levers that are the same in both builds: name -> value
 LEVERS = {"Dash_BESS_Capex_MWh": 100, "Dash_Bottleneck_Loss": 0.05, "Dash_OSZ4_Basis": 0,
@@ -79,6 +80,8 @@ def u_rows(lv):
          lv["In_Exit_Profit_Charge"], "SPEC §11.3: cash IRR, no opportunity cost", "flag"),
         ("In_Wind_Built", "Wind built (committed less the build shortfall)", "MW",
          "=E18*(1-Dash_Build_Shortfall)", "GYIK Q28/30/76; HTM E35, E27", "money1"),
+        ("In_OSZ4_Ratio", "ÖSZ-4 BESS ratio scored (basis Dash_OSZ4_Basis)", "%",
+         "=Dash_BESS_Share/(1+Dash_Overbuild*Dash_OSZ4_Basis)", "Kiírás Annex 4; GYIK Q20", "pct"),
         ("In_Bottleneck_Factor", "Generation kept after the bottleneck loss", "x",
          "=1-Dash_Bottleneck_Loss*(In_Wind_Built-Dash_MVA)/In_Wind_Built", "Used in HTM E36",
          "0.0000"),
@@ -227,8 +230,16 @@ def engine(wb, lv):
     inp["E168"] = "=Dash_BESS_Capex_MWh*E21"                            # 100 k€/MWh × hours
     inp["E90"] = "=Dash_PB_Mult"
     inp["E82"] = "=In_Bids"                                           # §11.1 bids follow the capacity
-    for ref in ("E24", "E25", "E26", "E167", "E207"):                  # §11.6 lump sums quoted for 200 MVA
-        inp[ref] = f"=({text(inp[ref].value)[1:]})*In_Scale"
+    dep["G7"] = "=In_Bids"
+    for r, name in ((233, "Dash_Municipal"), (234, "Dash_Community")):    # bid offers are Dashboard levers
+        inp[f"E{r}"] = f"={name}"
+        inp[f"G{r}"] = inp[f"H{r}"] = None
+        inp[f"F{r}"] = f"Set on the Dashboard ({name})"
+    inp["D233"] = inp["D141"] = "k€/MVA"
+    inp["F90"] = "Performance security multiple, set on the Dashboard (Dash_PB_Mult)"
+    htm["C29"] = "Municipal one-off contribution (tender commitment, k€/MVA × MVA – paid in COD year)"
+    for r in (24, 25, 26, 167, 207):                                    # §11.6 lump sums quoted for 200 MVA
+        inp[f"E{r}"] = f'=IF(INDEX($G{r}:$P{r},$E$6)="",$G{r},INDEX($G{r}:$P{r},$E$6))*In_Scale'   # E9 is fixed at 1
     inp["E294"] = "=In_Scale"                                          # devex line items (Devex_FEP column E)
     inp["E173"] = ("=(SUM(E162:E166)+E169+E170)*(1+E171)+E167*(1+E171)/In_Wind_Built"   # §10.2 per built MW
                    "+E168*E20/In_Wind_Built")
@@ -277,29 +288,32 @@ COD = 332                                                              # first r
 def cod_sale(htm):
     """§11.2: the buyer earns the unlevered discount rate (Inputs E224) on the post-COD unlevered flows; FEP sells at
     31-Dec of the COD year, keeps the COD-year flows and repays the debt outstanding. Styles follow HTM block 16."""
-    cod = "YEAR(Inputs!$E$155)"
+    y, df, price, debt, fep = (f"$G${COD + i}" for i in (1, 2, 4, 7, 8))
     rows = [  # label, unit, G result, timeline formula ({c} = column), G style model
-        ("Post-COD unlevered post-tax cash flow", "k€", "=SUM(H{r}:AQ{r})", "={c}110*({c}$5>" + cod + ")", "G322"),
-        ("COD sale price (buyer NPV = 0 at Inputs E224), 31-Dec of the COD year", "k€",
-         f"=SUMPRODUCT(H{COD + 1}:AQ{COD + 1},H12:AQ12)/INDEX(H12:AQ12,MATCH({cod},H5:AQ5,0))", None, "G322"),
-        ("COD sale price per MW built", "k€/MW", f"=G{COD + 2}/In_Wind_Built", None, "G322"),
-        ("COD sale price per MVA", "k€/MVA", f"=G{COD + 2}/Dash_MVA", None, "G322"),
-        ("Debt repaid at the sale (closing balance, COD year)", "k€", f"=INDEX(H84:AQ84,MATCH({cod},H5:AQ5,0))", None,
-         "G322"),
+        ("COD year (the sale is at 31-Dec)", "year", "=YEAR(Inputs!$E$155)", None, "G329"),
+        ("Discount factor at the COD year (row 12)", "x", f"=SUMIF(H5:AQ5,{y},H12:AQ12)", None, "G329"),
+        ("Post-COD unlevered post-tax cash flow", "k€", "=SUM(H{r}:AQ{r})", "={c}110*({c}$5>" + y + ")", "G322"),
+        ("COD sale price (buyer NPV = 0 at Inputs E224)", "k€",
+         f"=SUMPRODUCT(H{COD + 3}:AQ{COD + 3},H12:AQ12)/{df}", None, "G322"),
+        ("COD sale price per MW built", "k€/MW", f"={price}/In_Wind_Built", None, "G322"),
+        ("COD sale price per MVA", "k€/MVA", f"={price}/Dash_MVA", None, "G322"),
+        ("Debt repaid at the sale (closing balance, COD year)", "k€", f"=SUMIF(H5:AQ5,{y},H84:AQ84)", None, "G322"),
         ("FEP cash flow – sale at COD", "k€", None,
-         "={c}123*({c}$5<=" + cod + f")+($G${COD + 2}-$G${COD + 5})*" + "({c}$5=" + cod + ")", "G322"),
-        ("FEP IRR – sale at COD", "%", f'=IFERROR(IRR(H{COD + 6}:AQ{COD + 6}),"n/a")', None, "G326"),
-        ("FEP profit – sale at COD", "k€", f"=SUM(H{COD + 6}:AQ{COD + 6})", None, "G322"),
-        ("FEP MOIC – sale at COD", "x", f'=SUMIF(H{COD + 6}:AQ{COD + 6},">0")/-SUMIF(H{COD + 6}:AQ{COD + 6},"<0")', None,
+         "={c}123*({c}$5<=" + y + f")+({price}-{debt})*({{c}}$5={y})", "G322"),
+        ("FEP IRR – sale at COD", "%", f'=IFERROR(IRR(H{COD + 8}:AQ{COD + 8}),"n/a")', None, "G326"),
+        ("FEP profit – sale at COD", "k€", f"=SUM(H{COD + 8}:AQ{COD + 8})", None, "G322"),
+        ("FEP MOIC – sale at COD", "x", f'=SUMIF(H{COD + 8}:AQ{COD + 8},">0")/-SUMIF(H{COD + 8}:AQ{COD + 8},"<0")', None,
          "G329"),
         ("FEP NPV – sale at COD at the equity discount rate (Inputs E225)", "k€",
-         f"=SUMPRODUCT(H{COD + 6}:AQ{COD + 6},H13:AQ13)", None, "G322")]
+         f"=SUMPRODUCT(H{COD + 8}:AQ{COD + 8},H13:AQ13)", None, "G322")]
+    assert fep == f"$G${COD + 8}"
     htm[f"C{COD}"] = "17. Sale at COD – buyer earns the unlevered discount rate"
     htm[f"C{COD}"]._style = copy(htm["C309"]._style)
     for r, (label, unit, g, line, model) in enumerate(rows, COD + 1):
         for col, v, m in (("C", label, "C322"), ("D", unit, "D322"), ("G", g, model)):
             htm[f"{col}{r}"] = v.format(r=r) if col == "G" and v else v
             htm[f"{col}{r}"]._style = copy(htm[m]._style)
+        htm[f"G{r}"].number_format = {"year": "0", "x": "0.0000"}.get(unit, htm[f"G{r}"].number_format)
         for i in range(8, 44) if line else ():
             c = L(i)
             htm[f"{c}{r}"] = line.replace("{c}", c)
@@ -400,13 +414,13 @@ RETURNS = [
     ("debt", "Debt at COD (incl. capitalised IDC)", "€ m", "=HTM!$G$157/Thousand", "money1"),
     ("payback", "Payback year (FEP equity)", "year", "=HTM!$G$148", "int"),
     ("sub_cod", "Sale at COD to a buyer at 8 % (31-Dec of the COD year)"),
-    ("cod_price", "COD sale price", "€ m", "=HTM!$G$334/Thousand", "money1"),
-    ("cod_mw", "COD sale price per MW built", "k€/MW", "=HTM!$G$335", "money"),
-    ("cod_mva", "COD sale price per MVA", "k€/MVA", "=HTM!$G$336", "money"),
-    ("cod_profit", "FEP profit", "€ m", "=HTM!$G$340/Thousand", "money1"),
-    ("cod_irr", "FEP IRR", "%", "=HTM!$G$339", "pct"),
-    ("cod_npv", "FEP NPV at 8 %", "€ m", "=HTM!$G$342/Thousand", "money1"),
-    ("cod_moic", "FEP MOIC", "x", "=HTM!$G$341", "mult"),
+    ("cod_price", "COD sale price", "€ m", "=HTM!$G$336/Thousand", "money1"),
+    ("cod_mw", "COD sale price per MW built", "k€/MW", "=HTM!$G$337", "money"),
+    ("cod_mva", "COD sale price per MVA", "k€/MVA", "=HTM!$G$338", "money"),
+    ("cod_profit", "FEP profit", "€ m", "=HTM!$G$342/Thousand", "money1"),
+    ("cod_irr", "FEP IRR", "%", "=HTM!$G$341", "pct"),
+    ("cod_npv", "FEP NPV at 8 %", "€ m", "=HTM!$G$344/Thousand", "money1"),
+    ("cod_moic", "FEP MOIC", "x", "=HTM!$G$343", "mult"),
     ("sub_rtb", "Sale at RtB – the buyer (builds and operates with this turbine)"),
     ("buyer_irr", "Buyer IRR at the RtB premium, unlevered post-tax", "%", "=HTM!$G$215", "pct"),
     ("max_rtb", "RtB premium at which the buyer earns 8 %", "k€/MVA", "=HTM!$G$221", "money"),
@@ -425,7 +439,7 @@ RTB = [
 ]
 
 
-def summary(wb, lv):
+def summary(wb, lv, cf_check):
     ws = wb.create_sheet("Dashboard", 1)
     ws.sheet_properties.tabColor = "00563C"
     ws.sheet_view.showGridLines = False
@@ -450,13 +464,14 @@ def summary(wb, lv):
     lever("mva", "Dash_MVA", "Connection capacity (100 MVA per bid)", "MVA", fmt="money")
     s.line("bids", "Number of bids", "#", "=In_Bids", fmt="int")
     lever("ob", "Dash_Overbuild", "Overbuild (ÖSZ-3)", "% of MVA", band(3), fmt="pct")
-    lever("bess", "Dash_BESS_Share", "BESS power (ÖSZ-4; points on the scored ratio below)", "% of MVA", fmt="pct")
+    lever("bess", "Dash_BESS_Share", "BESS power (ÖSZ-4; points on the ratio scored, Inputs block U)", "% of MVA", fmt="pct")
     lever("basis", "Dash_OSZ4_Basis", "ÖSZ-4 basis (0 = MVA, 1 = installed wind)", "flag")
     s.line("hours", "BESS duration", "h", "=Inputs!$E$21", fmt="money1")
     lever("bess_capex", "Dash_BESS_Capex_MWh", "BESS capex", "k€/MWh", fmt="money")
     lever("pb", "Dash_PB_Mult", "Performance security multiple (ÖSZ-6)", "x", band(6), fmt="mult")
-    s.line("mun", "Municipal one-off (ÖSZ-1, basis MVA; the law leaves the MW basis open)", "k€/MVA", "=Inputs!$E$233", band(1), fmt="money")
-    s.line("com", "Community contribution (ÖSZ-2)", "€/MWh", "=Inputs!$E$234", band(2), fmt="money2")
+    lever("mun", "Dash_Municipal", "Municipal one-off (ÖSZ-1, basis MVA; the law leaves the MW basis open)", "k€/MVA",
+          band(1), fmt="money")
+    lever("com", "Dash_Community", "Community contribution (ÖSZ-2)", "€/MWh", band(2), fmt="money2")
     for key, label, name, pts, w in (("partial", "Partial award accepted (ÖSZ-5)", "Dash_Partial", "Osz5_Pts", "Osz5_W"),
                                      ("brown", "Brownfield site (ÖSZ-7)", "Dash_Brownfield", "Osz7_Pts", "Osz7_W"),
                                      ("shared", "Shared connection (ÖSZ-8)", "Dash_Shared", "Osz8_Pts", "Osz8_W")):
@@ -473,7 +488,10 @@ def summary(wb, lv):
     sel = s.line("route", "Turbine route (case)", "case", case, fmt="@", kind="input")
     ws[f"E{sel}"].alignment = Alignment(horizontal="left")
     define(wb, "Scenario_Name", f"Dashboard!$E${sel}")
-    _validate(ws, f"E{sel}", "Scenario_Names")
+    dv = DataValidation(type="list", formula1="Scenario_Names", allow_blank=False, showErrorMessage=True,
+                        errorTitle="Case", error="Pick a case from the list (Inputs G7:H7).")
+    ws.add_data_validation(dv)
+    dv.add(f"E{sel}")
     s.line("pts", "Total points", "points", None,
            f"=ROUND(SUM(F{s.rows['ob']}:F{s.rows['eu_tr']}),Points_Decimals)", fmt="0.00", bold=True)
 
@@ -485,9 +503,7 @@ def summary(wb, lv):
     s.line("bmwh", "BESS energy", "MWh", "=Inputs!$E$22", fmt="money")
     s.line("over", "Wind built above connection capacity", "MW", "={built}-{mva}", fmt="money")
     s.line("loss", "Bottleneck loss applied to generation", "%", "=1-In_Bottleneck_Factor", fmt="0.00%")
-    s.line("ratio", "BESS ratio scored for ÖSZ-4 (basis in section 1)", "%", "={bess}/(1+{ob}*Dash_OSZ4_Basis)",
-           fmt="pct")
-    _write(ws, s.rows["bess"], 6, band(3, 4).replace("E{r}", f"$E${s.rows['ratio']}"), fmt="0.00")
+    _write(ws, s.rows["bess"], 6, band(3, 4).replace("E{r}", "In_OSZ4_Ratio"), fmt="0.00")
     apply(ws.cell(s.r, 3, "k€/MW = per built wind MW; k€/MVA = per connection MVA"), "unit")
     s.r += 1
 
@@ -594,15 +610,16 @@ def summary(wb, lv):
     # 8. Checks: one row per test (E = 1 if failing), Master_Check = number of failing rows.
     s.bar("8. Checks")
     s.header("Fails", "Status")
-    checks = [("c_moic", "MOIC engine checks", '=N(MOIC!$G$270<>"ALL OK")'),
-              ("c_htm", "HTM engine checks", '=N(HTM!$G$172<>"ALL OK")'),
+    checks = [("c_moic", "Sale-at-RtB engine checks", '=N(MOIC!$G$270<>"ALL OK")'),
+              ("c_htm", "Build-and-operate engine checks", '=N(HTM!$G$172<>"ALL OK")'),
               ("c_dep", "Deposits schedule internal check", '=N(Deposits!$E$34<>"OK")'),
-              ("c_capex", "Capex breakdown = HTM capex + IDC + fees",
+              ("c_capex", "Capex breakdown = engine capex + IDC + fees",
                "=N(ABS({allin}-(HTM!$G$79-HTM!$G$30-HTM!$G$85)/Thousand)>Tolerance)"),
               ("c_stored", "Stored results = live case", STORED_CHECK[1]),
               ("c_osz1", "ÖSZ-1 offer within the offerable range", "=N((E{m}<>0)*(E{m}<Osz1_Min)+(E{m}>Osz1_Max)>0)"),
               ("c_osz2", "ÖSZ-2 offer within the offerable range", "=N((E{c}<>0)*(E{c}<Osz2_Min)+(E{c}>Osz2_Max)>0)"),
-              ("c_osz4", "ÖSZ-4 BESS ratio at least the minimum", "=N(({ratio}>0)*({ratio}<Osz4_Min)>0)"),
+              ("c_osz4", "ÖSZ-4 BESS ratio at least the minimum", "=N((In_OSZ4_Ratio>0)*(In_OSZ4_Ratio<Osz4_Min)>0)"),
+              ("c_cf", "Cash_Flow foots to the equity cash flow", f"=N(Cash_Flow!$E${cf_check}>0)"),
               ("c_cap", "Capacity: BESS MW ≤ wind MW, duration ≥ minimum",
                "=N(({bmw}>{inst})+({hours}<In_Min_Hours)>0)")]
     for key, label, f in checks:
@@ -619,8 +636,7 @@ def summary(wb, lv):
 
     # 9. Key assumptions (links to the engine inputs).
     s.bar("9. Key assumptions, live case")
-    for key, label, unit, ref, fmt in (("a_turb", "Turbine supply", "k€/MW", "E162", "money"),
-                                       ("a_p50", "Net P50 hours (IC paper 27-Jul-26)", "h/yr", "E179", "money"),
+    for key, label, unit, ref, fmt in (("a_p50", "Net P50 hours (IC paper 27-Jul-26)", "h/yr", "E179", "money"),
                                        ("a_ppa", "PPA price, first operating year", "€/MWh", "E191", "money1"),
                                        ("a_ppa_esc", "PPA escalation", "%", "E192", "pct"),
                                        ("a_tenor", "PPA tenor", "years", "E193", "int"),
@@ -636,7 +652,7 @@ def summary(wb, lv):
                                        ("a_sale", "Sale date (RtB route)", "date", "E58", "date"),
                                        ("a_cod", "COD", "date", "E155", "date"),
                                        ("a_life", "Operating life", "years", "E157", "int"),
-                                       ("a_exit", "A.RES bought out at RtB in HTM (1 = yes)", "flag", "E228", "flag"),
+                                       ("a_exit", "A.RES bought out at RtB in the build case (1 = yes)", "flag", "E228", "flag"),
                                        ("a_dsra", "DSRA", "months", "E268", "int"),
                                        ("a_sweep", "Cash sweep", "%", "E269", "pct")):
         s.line(key, label, unit, f"=Inputs!${ref[0]}${ref[1:]}", fmt=fmt)
@@ -649,18 +665,21 @@ def summary(wb, lv):
 # =========================================================================================== §9.4 Cash_Flow
 CF_FIRST, CF_YEARS = 9, 36                 # I.. timeline = HTM H:AQ (2026-2061)
 CF_ROWS = [                                # key, label, HTM row(s) linked
-    ("spend", "Total spending (development, build, financing)", "24+30+117"), ("rev", "Revenue", "54"), ("opex", "Operating costs", "69"),
-    ("ebitda", "EBITDA (NOI)", "70"), ("tax", "Tax", "100"), ("ucf", "Unlevered post-tax cash flow", "110"),
-    ("draw", "Debt drawdown", "77"), ("ds", "Debt service", "119"), ("ecf", "Equity cash flow", "123"),
+    ("spend", "Total spending (development, build, financing)", "24+30+117"), ("rev", "Revenue", "54"),
+    ("opex", "Operating costs", "69"), ("ebitda", "EBITDA (NOI)", "70"), ("tax", "Tax (levered)", "100"),
+    ("draw", "Debt drawdown", "77"), ("ds", "Debt service (incl. cash sweep and DSRA)", "119+89"),
+    ("decom", "Decommissioning and terminal value", "107+108"), ("ecf", "Equity cash flow", "123"),
     ("ecum", "Cumulative equity cash flow", "124"),
 ]
-CF_BOLD, CF_NO_TOTAL = {"spend", "ebitda", "ucf", "ecf"}, {"ecum"}
+CF_BOLD, CF_NO_TOTAL = {"spend", "ebitda", "ecf"}, {"ecum"}
+CF_FOOT = ("spend", "ebitda", "tax", "draw", "ds", "decom")       # revenue and opex are inside EBITDA
 
 
 def cash_flow(wb):
-    """The HTM 2026-2061 grid as links (SPEC §9.4, §10.3): one formula per row copied across, E total € m,
-    F per built MW, G per MVA. Total spending = development phase + capex + fees paid by equity (HTM 24 + 30 + 117);
-    drawdown points at its source HTM 77 (HTM 116 is only a link)."""
+    """The HTM 2026-2061 grid as an equity cash-flow statement (SPEC §9.4, §10.3): one link formula per row copied
+    across, E total € m, F per built MW, G per MVA. Spending + EBITDA + tax + debt flows + decommissioning = equity
+    cash flow (HTM 123) every year; the check row counts the years that do not foot and feeds Master_Check.
+    Total spending = HTM 24 + 30 + 117; drawdown and DSRA point at their sources (HTM 77, 89)."""
     ws = wb.create_sheet("Cash_Flow", 0)
     ws.sheet_view.showGridLines = False
     last = CF_FIRST + CF_YEARS - 1
@@ -668,7 +687,7 @@ def cash_flow(wb):
     _columns(ws, {"A": 3, "B": 3, "C": 44, "D": 8, "E": 11, "F": 11, "G": 11, "H": 2,
                   **{L(c): 9 for c in cols}})
     ws.column_dimensions.group(L(last + 1), "XFD", hidden=True)
-    ws["B2"] = '=Inputs!$A$1&" – Cash flow, build and operate (HTM, EUR k)"'
+    ws["B2"] = '=Inputs!$A$1&" – Equity cash flow, build and operate (HTM, EUR k)"'
     _banner(ws, 2, last)
     for col, h in zip("EFG", ("Total € m", "k€/MW built", "k€/MVA")):
         apply(ws[f"{col}4"], "header").value = h
@@ -677,7 +696,9 @@ def cash_flow(wb):
     for c in cols:
         _write(ws, 5, c, f"=HTM!{L(c - 1)}$5", "header", "0")
     ws.freeze_panes = "I6"
+    rows = {}
     for r, (key, label, src) in enumerate(CF_ROWS, 7):
+        rows[key] = r
         kind = "total" if key in CF_BOLD else "calc"
         apply(ws.cell(r, 3, label), "label")
         if key in CF_BOLD:
@@ -687,7 +708,15 @@ def cash_flow(wb):
             _write(ws, r, c, "=" + "+".join(f"HTM!{L(c - 1)}{x}" for x in src.split("+")), kind, "money")
         if key not in CF_NO_TOTAL:
             _cf_totals(ws, r, last, kind)
-    _end(ws, 7 + len(CF_ROWS) + 1, last)
+    r = 7 + len(CF_ROWS) + 1
+    apply(ws.cell(r, 3, "Check: rows above do not add up to the equity cash flow"), "label")
+    apply(ws.cell(r, 4, "#"), "unit")
+    for c in cols:
+        parts = "+".join(f"{L(c)}{rows[k]}" for k in CF_FOOT)
+        _write(ws, r, c, f"=N(ABS({parts}-{L(c)}{rows['ecf']})>Tolerance)", "calc", "0")
+    _write(ws, r, 5, f"=SUM({L(CF_FIRST)}{r}:{L(last)}{r})", "total", "0")
+    _end(ws, r + 2, last)
+    return r
 
 
 def _cf_totals(ws, r, last, kind):
@@ -702,16 +731,21 @@ def change_log(wb):
     for col in "BCDEFGHIJ":
         ws[f"{col}{r}"]._style = copy(ws[f"{col}{r - 1}"]._style)
     for col, v in zip("BCDEFGHIJ", (
-            f"=B{r - 1}+1", date(2026, 10, 22), "Dashboard sheet", "Cash_Flow; Dashboard; Inputs; Deposits; HTM; MOIC",
-            "Inputs E6, E16, E20, E90, E168, G:H case cells, rows 300+; Deposits G11, G12, G18, C28:E34; HTM E36, "
-            "H29:AQ29, E227:E243, G221:G222; MOIC G143, H226:N226",
-            "Dashboard rebuilt as one IC page and Cash_Flow (HTM annual grid) added; Cover and the old "
-            "Control_Panel, Dashboard, Bora, Run_Map deleted (links → values, "
-            "G292 formula moved from Control_Panel E22). Levers on Dashboard, points bands on Inputs block U; capacity, BESS, PB "
-            "and RtB price on the MVA basis; two cases (EU, CN turbine); Deposits E34 is an internal check; "
+            f"=B{r - 1}+1", date(2026, 10, 22), "Dashboard and Cash_Flow",
+            "Cash_Flow; Dashboard; Inputs; Deposits; HTM; MOIC",
+            "Inputs E6, E16, E20, E24:E26, E82, E90, E167, E168, E173, E174, E207, E233, E234, E294, G:H case cells, "
+            "rows 300+; Deposits G7, G11, G12, G18, C28:E34; HTM E21, E27, E35, E36, G32, H29:AQ29, E227:E243, "
+            "G221:G222, rows 332+; MOIC G143, H226:N226",
+            "Dashboard (one IC page) and Cash_Flow (HTM equity cash flow) added; Cover, Control_Panel, old "
+            "Dashboard, Bora, Run_Map deleted (links → values; G292 formula moved from Control_Panel E22). Levers "
+            "on the Dashboard (Dash_*: MVA, overbuild, BESS, PB, municipal, community, build shortfall …); one "
+            "capacity lever (In_Bids follows); lump sums scaled from the 200 MVA source (In_Scale, E294); wind built "
+            "= bid − 10 % (In_Wind_Built: HTM E27, E35, G32, Inputs E173/E174); capacity, PB, connection fees, "
+            "municipal and RtB price on the MVA basis; two cases (EU 950, CN 500 k€/MW); debt tenor 15 years; "
+            "HTM E21 profit forgone off; HTM block 17 sale at COD to a buyer at 8 %; Deposits E34 internal check; "
             "Module1/Module2 replaced by Scenarios.bas.",
-            "200 MW, BESS 100 MW, PB ×1.5, merchant base, 950 k€/MW, 3 cases",
-            "200 MVA / 280 MW installed, BESS 80 MW, PB ×1.0, PPA 90 €/MWh 30 yrs, 950 / 500 k€/MW",
+            "200 MW, BESS 100 MW, PB ×1.5, merchant base, 950 k€/MW, 3 cases, tenor 10",
+            "100 MVA / 140 MW bid / 126 MW built, BESS 40 MW, PB ×1.0, PPA 90 €/MWh 30 yrs, 950 / 500 k€/MW",
             "User 22-Oct-2026; projects/bora_v5_summary/SPEC.md")):
         ws[f"{col}{r}"] = v
 
@@ -750,8 +784,7 @@ def edit(levers=NEW):
     block_u(wb, levers)
     cases(wb)
     engine(wb, levers)
-    cash_flow(wb)
-    summary(wb, levers)
+    summary(wb, levers, cash_flow(wb))
     change_log(wb)
     for ws in wb.worksheets:                                   # open on Dashboard
         ws.sheet_view.tabSelected = ws.title == "Dashboard"
