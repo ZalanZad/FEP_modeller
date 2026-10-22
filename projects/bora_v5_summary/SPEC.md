@@ -289,3 +289,23 @@ Verification, in this order:
 4. **Cash_Flow per MW built:** below the statement, a compact block "Per MW built, k€/MW" with three rows across the
    timeline: total spending, EBITDA (NOI), equity cash flow (each = row ÷ In_Wind_Built). One formula per row.
 5. After the build: Fable review of the dump, auditor verification, fixes, delivery.
+
+## 14. Second expert review (22-Oct-2026): adopted items
+
+1. Returns table: add rows "Tender points" (per case; CN = 67.5 without ÖSZ-9) and "Gearing (debt ÷ capex)" per case;
+   "Maximum gearing at the lender minimum DSCR" shows "≥ top step" text when the top step still passes.
+2. Section 1: add "Total points if ÖSZ-4 is scored on installed wind (GYIK Q20)" by formula (same band lookup on
+   BESS ÷ (1 + overbuild)); the user's MVA basis stays the scored one.
+3. Case 3 renamed "EU cheaper debt (64 % at 4.5 %)" – it is cheaper financing from NTP, not a refinancing at COD.
+4. Sensitivities: label the price and capex grids "pre-tax (engine block)"; add a row "DSCR vs lender minimum" (OK /
+   BELOW) under the gearing grid; add a fifth grid "Buyer discount rate" (3 blue steps, default 7 / 8 / 9 %) computed in
+   the HTM sale-at-COD block (three price cells with their own DF columns is too heavy – instead compute the COD price
+   at each rate as `SUMPRODUCT(flow, 1/(1+r)^(year − COD year))`, one cell per rate, ≤ 2 nested functions) → COD sale
+   price (€ m), FEP profit on the COD sale; and the RtB premium at which the buyer earns that rate (HTM G221 logic).
+5. Cash_Flow: split "Total spending" into its two parts above it: "Development phase (devex, fees, securities net,
+   A.RES buy-out)" and "Build cost to COD (capex, connection, municipal, IDC, debt fees)"; total spending = their sum.
+6. Key assumptions: drop the zero rows (merchant share, DSRA, cash sweep) and the scale factor; add curtailment (2 %)
+   and degradation (0.3 %/yr).
+7. To verify first (auditor), then fix only if real: (a) the gearing grid at the live step (60 %) gives 8.977 % /
+   1.5421x vs the returns table 8.981 % / 1.5426x; (b) the RtB grid's 50 k€/MVA step is 0.22 € m above the straight line
+   (tax at sale going negative?); (c) the "◄ live" marker column.
