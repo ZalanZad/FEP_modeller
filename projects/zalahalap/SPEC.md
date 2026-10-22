@@ -1,10 +1,22 @@
-# Zalahaláp (ZHLP) – 63 MWp PV + 50 MW / 200 MWh BESS: investment model SPEC v0 (draft architecture)
+# Zalahaláp (ZHLP) – 63 MWp PV + 50 MW / 200 MWh BESS: investment model SPEC v1 (build-ready)
 
 Owner: orchestrator (Fable). Builder: `model-builder` (Opus). Audit: `model-auditor`.
-Status: **draft for user confirmation**. Written 22-Oct-2026 from the user brief, the repository benchmark review
-(Bora and Bana fepm models, `docs/MODELLING_STANDARDS.md`) and the four project files in `reference/zalahalap/`.
-Items marked **[confirm]** need a user decision; items marked **[placeholder]** are illustrative values the user must
-replace (they sit on `Inputs` in blue, with the note "PLACEHOLDER – confirm").
+Status: **v1, build-ready with frozen defaults** (22-Oct-2026). v0 was the draft architecture; v1 records the user's
+three answers (§0) and freezes every still-open item as an explicit, flagged default (§15) so that Phases 1–2 can be
+built now. Items marked **[confirm]** are those defaults; they sit on `Inputs` in blue with the note
+"DEFAULT – confirm" and are listed in §16.
+
+## 0. User answers (22-Oct-2026, verbatim: "1 should jump from 60-50 at 90k i have sent you the aurora use that 3. use from the input sheet")
+1. **JV share is a step, not a slide:** Futureal 60 % when the RtB price is below `In_Share_Threshold` = 90 k€/MW,
+   50 % at or above it (`In_FEP_Share_Low` 60 %, `In_FEP_Share_High` 50 %). Boundary: the original model's price is
+   exactly 90 and its sliding rule gives 60 % there; the step rule as read gives 50 % → §13 item 14, with the
+   original rule kept as the reconciliation switch. **[confirm the boundary]**
+2. **Aurora: only the file the user sent** (`Aurora_Q2_26_HUN_Flexible_Energy_Data_AG.xlsm`). Scenario B uses the
+   Aurora-implied PV capture; no flat 65 %, no synthetic Low/High (the ±15 % and Bora-ratio proxies are dropped);
+   price risk is carried by the ±% price sets (§10). Scenario A keeps the original model's own curves and its ±15 %
+   switch, because it reproduces that model.
+3. **Devex/early works from the input sheet:** `Stat_inp!E50` = SUM(E44:E47) = 12.87 k€/MW, not Calculation's
+   24.75. See §3.1 (what E48/E49 are) and §13 item 15 (effect).
 
 **Deliverable: one workbook, `out/Zalahalap_Model.xlsm` (+ `_recalc.xlsx`).** No deck, no IC email. The deck/ic-writer
 steps of `CLAUDE.md` do not apply to this project; the model-builder → model-auditor loop and `MODELLING_STANDARDS.md` do.
@@ -88,7 +100,7 @@ old_targets.csv, dump_old.py}` (commit 65a6fb2).
 | Opex (real 2025) | O&M 14.96 k€/MW; balancing 5 €/MWh; land lease 96 k€/yr from COD; MV cable O&M 5 k€/MW; route-to-market 0 %; BESS fixed 30.8 k€/MW; indexed with the Aurora euro index | Control!D59:D62, D77, D96; HTM_Model row 20 |
 | Revenue | Aurora Central baseload real 2025 × **flat 65 % capture**; GoO 1.75 €/MWh real; post-2060 inflation 2 % | Aurora_Curve!C, D4; Control!D7, D58, D13 |
 | RtB deal | premium 90 k€/MW; **Futureal share price-dependent** in the Negotiated case: `IF(price<90, 60 %, IF(price<=100, 50 % + (100 − price)/100, 50 %))` = 60 % at 90, 50 % at ≥ 100 (case 3 column I = 60 % flat, case 1 column G = 50 %); connection rights 150; transaction costs 200; PSH land apport 150; preferred return 12 % p.a. monthly; BG margin 1.75 % over 1M EURIBOR; deposits 3,192.56 | Stat_inp!E24, J36 (K36 for Calculation!G34), E33, E37, E34, E69, E110, E97; Dyn_Inp row 50 |
-| Early works / milestones | six milestone lines E44:E49 = 2.46, 2.46, 0.41, 7.54, 10.66, 1.23 k€/MW; Calculation!F30 = SUM(F24:F29) = **24.75 k€/MW** (all six); `Stat_inp!E50 = SUM(E44:E47)` = 12.87 is a partial subtotal of the first four lines and is not referenced | Stat_inp!E44:E50; Calculation!F24:F30 |
+| Early works / milestones ("LDA & Early works", Stat_inp!C43) | six lines E44:E49: Land 1st 2.46, Land 2nd 2.46, ICS execution design 1st 0.41, critical equipment (HV/ICS/substation + 132 kV transformer 1st) 7.54, **E48 "ICS Execution Design 2nd + 132 kV transformer 2nd" 10.66 (650 k€)**, **E49 "Land 3rd payment" 1.23 (30 mHUF = 75 k€)**; E48/E49 are timed at month 8 = the RtB month (Stat_inp!E57:E58). `Stat_inp!E50 = SUM(E44:E47)` = 12.87 (the range was never extended; G50:I50 sum the same four lines, while the Negotiated case's own total **J50 = SUM(J44:J49) = 24.75**). Calculation!F30 = 24.75 feeds the early works (Calculation!F60 = 1,510 k€ = 24.75 × 61), which the buyer reimburses and which sit inside HTM capex. **Verdict: E48/E49 are genuine project costs, not redundant lines.** Per the user (§0.3) the model's early-works scope = the four lines (12.87, 785 k€); E48/E49 are then **moved to construction capex at NTP** (`In_Milestones_Late_To_Capex` = 1) so that nothing is lost – they are no longer reimbursed at the RtB sale and no longer accrue the 12 % return. Switch `In_Milestones_Scope` (4 = user, 6 = original) for the reconciliation. | Stat_inp!C44:C49, E44:E50, J50; Calculation!F24:F30, F60 |
 | Debt | **none** (no gearing, DSCR, DSRA, IDC, fees) | – |
 | Tax | CIT 9 %; 30-year straight line excl. land; loss cap 50 %; no HIPA, no tax on the RtB gain | Control!D66, D65, D102 |
 | Valuation | NPV rate 8 %; FX 400 HUF/EUR; buyer pays the RtB price (90); buyer target IRR only as a sensitivity axis 7–11 % | Control!D9, D70, D71; Stat_inp!E23; Sensitivities!D71:D75 |
@@ -149,9 +161,11 @@ selected curves feed in. Nothing is copied.
 
 ### 6.1 Scenario A – reconstruction of the original model
 Takes every operating, price, capex, opex, debt and tax assumption of `Zalahalap_model_10112025_v3` (§3.1) **as its
-Negotiated case (Stat_inp!E17 = 4) selects them**, including its own Aurora curves (Central, and the ±15 % Low/High
-stresses, on `Curves` labelled with their vintage) and the price-dependent Futureal share (a `Curves` band table:
-60 % below 90, linear to 50 % at 100). It is the reconciliation benchmark, not a decision case.
+Negotiated case (Stat_inp!E17 = 4) selects them**, including its own Aurora curves (Central, and its ±15 % Low/High
+switch as it was, on `Curves` labelled "ZHLP v3 Aurora_Curve") and, in the reconciliation set only, the original's
+sliding share rule (`In_Share_Rule` = 0: 60 % below 90, linear to 50 % at 100) and the six-line early works
+(`In_Milestones_Scope` = 6). The base rule for every case is the user's step (§0.1). It is the reconciliation
+benchmark, not a decision case.
 Deliberate fixes to its methodology are listed in §13 and switched by `In_Fix_*` flags so that the reconciliation can
 step through them (fix off = old method).
 
@@ -165,17 +179,15 @@ capacity + energy, FCR; no mFRR). It is the same databook the original model pas
 aFRR rows 49–52). Hourly data are not in the file and may not be used in third-party tools without consent
 (Disclaimer!E6), so there is no Python dispatch option on this data.
 
-**PV price (one row, selectable by curve name):**
-- `Capture_Flat`: Aurora Central baseload × a flat capture rate (`In_PV_Capture_Rate`, 65 % = the original model's
-  Aurora_Curve!D4) – the Scenario A method.
-- `Capture_Aurora_Implied`: year-by-year capture rate implied by Aurora's own co-located solar block (RES day-ahead
-  cash flow ÷ RES day-ahead volume, Degraded batteries block rows s+34 / s+29; ≈ 0.68 × baseload in 2027). Derived
-  on `Curves` with the source rows cited; it is Aurora's solar value, not a published capture series.
-- `Capture_Aurora_Solar`: an empty labelled curve for the official Aurora HU solar capture series **once requested**
-  (§16 Q3). Base = `Capture_Aurora_Implied` **[confirm]**; Low/High sets scale baseload by the Bora `Curves` Low/High
-  ÷ Central ratios (Aurora Q2-26 HU, Bora_IC_model_v4 Curves!D22:F55), the only Aurora Low/High available.
-- Real → nominal with the Aurora euro index (Common Assumptions!E14:AN14; 2027 = 1.0404); flat real after 2060.
-  GoO as a separate €/MWh input (original: 1.75 real).
+**PV price (one row, selectable by curve name; user decision §0.2: this file and nothing else):**
+- `Capture_Aurora_Implied` (**Scenario B base**): year-by-year PV capture price = Aurora's own co-located solar block
+  RES day-ahead cash flow ÷ RES day-ahead volume (Degraded batteries, block rows s+34 / s+29 of the selected block;
+  ≈ 0.68 × baseload in 2027), real 2025 €/MWh, derived on `Curves` with the source rows cited. It is Aurora's solar
+  value in this databook, not a published capture series (none exists in the file).
+- `ZHLP_v3_capture`: the original model's curve (Central baseload × 65 %, with its ±15 % switch) – Scenario A only.
+- No Low/High curves for B: price risk is the ±% price sets (§10). Real → nominal with the Aurora euro index
+  (Common Assumptions!E14:AN14; 2027 = 1.0404); flat real after 2060. GoO as a separate €/MWh input (1.75 real, as the
+  original) **[confirm]**.
 
 **BESS revenue (Scenario B):** Aurora's **Degraded batteries** block for the configuration chosen by name on the
 Dashboard (`In_BESS_Block`: "2027 solar DC 1.0cy 4h", "2027 solar DC 1.0cy 2h", "2027 solar DC 1.5cy 2h",
@@ -284,14 +296,15 @@ consideration) – two different mechanisms, not one; the "consideration based" 
 rows 70/73 are mislabelled ("50 % PSH shares", "TOTAL PSH" in the FUTUREAL block).
 
 **Model implementation (Bora pattern, dated):**
-- Inputs: `In_JV_Price_Basis` (k€/MWp), `In_FEP_Share` 55 % (or the original's price-dependent band table when
-  `In_Share_Rule` = 1, so Scenario A reconciles), `In_DSA_Per_MWp` 15 k€, `In_Loan_Rate` 12 %
+- Inputs: `In_JV_Price_Basis` (k€/MWp), the **step share rule** `In_FEP_Share_Low` 60 % / `In_FEP_Share_High` 50 % /
+  `In_Share_Threshold` 90 k€/MW (§0.1; `In_Share_Rule` = 0 restores the original's sliding rule for the
+  reconciliation set), `In_DSA_Per_MWp` 15 k€, `In_Loan_Rate` 12 %
   (act/365 from each draw to the exit, 31-Dec capitalisation as Bora – **a deliberate fix vs the flat 12 %**, switchable),
   `In_SPV_Price` 549 k€, `In_NonDevex_Loan` 562.5 k€ + its basis once explained.
 - Calc rows (per Calc sheet): FEP loans drawn (devex schedule → principal corkscrew per class, Bora claims block
   reduced to two classes: DSA/devex loan and non-devex loan), accrued interest; at the exit the `waterfall()` helper:
   cash available = price + buyer-reimbursed loan principal; steps = sale costs → loan principal → interest → SPV price
-  item → distributable, split `In_FEP_Share` / (1 − share); PSH receives its lot + the DSA.
+  item → distributable, split by the step share rule (§0.1) / (1 − share); PSH receives its lot + the DSA.
 - **COD sale:** same claims accrued to COD, same split of the net proceeds after debt and sale costs **[confirm: the
   JV document covers only the RtB sale]**.
 - **HTM:** base = FEP buys PSH out at the RtB date at PSH's RtB entitlement (the original model's "PSH buy-out"
@@ -346,9 +359,10 @@ COD; IDC capitalised; upfront and commitment fees; DSRA; cash sweep set. Tax cir
 BESS tolling C2c as the default C pairing) · 2 Reconciliation (Scenario A inputs, every §13 switch off, gearing 0) ·
 3 PV price −10 % · 4 PV price +10 % · 5 PV yield −10 % (P90 when the yield report arrives) · 6 BESS revenue −20 % ·
 7 Capex +10 % · 8 Opex +10 % · 9 Buyer IRR +1 pp · 10 RtB and COD price −10 % · 11 Gearing −10 pp · 12 Debt rate +1 pp ·
-13 COD +12 months · 14 BESS 2 h (block "2027 solar DC 1.0cy 2h", 100 MWh) · 15 No BESS · 16 Aurora Low (Bora ratio) ·
-17 C pairing: E.ON indexed PPA + E.ON option B · 18 C pairing: MVM 45 €/MWh + MET floor/PSA. **[confirm the list;
-18 is the engine cap — further pairings are run by changing the `In_Offer_*` levers and re-running the macro.]**
+13 COD +12 months · 14 BESS 2 h (block "2027 solar DC 1.0cy 2h", 100 MWh) · 15 No BESS · 16 PV and BESS prices −20 %
+(the merchant downside, replacing any Aurora Low) · 17 C pairing: E.ON indexed PPA + E.ON option B · 18 C pairing:
+MVM 45 €/MWh + MET floor/PSA. **[confirm the list; 18 is the engine cap — further pairings are run by changing the
+`In_Offer_*` levers and re-running the macro.]**
 
 ## 11. Checks (→ `Master_Check`)
 Bana list (levers in range, COD on a quarter end, debt within capacity and repaid, DSCR ≥ target, sources = uses to COD,
@@ -395,6 +409,13 @@ Scenario A ties to the stored reconciliation targets within tolerance (one row p
     254–258: not recalculated by LibreOffice, replaced by stored macro results), no stale sensitivity caches
     (Sensitivities/Sens_Engine differ from recalc in 81 cells), one break-even price (the original shows
     9.63 / 29.65 / 107.7), `n/a` + check instead of IFERROR(…,0).
+14. **JV share rule (user §0.1):** step 60 % → 50 % at 90 k€/MW instead of the original's slide (60 % below 90, linear
+    to 50 % at 100). At the original's price of exactly 90 the slide gives 60 % and the step gives 50 %, so the RtB
+    targets move by 10 % of the distributable amount; the reconciliation set runs the slide (`In_Share_Rule` = 0). (S)
+15. **Early works scope (user §0.3):** four milestone lines (12.87 k€/MW, 785 k€) instead of six (24.75, 1,510 k€).
+    E48 (650 k€) and E49 (75 k€) go to construction capex at NTP, so total project cost is unchanged but 725 k€ is no
+    longer reimbursed at the RtB sale, no longer earns the 12 % return and no longer sits in "capital" (RtB MOIC
+    and capital targets move; the reconciliation set uses `In_Milestones_Scope` = 6). (S)
 Known original-model bugs that are **not** reproduced (noted in the reconciliation): Summary!D28 → RTB_Model!D75
 instead of D78; Sensitivities!E39:E42 use D73/D74; Calculation!G225 omits G221; Dyn_Inp!G24/H26:Y26 row offsets;
 Control!D26 formula overrides the construction-start default; stale notes (Control!E8, E52, E82, E97, E115; HTM!E46…).
@@ -421,56 +442,37 @@ Phase 2 – buildable now from the documents, final values pending the §16 answ
     fails (asset-deal switch).
 Phase 3 – audit: `python3 -m fepm audit projects/zalahalap`, reconciliation report, commit.
 
-## 15. Open inputs / blockers (after all documents received, 22-Oct-2026)
-| # | Missing item | Depends on it | Can proceed without it? |
+## 15. Frozen defaults (build now; each is an `Inputs` row in blue, note "DEFAULT – confirm", listed in §16)
+| # | Item | Default used in the build | Set / switch |
 |---|---|---|---|
-| 1 | Bank term sheet (quantum, DSCR by revenue type, tenor, margin, sweep, DSRA, fees). The original model has no debt at all. | Debt sizing, levered and buyer-levered returns | Yes with flagged placeholders (Bana's 55 %, 15 y, 5 %, 1.20x are wind indications). |
-| 2 | Deal form per strategy (share vs asset sale at RtB and COD) and which costs the buyer reimburses | Tax per strategy, "cash available" | Yes: `In_Sale_Form`, default share sale; reimbursements as in the JV sheet. |
-| 3 | Buyer target IRRs | Implied prices | Yes: 8 % placeholder. |
-| 4 | One set of dates (teaser RTB Dec-26 / COD Mar-28; original model RtB 31-Jul-26, sale 31-Oct-26, COD 01-Apr-28; E.ON COD 27Q4–28Q1; MET start 01-Jan-28) | Timeline, offer start dates | Yes: original-model dates for A, teaser dates for B/C, flagged. |
-| 5 | BESS configuration (teaser up to 50 MW/200 MWh; original 50/200 4 h; E.ON RFQ 50/100 2 h; MET 50/90) and technical data (RTE, availability, cycles, AC/DC coupling, grid charging, grid-cap sharing) | BESS block choice, capex, offers | Yes: hours as a lever (4 h base, 2 h set), Aurora's 0.86 / 0.98 as placeholders. |
-| 6 | Aurora solar capture series (not in the dataset) and Low/High for Hungary | Scenario B PV price | Yes: implied capture from Aurora's solar block; Bora ratios for Low/High. |
-| 7 | PV yield report (P50/P90, clipping, DC/AC) | Generation | Teaser 1,265 kWh/kWp (original 1,250); P90 placeholder. |
-| 8 | Capex/opex quotes (PV, BESS, 35 kV cable, substation); devex to RtB; land | Capex/opex | Original model values (BESS 110 k€/MWh vs Aurora's ≈267 k€/MWh reference, Aurora_Raw!F79 – flag). |
-| 9 | Tax confirmations (CIT 9 % vs Pillar Two 15 % proxy; Robin Hood; depreciation lives PV 30 y / BESS; HIPA) | Tax | Yes: Bana settings as placeholders. |
-| 10 | JV terms: the 549 k€ SPV price, the 562.5 k€ non-devex loan, the price basis (120 vs 90 k€/MW), the share (55/45 vs 60/40), COD-sale and HTM treatment of PSH | Waterfall | Use the 221025 sheet, flagged. |
-| 11 | Offer clarifications (§16 Q12–Q16) | Scenario C detail | Yes: terms as read. |
+| 1 | Bank terms (the original has no debt) | gearing cap 55 % of PV+BESS construction cost; 15-year level annuity from COD at 5.0 % all-in; sizing DSCR 1.20x on contracted revenue, **1.35x on merchant and BESS revenue** (`In_DSCR_Merchant`); upfront 1.75 %, commitment 0.9 %; DSRA 6 months; no sweep. Values are the Bana wind indications, not ZHLP terms. | sets 11, 12 |
+| 2 | Deal form | `In_Sale_Form` = share sale at RtB and at COD; gain exempt (`In_Sale_Gain_Taxed` 0); buyer reimburses the JV loans and the four-line early works (as RTB_Model row 69) | asset-deal switch built, off |
+| 3 | Buyer target IRR | 8.0 % unlevered post-tax at RtB and at COD (original Control!D9; midpoint of Sensitivities!D71:D75); implied prices closed-form (§9) | set 9 |
+| 4 | Dates | Scenario A: original (acq. 30-Nov-25, RtB 31-Jul-26, sale 31-Oct-26, NTP 01-Apr-27, COD 01-Apr-28). B and C: RtB 31-Dec-26, sale 31-Mar-27, NTP 30-Jun-27, **COD 31-Mar-2028 for PV and BESS** (teaser); MET/E.ON contracts from 01-Jan-28 / COD. Life 35 years. | set 13 (COD +12 m) |
+| 5 | BESS | 50 MW × **4 h = 200 MWh** (teaser, original), DC co-located, Aurora block "2027 solar DC 1.0cy 4h", availability 98 %, RTE 0.86 (Aurora Inputs!C17:C18, information only), haircut 0 %, capex 110 k€/MWh (original Control!D94; Aurora's reference ≈ 267 k€/MWh is flagged), augmentation 110 k€/MWh indexed at the block's repower year (2048), grid charging as in Aurora's dispatch | sets 14 (2 h, 100 MWh, block "2027 solar DC 1.0cy 2h"), 15 (no BESS) |
+| 6 | PV price | Aurora-implied capture (§6.2), Central only | sets 3, 4, 16 |
+| 7 | PV yield | 1,265 kWh/kWp (teaser; original 1,250 in Scenario A), availability 99.5 %, degradation 0.3 %/yr, clipping at 49.9 MVA via `In_Clip_Loss` = 2 % of DC energy (placeholder until the yield report) | set 5 (−10 %) |
+| 8 | Capex / opex | original model values (§3.1): PV 350 k€/MWp, MV cable 3,700, substation 9,500, land 620, opex lines as Control!D59:D62, D96; devex to RtB 3,182 k€; early works 12.87 k€/MW (four lines) + E48/E49 in capex at NTP | sets 7, 8 |
+| 9 | Tax | CIT 9 % (original; Bana's 15 % Pillar Two proxy as a set), HIPA 2 % + innovation 0.3 % on revenue, PV and cable/substation depreciation 30 y, BESS 10 y **[placeholder]**, loss cap 50 % / 5-year lapse, Robin Hood off (set) | sets as Bana |
+| 10 | JV | 221025 sheet mechanics (§7) with the step share rule (§0.1); price basis **90 k€/MW on MWp** (`In_JV_Price_Basis`, the original's figure; the JV sheet's 120 is a set); 549 k€ SPV price and 562.5 k€ non-devex loan as typed in the sheet; COD sale uses the same split; HTM = FEP buys PSH out at the RtB entitlement (`In_PSH_Stays` 0) | sets 10, 18 |
+| 11 | Offers | terms as read in §6.3; E.ON fee 7.6 %; option A bands 2027/2028 then option B; MET 90 MWh scaled to the built MWh per MW; MVM 45 €/MWh on 100 % of PV output, no BESS instrument | sets 1, 17, 18 |
 
-## 16. Questions for the user (numbered; answers unblock the items above)
-1. Dates: which RtB, sale-closing, NTP and COD dates are the base (teaser vs original model vs offers), and is the BESS
-   COD the same as the PV COD?
-2. BESS base configuration: 4 h / 200 MWh (teaser, original) or 2 h / 90–100 MWh (both offers)? AC- or DC-coupled?
-   Is grid charging allowed under the connection agreement (original model: export only)? RTE, availability, cycle
-   cap, warranty/augmentation plan, BESS capex quote (original 110 k€/MWh).
-3. Aurora: can we obtain the Q2-26 HU **solar capture price** series and Low/High cases (the flexible-energy file has
-   neither)? Until then: implied capture from Aurora's solar block, or the original's flat 65 %?
-4. Deal form at RtB and at COD (share vs asset sale), and what the buyer reimburses (loans, deposits, early works).
-5. Buyer target IRRs (RtB and COD; unlevered post-tax?) – 8 % placeholder; and should implied prices be closed-form
-   XNPV where exact, with GoalSeek.bas only for the asset-deal case?
-6. Bank term sheet or indications for a merchant PV+BESS (quantum, DSCR on merchant vs contracted revenue, tenor,
-   margin, DSRA, sweep); otherwise which placeholders?
-7. Tax: CIT 9 % or the 15 % Pillar Two proxy used in Bana; Robin Hood applicability; depreciation lives for PV and
-   BESS; HIPA 2 %.
-8. Scenario A targets: accept the LibreOffice-recalculated HTM values (the original caches are #VALUE! because of
-   Aurora_Curve!C8) and the 224.5 % RtB XIRR as the reconciliation benchmark?
-9. JV: is the 221025 purchase-price-based sheet the agreed mechanism (55/45 after deductions, 15 k€/MWp DSA loan,
-   12 % flat interest)? What are the 549,000 "FEP SPV acquisition price" and the 562,500 non-devex loan
-   (= 4,500,000 × 50/400)?
-10. JV share rule: the original model's Negotiated case makes Futureal's share price-dependent (60 % below 90 k€/MW,
-    sliding to 50 % at ≥ 100; Stat_inp!J36), which gives 50 % at the JV sheet's 120 k€/MWp, not 55 %. Which rule is
-    current – the sliding scale, the fixed 55/45, or 55/45 as the negotiated point of the scale – and is the price
-    basis 120 k€/MWp × 63 or 90 k€/MW × 61?
-11. JV at COD and HTM: does the same split apply to a COD sale, and does FEP buy PSH out for the hold case (at the RtB
-    entitlement) or does PSH stay at 45 %?
-12. E.ON PPA: confirm the handling fee is MAX(7.6 % × DAM, 5 €/MWh) (printed "7,6%"); is a 3-year tenor the maximum;
-    GoO: do we keep them or sell at 90 % of the auction price?
-13. E.ON BESS: option A bands beyond 2028, and which option (A floor/tiered or B 90/10) to carry as the base C1 BESS
-    case; is the 100 MWh in the RFQ (not 10 MWh) correct?
-14. MET: fixed PPA 43.96 (3 y) / 40.76 (4 y) – any indexation or GoO terms? Index PPA: confirm the downregulation
-    compensation applies to curtailed MWh only. BESS floor + PSA: 50/50 share of what reference (net optimisation
-    profit above the floor)? Is the 90 MWh their assumption or ours?
-15. MVM: is 45 €/MWh for 2028–2032 pay-as-produced on 100 % of PV output, and is there any BESS instrument? (The
-    e-mail's 2029–2034 series is for a wind site.)
-16. Which offer pairings should be stored as sets (max 18 sets in total; proposal in §10)?
-17. Yield report (P50/P90, clipping at 49.9 MVA, degradation) and capex/opex quotes for the 35 kV cable and substation
-    bay (original: 3,700 and 9,500 k€).
+## 16. Still open (answers refine the defaults above; nothing blocks the build)
+1. Share rule boundary: at exactly 90 k€/MW, 50 % (as read, "jump at 90k") or 60 % (as the original model)?
+2. Early works: confirm that E48 (650 k€, 2nd design/transformer payment) and E49 (75 k€, 3rd land instalment) move
+   to construction capex rather than being dropped (§3.1 verdict: they are genuine costs; the input sheet's own
+   Negotiated-case total J50 includes them).
+3. JV: the 549 k€ "FEP SPV acquisition price" and the 562.5 k€ loan (= 4,500,000 × 50/400) – what are they; price
+   basis 120 k€/MWp × 63 (JV sheet) vs 90 k€/MW × 61 (model); does the JV sheet's 55/45 survive the step rule?
+4. JV at COD sale and HTM: same split at COD; buy-out at the RtB entitlement vs PSH staying in?
+5. Dates: one set for B/C (RtB, closing, NTP, COD; BESS COD = PV COD?).
+6. BESS: 4 h/200 MWh vs 2 h (both offers), AC/DC coupling, grid charging permission, RTE/availability/cycles,
+   capex and augmentation quotes.
+7. Deal form (share vs asset) at RtB and COD; what the buyer reimburses.
+8. Buyer target IRRs; closed-form implied prices with goal seek only for the asset deal?
+9. Bank terms for merchant PV+BESS (quantum, DSCR by revenue type, tenor, margin, DSRA, sweep).
+10. Tax: CIT 9 % vs 15 %; Robin Hood; BESS depreciation life; HIPA.
+11. Scenario A targets: accept the LibreOffice-recalculated HTM values and the 224.5 % RtB XIRR?
+12. Offers: E.ON fee 7.6 % and GoO treatment; E.ON BESS bands after 2028 and A vs B; MET fixed-PPA indexation/GoO,
+    downregulation scope, PSA 50/50 reference, 90 MWh; MVM 45 €/MWh scope and BESS; which pairings as sets.
+13. Yield report (P50/P90, clipping) and cable/substation quotes.
