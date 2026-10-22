@@ -12,6 +12,7 @@ import csv
 import datetime as dt
 from pathlib import Path
 
+from openpyxl.styles import Alignment
 from openpyxl.utils import get_column_letter as L
 
 from fepm.xl.builder import Model
@@ -1163,7 +1164,7 @@ def model():
     m = Model("Project Zalahaláp", "63 MWp PV + 50 MW / 200 MWh BESS – sale at RtB, sale at COD or hold",
               periods=PERIODS, periodicity="quarterly", start=START, scenarios=SETS, version="v1",
               date=D(2026, 10, 22), curves=True, layout="dashboard", calc_sheets=["Calc_1", "Calc_2", "Calc_3"],
-              bids=["Calc_1", "Calc_2", "Calc_3"], extra_cols=len(SETS), source_col=False)
+              bids=["A Original", "B Aurora", "C Offer"], extra_cols=len(SETS), source_col=False)
     inputs(m)
     curves(m)
     calc(m)
@@ -1180,6 +1181,11 @@ def build_model(out: Path) -> Path:
     for (key, col), f in PATCH.items():          # second format for rows whose E and F hold different units
         for ws in m.calc.sheets:
             ws[f"{col}{m.calc.rows[key].r}"].number_format = FMT.get(f, f)
+    dash = m.wb["Dashboard"]                     # long text results (case and curve names) shrink to the column
+    for row in dash.iter_rows(min_col=5, max_col=7):
+        for c in row:
+            if c.number_format == "@":
+                c.alignment = Alignment(horizontal="right", shrink_to_fit=True)
     m.wb.save(xlsx)
     xlsm = package(xlsx, out / f"{NAME}.xlsm", run=["Scenarios.RunAllScenarios"], include=["Scenarios"])
     xlsx.unlink()

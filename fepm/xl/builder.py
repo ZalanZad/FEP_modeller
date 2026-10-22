@@ -267,10 +267,10 @@ def _validate(ws, cells, options):
     dv.add(cells)
 
 
-def _write(ws, r, c, formula, kind="calc", fmt=None):
-    """Write a formula; pure links get the green link style."""
+def _write(ws, r, c, formula, kind="calc", fmt=None, link=True):
+    """Write a formula; pure links get the green link style (`link=False` keeps report cells black)."""
     cell = ws.cell(r, c, formula)
-    if kind == "calc" and isinstance(formula, str) and _LINK.match(formula):
+    if link and kind == "calc" and isinstance(formula, str) and _LINK.match(formula):
         kind = "link"
     apply(cell, kind, fmt)
     return cell
@@ -796,7 +796,7 @@ class Dashboard:
         self.rows: dict[str, int] = {}
         self.outs: list[tuple] = []                          # (out key, name, label, unit, fmt, formula)
         self.selector_cell = None
-        _columns(ws, {"A": 3, "B": 3, "C": 44, "D": 10, **{L(self.V + i): 12 for i in range(self.nb)},
+        _columns(ws, {"A": 3, "B": 3, "C": 44, "D": 10, **{L(self.V + i): 16 for i in range(self.nb)},
                       L(self.X - 1): 2, **{L(self.X + i): 12 for i in range(self.nx)}, L(self.P - 1): 3,
                       L(self.P): 34, L(self.P + 1): 10, L(self.P + 2): 12,
                       **({L(self.SRC - 1): 2, L(self.SRC): 28} if self.SRC else {})})
@@ -918,7 +918,7 @@ class Dashboard:
             if scale:
                 x = f"{x}/{scale}" if re.fullmatch(r"[\w$!.]+", x) else f"({x})/{scale}"
             f = "=" + x
-            _write(self.ws, r, self.V + i, f, "total" if bold else "calc", fmt)
+            _write(self.ws, r, self.V + i, f, "total" if bold else "calc", fmt, link=False)   # results read black
             if out:
                 name = f"Out_{out}_{i + 1}" if self.nb > 1 else f"Out_{out}"
                 self.m.define(name, f"Dashboard!${L(self.V + i)}${r}")

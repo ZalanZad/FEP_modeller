@@ -67,11 +67,11 @@ Font: **Aptos Narrow 10** throughout. Number formats right-aligned.
 | Element | Font | Fill |
 |---|---|---|
 | Hard input | blue `0000FF` | light yellow `FFF2CC`, thin border |
-| Link from another sheet | green `00B050` | none |
+| Link from another sheet | green `008000` (Dashboard results stay black) | none |
 | Calculation | black `000000` | none |
 | Macro-written value (PASTE rows, stored scenario results) | purple `7030A0` | light grey `EDEDED` |
 | Section bar | white bold | FEP dark green `00563C` (full row) |
-| Sub-header | bold `3C3C3B` | `E6F4EC` |
+| Sub-header | bold `3C3C3B` | light grey `F2F2F2` |
 | Totals / key results | bold | top border |
 | Check cells | `"OK"` green / `"CHECK"` red via conditional formatting | none |
 
