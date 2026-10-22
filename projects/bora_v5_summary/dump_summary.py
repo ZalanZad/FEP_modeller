@@ -24,8 +24,9 @@ def fmt(v):
     return "" if v is None else str(v)
 
 
-def dump(dash, cf, path):
-    """Dashboard: label | unit | E | F | G. Cash_Flow: the same plus the first three and the last timeline values."""
+def dump(dash, cf, path, htm=None):
+    """Dashboard: label | unit | E | F | G. Cash_Flow: the same plus the first three and the last timeline values.
+    HTM block 17 (sale at COD): label | unit | G | timeline ends."""
     lines = ["== Dashboard =="]
     for r in range(3, dash.max_row + 1):
         cells = [dash.cell(r, c).value for c in range(3, 8)]
@@ -37,6 +38,12 @@ def dump(dash, cf, path):
         cells = [cf.cell(r, c).value for c in (3, 4, 5, 6, 7, 9, 10, 11)] + ["…", cf.cell(r, last).value]
         if any(v is not None for v in cells[:8]):
             lines.append(" | ".join(fmt(v) for v in cells))
+    if htm is not None:
+        lines.append("== HTM block 17, sale at COD (G result; timeline: first three years … last year) ==")
+        for r in range(332, htm.max_row + 1):
+            cells = [htm.cell(r, c).value for c in (3, 4, 7, 8, 9, 10)] + ["…", htm.cell(r, 43).value]
+            if any(v is not None for v in cells[:6]):
+                lines.append(" | ".join(fmt(v) for v in cells))
     path.write_text("\n".join(lines) + "\n")
     return len(lines)
 
@@ -59,7 +66,7 @@ def hand_checks(wb):
     case = inp["E6"].value                               # live case column G/H
     v = lambda r: inp.cell(r, 6 + case).value if inp.cell(r, 6 + case).value is not None else inp[f"G{r}"].value  # noqa
 
-    mva = N("Dash_MVA_Per_Bid") * inp["E82"].value
+    mva = N("Dash_MVA")
     inst = mva * (1 + N("Dash_Overbuild"))                # committed (bid): PB and points base
     built = inst * (1 - N("Dash_Build_Shortfall"))       # built: capex and generation base
     bess_mw = N("Dash_BESS_Share") * mva
@@ -69,7 +76,7 @@ def hand_checks(wb):
 
     # Capex breakdown (€ m) from the Inputs rates; IDC and debt fees are taken from HTM (schedule-driven).
     wind = sum(v(r) for r in (162, 163, 164, 165, 166, 169, 170)) * built / 1000
-    subst = v(167) / 1000
+    subst = v(167) * mva / u["Source basis of the lump sums"] / 1000   # lump sum quoted for the 200 MVA source
     cont = (wind + subst) * v(171)
     bess = N("Dash_BESS_Capex_MWh") * v(21) * bess_mw / 1000
     ind = (v(85) - v(83)) * mva / fx                    # indirect fee net of the TSO security credit, mHUF → € m
@@ -117,7 +124,7 @@ def hand_checks(wb):
 
 def main():
     wb = openpyxl.load_workbook(OUT / "Bora_v5_Summary_recalc.xlsx", data_only=True)
-    n = dump(wb["Dashboard"], wb["Cash_Flow"], OUT / "summary_dump.txt")
+    n = dump(wb["Dashboard"], wb["Cash_Flow"], OUT / "summary_dump.txt", wb["HTM"])
     print(f"{OUT / 'summary_dump.txt'}: {n} lines")
     ok = True
     for label, py, xl in hand_checks(wb):
