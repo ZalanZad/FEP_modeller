@@ -198,3 +198,29 @@ Verification, in this order:
    row (and its Dashboard check row).
 4. **NOI on the Dashboard section 4:** label "EBITDA (NOI), first full year" and add one row "EBITDA (NOI), lifetime" (HTM G70).
 5. **Wording:** replace "both bids" everywhere by "BORA 1 + BORA 2 (2 × 100 MVA)" in section headers; elsewhere drop it.
+
+## 11. Amendments, fourth round (user, 22-Oct-2026): one capacity lever, buyer at 8 %, consistency
+
+1. **One capacity lever.** `Dash_MVA` = connection capacity in MVA, default **100** (one bid). Everything scales with it:
+   200 doubles the model. "Number of bids" is no longer a lever: `In_Bids = ROUNDUP(Dash_MVA / In_MVA_Per_Bid, 0)` with
+   `In_MVA_Per_Bid` = 100 on Inputs block U (note "Bora bids are 100 MVA each"). Inputs E82 links to `In_Bids`.
+   Remove every "BORA 1 + BORA 2" / "both bids" wording; section headers say "at the capacity in E7" or nothing.
+   All € m, GWh, MW figures are for `Dash_MVA`; the per-MW and per-MVA columns stay.
+2. **Buyer at 8 % – sale at COD.** New block at the bottom of HTM (after the last used row, same column layout; labels in
+   C, units in D, scalar results in G, timeline H:AQ), "Sale at COD – buyer earns the unlevered discount rate":
+   - Post-COD unlevered post-tax cash flow: row 110 × (year > COD year) (one formula, copied).
+   - COD sale price (buyer NPV = 0 at Inputs E224): `=SUMPRODUCT(post-COD flow, HTM row 12 DF) / DF at the COD year`
+     → price at 31-Dec of the COD year (the sale is assumed at the end of the COD year; FEP keeps the COD-year flows).
+   - Price per MW built and per MVA (k€).
+   - Debt repaid at the sale: closing debt balance at the COD year (row 84).
+   - FEP cash flow – sale at COD: equity cash flow (row 123) × (year ≤ COD year) + (price − debt repaid) × (year = COD year).
+   - FEP IRR, FEP profit (sum), FEP MOIC (inflows ÷ outflows) – sale at COD.
+   The existing RtB buyer block (HTM rows 202–223) stays: buyer IRR at the 150 k€/MVA price and the implied premium at 8 %.
+3. **Deemed exit in HTM.** HTM E21 (FEP profit forgone at RtB, an opportunity cost) = 0: a cash IRR carries no opportunity
+   cost. HTM E22 (cash paid to A.RES at the RtB date, the buy-out of the developer) stays 1. Key assumptions row relabelled.
+4. **Dashboard section 5 "Returns"** gains a sub-block "Buyer at 8 %": COD sale price (€ m, k€/MW built, k€/MVA),
+   FEP IRR / profit / MOIC on a sale at COD; RtB: buyer IRR at 150 k€/MVA, implied premium at 8 %, FEP IRR / profit at 150.
+   `Live_Results`/`Stored_Results` include the new FEP COD-sale IRR and profit and the COD price.
+5. **Review.** After the build, the `model-reviewer` (Fable) reads `out/summary_dump.txt` as a senior modeller against the
+   tender rules (`docs/domain/tender_2026_rules.md`) and market practice; its findings are verified by `model-auditor`
+   and fixed in this build before delivery.
