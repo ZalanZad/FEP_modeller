@@ -16,10 +16,10 @@ Engines stay untouched except for the cells listed in §4: `MOIC` (monthly RtB),
 Delete (all duplicates of inputs or results): `Control_Panel`, `Dashboard` (298 rows, incl. the 01-Oct tornado snapshot and
 4 charts), `Bora`, `Run_Map`. Every formula that refers to a deleted sheet must be re-pointed first (scan every sheet):
 `Inputs` G:I links to `Control_Panel` become plain blue input values; `Inputs!E7`/`E6` selector per §5.
-On `Cover` delete the headline block (B26:C37, duplicate of Summary) and rewrite the sheet list (B5:D14) and the update note.
+On `Cover` delete the headline block (B26:C37, duplicate of Dashboard) and rewrite the sheet list (B5:D14) and the update note.
 
-Add `Summary` as the first sheet after `Cover`. One formula per figure, every figure once. Links only (green), no
-calculations on Summary except the points lookups, the per-MW divisions, the "both bids" sums and the checks.
+Add a new `Dashboard` (replaces the old one) as the first sheet after `Cover`. One formula per figure, every figure once. Links only (green), no
+calculations on Dashboard except the points lookups, the per-MW divisions, the "both bids" sums and the checks.
 
 ## 2. Capacity bases (the question the user asked)
 
@@ -29,11 +29,12 @@ calculations on Summary except the points lookups, the per-MW divisions, the "bo
 - BESS `MW_B` = BESS share × MVA = 80 MW; `MWh_B` = MW_B × 4 h = 320 MWh (PB base, BESS capex per MWh).
 - Generation: installed MW × net hours × (1 − bottleneck loss × (MW_inst − MVA)/MW_inst). Bottleneck loss on the overbuilt
   MW = 5 % (Bora!N18, as in the fepm model).
-Every per-MW figure on Summary is shown twice, in two columns: `k€/MW installed` and `k€/MVA`. Equivalent hours likewise.
+Every per-MW figure on Dashboard is shown twice, in two columns: `k€/MW installed` and `k€/MVA`. Equivalent hours likewise.
 
-## 3. Inputs: new block "U. Bid strategy and Summary levers" (Inputs rows 300+, same column layout C label | D unit | E value | F note)
+## 3. Inputs: new block "U. Bid strategy and Dashboard levers" (Inputs rows 300+, same column layout C label | D unit | E value | F note)
 
 Blue input values; source notes ≤ 60 chars.
+Lever names (amended 22-Oct-26): the levers live on the Dashboard as `Dash_*` (`Dash_MVA_Per_Bid`, `Dash_Overbuild`, …, see §8.4); `In_Bids`, `In_Bottleneck_Factor` and `In_Min_Hours` keep the `In_` prefix.
 
 | Name (defined name) | Value | Note |
 |---|---|---|
@@ -73,7 +74,7 @@ Copy the band-table layout and the lookup formula from `projects/bora_bidding/bu
 | MOIC!G143 RTB premium proceeds | `E141*E18` | `=Inputs!E141*In_MVA_Per_Bid*In_Bids` | RtB price is per MVA |
 
 Everything else in the engines stays as it is, including the deemed-exit switch (Inputs E228 = 1), the timing (RTB
-31-Mar-29, sale 30-Sep-29, COD 30-Jun-31) and the Aurora curves. These are shown on Summary under "Key assumptions" so
+31-Mar-29, sale 30-Sep-29, COD 30-Jun-31) and the Aurora curves. These are shown on Dashboard under "Key assumptions" so
 the reader sees them; the user decides later whether to align them to the fepm model (there: exit 31-Dec-29, COD 30-Sep-31,
 developer buy-out instead of a deemed exit).
 
@@ -84,12 +85,12 @@ to deleted sheets). Replace per §5.
 
 Keep cases 1–3 only (Inputs columns G, H, I: "FEP base case / sell at RTB", "European turbine", "Chinese turbine").
 Clear columns J:P of the case block (values only, they are spares) and hide them. `Inputs!E6` (case #) becomes
-`=MATCH(Scenario_Name,Scenario_Names,0)`, where `Scenario_Name` is the selector cell on Summary (text, validated against
-`Scenario_Names` = `Inputs!G7:I7`). `Summary` holds `Live_Results` (one column, the headline outputs of §6.5) and
+`=MATCH(Scenario_Name,Scenario_Names,0)`, where `Scenario_Name` is the selector cell on Dashboard (text, validated against
+`Scenario_Names` = `Inputs!G7:I7`). `Dashboard` holds `Live_Results` (one column, the headline outputs of §6.5) and
 `Stored_Results` (3 columns, purple on grey) written by `vba/Scenarios.bas` (`RunAllScenarios`, unchanged); the build runs
 `package(xlsx, xlsm, run=["Scenarios.RunAllScenarios"])`. A check row verifies stored = live for the selected case.
 
-## 6. Summary sheet layout (columns: B marker, C label, D unit, E value, F value 2, G value 3, H note). Sections in order:
+## 6. Dashboard sheet layout (columns: B marker, C label, D unit, E value, F value 2, G value 3, H note). Sections in order:
 
 1. **Bid strategy (inputs, blue):** MVA per bid, bids, overbuild %, BESS %, BESS hours (link to Inputs E21), PB multiple,
    municipal k€/MW, community €/MWh, the five yes/no flags, turbine route = `Scenario_Name` selector. Next to each scored
@@ -133,7 +134,7 @@ Verification, in this order:
    DSRA 6, sweep 50 %) and compare the stored case results to the source Dashboard/Bora values: RtB FEP net profit post-tax
    15,682.56 k€, IRR 33.894 %, MOIC 1.3284; HTM EU equity IRR 9.0237 %, project IRR post-tax 8.5337 %, capex/MW 1,845.45;
    HTM CN equity IRR 12.918 %. Tolerance 1e-6 relative. Only then switch to the §3/§4 values.
-2. Lint the Summary sheet and the new Inputs block (hardcodes, chains, length); Master_Check 0 after RefreshAll.
+2. Lint the Dashboard sheet and the new Inputs block (hardcodes, chains, length); Master_Check 0 after RefreshAll.
 3. Independent Python recomputation: capex breakdown and per-MW figures on both bases, PB = 2.5 % × (280 × 406 + 320 × 200)
    mHUF × 1.0 / FX, first-year generation = 280 × 2,460 × 0.98 × (1 − 0.05 × 80/280), points = 82.50 (20 + 15 + 9 + 13.5
    + 5 + 0 + 0 + 5 + 12 + 3).
@@ -148,7 +149,7 @@ Verification, in this order:
    check: gross total H19 = sum of the item rows, and payable J19 = MOIC!G40 (total payable flows). Relabel C28:C34.
 3. **Two cases, not three.** Cases 1 and 2 are now identical. Keep "EU turbine" (column G) and "CN turbine" (column H,
    moved from I; clear I). Update G7:H8 names and descriptions, `Scenario_Names` = G7:H7, `Stored_Results` 2 columns.
-4. **Levers live on Summary.** Section 1 holds the bid levers as blue inputs (the `In_*` names point at these cells);
+4. **Levers live on Dashboard.** Section 1 holds the bid levers as blue inputs (the `In_*` names point at these cells);
    Inputs block U keeps only the band tables, weights, offerable ranges and the derived `In_Bottleneck_Factor`.
    One ÖSZ-4 row: offer in E, points in F, the scored ratio in G (note: basis).
 5. **No duplicate rows.** Drop "FEP equity IRR" (equals the 100 % equity IRR); keep one row "Equity IRR, levered post-tax
