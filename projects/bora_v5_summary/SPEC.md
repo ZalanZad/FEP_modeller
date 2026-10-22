@@ -263,3 +263,26 @@ Verification, in this order:
 8. The RtB buyer rows (buyer IRR at the premium, premium at which the buyer earns 8 %) depend on the turbine: they sit in
    the section 5 case table as a third group "Sale at RtB – the buyer"; 5b keeps only the FEP-side RtB rows.
 9. Dashboard sections are numbered 1–5, 5b, 6–9 (securities 6, sensitivities 7, checks 8, key assumptions 9).
+
+## 13. Fifth round (user, 22-Oct-2026): refinanced case, EBIT, formula sensitivities, per-MW cash flow
+
+1. **Case 3 "EU refinanced"** (Inputs column I, copied from the EU column G, then): gearing 65 %, all-in fixed rate
+   4.5 % (−50 bp), tenor 15 years, upfront fees as G. `Scenario_Names` = G7:I7, `Stored_Results` three columns
+   (EU | CN | EU refinanced). The engine's lender block stays: show on the Dashboard, in the returns table's
+   build-and-operate group, "Maximum gearing at the lender minimum DSCR" (HTM G256, lender minimum Inputs E251 = 1.5x
+   shown in key assumptions) so the reader sees where the most debt is; min DSCR per case is already there.
+2. **Cash_Flow: EBIT and NOI.** Under "EBITDA (NOI)" two memo rows (grey italic, outside the foot): "Tax depreciation"
+   (HTM 92) and "EBIT" (= EBITDA + depreciation). The foot and the check are unchanged.
+3. **Sensitivities with blue inputs on the Dashboard, formulas in the engine** (section 7). The four drivers that move the
+   answer most, each a one-row grid whose step values are blue `Dash_` inputs on the Dashboard that the engine reads:
+   - Achieved price multiplier (7 steps, default 70 %–130 %) → HTM D178:D184 read the Dashboard; outputs: project IRR
+     pre-tax, project NPV (HTM 178–184).
+   - Capex multiplier (5 steps, default 80 %–120 %) → HTM D188:D192; outputs: project IRR pre-tax, NPV.
+   - Gearing (7 steps, default 0 / 30 / 40 / 50 / 55 / 60 / 65 %) → Inputs E244:E250; outputs: FEP equity IRR, NPV ÷ equity,
+     min DSCR (HTM 248–254).
+   - RtB premium (7 steps, default 50–200 k€/MVA) → Inputs E142:E148; outputs: FEP profit, IRR, MOIC (MOIC 238–241)
+     and the buyer IRR (HTM 227–233).
+   Every grid cell is a link; the live value column is marked "◄ live" by a formula. Nothing stored.
+4. **Cash_Flow per MW built:** below the statement, a compact block "Per MW built, k€/MW" with three rows across the
+   timeline: total spending, EBITDA (NOI), equity cash flow (each = row ÷ In_Wind_Built). One formula per row.
+5. After the build: Fable review of the dump, auditor verification, fixes, delivery.
