@@ -25,11 +25,13 @@ def fmt(v):
 
 
 def dump(dash, cf, path, htm=None):
-    """Dashboard: label | unit | E | F | G. Cash_Flow: the same plus the first three and the last timeline values.
+    """Dashboard: label | unit | E … K. Cash_Flow: the same plus the first three and the last timeline values.
     HTM block 17 (sale at COD): label | unit | G | timeline ends."""
     lines = ["== Dashboard =="]
     for r in range(3, dash.max_row + 1):
-        cells = [dash.cell(r, c).value for c in range(3, 8)]
+        cells = [dash.cell(r, c).value for c in range(3, 12)]
+        while len(cells) > 5 and cells[-1] is None:                    # columns H:K only in section 8
+            cells.pop()
         if any(v is not None for v in cells):
             lines.append(" | ".join(fmt(v) for v in cells))
     lines.append("== Cash_Flow (timeline: first three years … last year) ==")
@@ -87,12 +89,12 @@ def hand_checks(wb):
     out += [("All-in cost to COD, € m", allin, S("All-in cost to COD")),
             ("All-in cost, k€/MW built", allin * 1000 / built, S("All-in cost to COD", "F")),
             ("All-in cost, k€/MVA", allin * 1000 / mva, S("All-in cost to COD", "G")),
-            ("BESS capex, € m", bess, S("BESS")),
+            ("BESS capex, € m", bess, S("BESS (at cost; no BESS revenue or opex modelled)")),
             ("Contingency, € m", cont, S("Contingency"))]
 
     # Performance security: 2.5 % × (committed MW × 406 + MWh × 200) mHUF × multiple.
     pb = v(77) * (inst * v(75) + mwh * v(89)) * N("Dash_PB_Mult")
-    perf = S("Performance security (gross; bid credit in Deposits J10)")
+    perf = S("Performance security (gross; bid security credited)")
     out += [("Performance security, mHUF", pb, perf), ("Performance security, € m at FX", pb / fx, perf / fx)]
 
     # First full year generation: built MW × hours × (1 − curtailment) × (1 − loss × (built − MVA) / built).

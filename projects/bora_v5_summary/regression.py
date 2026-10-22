@@ -22,10 +22,11 @@ build = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(build)
 
 TOL = 1e-6
-# metric, source cell on the v5 Bora sheet (snapshot of 22-Oct-26 16:48), Dashboard name, case column, scale
-METRICS = [("RtB FEP net profit post-tax, k€", "D23", "Out_rtb_profit", 1, 1000),
-           ("RtB FEP IRR post-tax", "D24", "Out_rtb_irr", 1, 1),
-           ("RtB FEP MOIC", "D27", "Out_rtb_moic", 1, 1),
+# metric, source cell on the v5 Bora sheet (snapshot of 22-Oct-26 16:48), Dashboard name, case column (0 = the
+# case-independent RtB rows of section 5b, read live), scale
+METRICS = [("RtB FEP net profit post-tax, k€", "D23", "Out_rtb_profit", 0, 1000),
+           ("RtB FEP IRR post-tax", "D24", "Out_rtb_irr", 0, 1),
+           ("RtB FEP MOIC", "D27", "Out_rtb_moic", 0, 1),
            ("HTM EU FEP equity IRR", "E24", "Out_eq_irr", 1, 1),
            ("HTM EU project IRR post-tax", "E49", "Out_proj_irr", 1, 1),
            ("HTM EU capex per MW, k€/MW", "E42", "HTM!G150", 1, 1),
@@ -37,9 +38,8 @@ def row(wb, name):
 
 
 def stored(wb, name, case):
-    """Stored_Results value of the Live_Results row `name` (an Out_ name) for case 1-2."""
-    r = row(wb, "Stored_Results") + row(wb, name) - row(wb, "Live_Results")
-    return wb["Dashboard"].cell(r, 4 + case).value
+    """Value on the row of `name` (an Out_ name): live (E) for case 0, Stored_Results (F, G) for case 1-2."""
+    return wb["Dashboard"].cell(row(wb, name), 5 + case).value
 
 
 def main():

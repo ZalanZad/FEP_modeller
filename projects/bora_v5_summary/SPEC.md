@@ -257,3 +257,6 @@ Verification, in this order:
 7. Unchanged by decision of the user (state them in the report, not in the model): ÖSZ-4 scored on MVA (meeting-file
    basis; GYIK Q20 reads installed wind → 78.0 points if so); PPA 90 €/MWh for 30 years; discount rate 8 % for project and
    equity; CN case switches both ÖSZ-9 flags off.
+8. The RtB buyer rows (buyer IRR at the premium, premium at which the buyer earns 8 %) depend on the turbine: they sit in
+   the section 5 case table as a third group "Sale at RtB – the buyer"; 5b keeps only the FEP-side RtB rows.
+9. Dashboard sections are numbered 1–5, 5b, 6–9 (securities 6, sensitivities 7, checks 8, key assumptions 9).
