@@ -310,3 +310,26 @@ Verification, in this order:
    1.5421x vs the returns table 8.981 % / 1.5426x; **engine defect fixed:** the seven per-scenario taxable-income
    rows (HTM 260…302) now include the TSO-bond depreciation term of H92; HTM G257 is a Dashboard check; (b) the RtB grid's 50 k€/MVA step is 0.22 € m above the straight line
    (tax at sale going negative?); (c) the "◄ live" marker column.
+
+## 15. Sixth round (user, 22-Oct-2026): key inputs by scenario at the top, Cash_Flow header
+
+1. **Section 0 "Key inputs by scenario"** at the top of the Dashboard, under the master check: a dropdown `Dash_Scenario`
+   (validated list: Pessimistic | Base | Optimistic, default Base) and a table with columns `Pessimistic | Base | Optimistic
+   | Live`, blue inputs, one row per key input:
+   - Turbine supply, EU (k€/MW): 1,050 | 950 | 850
+   - PPA price, first operating year (€/MWh): 80 | 90 | 100
+   - Net P50 hours (h/yr): 2,300 | 2,460 | 2,600
+   - O&M full-service contract (k€/MW/yr): 14 | 12 | 10
+   - RtB premium (k€/MVA): 100 | 150 | 200
+   Live = `INDEX(row, MATCH(Dash_Scenario, header, 0))` (green). The Inputs base-case column G reads the Live cells
+   (G162, G191, G179, G201, G141 = links); the other case columns keep their own values (CN turbine 500) or inherit.
+   Below the table, two output rows (links): "All-in cost to COD" (k€/MW built, k€/MVA) and "Equity IRR (FEP, 100 %)" for
+   the live case, so the effect of the scenario is visible without scrolling. The scenario name is written into the
+   Dashboard banner. Sections renumber (0 then 1–9). Changing the scenario makes the stored results stale until
+   RunAllScenarios is run (the stored = live check flags it, by design).
+2. **Cash_Flow header** (rows 4–9, above the statement): "All-in cost to COD" and "Revenue, first full year", each
+   `€ m | k€/MW built | k€/MVA` (links to the Dashboard); then the per-MW-built timeline block (total spending, revenue,
+   EBITDA (NOI), equity cash flow per MW built per year) moved up here from the bottom, with "Revenue" added to it.
+   The statement follows, unchanged.
+3. Regression: the scenario is Base and the key-input table holds the source values in the Base column for that run
+   (turbine 950, PPA 90, P50 2,460, O&M 12, premium 150 — the same as the delivered Base).
