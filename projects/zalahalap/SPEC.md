@@ -68,11 +68,14 @@ superset of the one on `dreamy-hypatia` (diff: `MAX_SETS = 18`, `Model_Checks`, 
 | – | Bank term sheet(s) | Financing sets | **Not received** (Bana's Raiffeisen/UniCredit indications are wind-specific; use only as flagged placeholders). |
 
 ### 3.1 Input inventory from the original model (Scenario A) – `Zalahalap_model_10112025_v3` (cells of the xlsx conversion)
-Sheets and flow: `Stat_inp` (deal inputs; column E is typed, not linked to the case columns G:K), `Dyn_Inp` (deposit
-profiles, EURIBOR, RTB/sale flags), `Buyer_Inp`, `Control` (switches, column D) → `Aurora_Raw` (Aurora Q2-26 HUN
-flexible-energy databook, real 2025, Central only, 2026–2060) → `Aurora_Curve` (annual 2025–2070) → `Calculation`
-(**monthly** H:Z, 30-Nov-25 → 31-May-27, RtB route) → `RTB_Model` → `Summary`; `HTM_Model` (**quarterly** I:FL,
-01-Oct-25 → 30-Sep-65) → `Summary`; `Sens_Engine` → `Sensitivities`.
+Sheets and flow: `Stat_inp` (deal inputs; column E = `IF(ISBLANK(INDEX(G:Q,$E$17)),G,INDEX(G:Q,$E$17))`, the Bora-style
+case pick; **E17 = 4 = the "Negotiated case" column J**), `Dyn_Inp` (deposit profiles, EURIBOR, RTB/sale flags),
+`Buyer_Inp`, `Control` (switches, column D) → `Aurora_Raw` (Aurora Q2-26 HUN flexible-energy databook, real 2025,
+Central only, 2026–2060) → `Aurora_Curve` (annual 2025–2070) → `Calculation` (**monthly** H:Z, 30-Nov-25 → 31-May-27,
+RtB route; Excel **data tables** at rows 187, 236, 242 and 254–258 per the Phase 0 extraction – LibreOffice does not
+compute them and none is a target) → `RTB_Model` → `Summary`; `HTM_Model` (**quarterly** I:FL, 01-Oct-25 → 30-Sep-65)
+→ `Summary`; `Sens_Engine` → `Sensitivities`. Phase 0 extracts: `data/old_engine/{old_inputs.json, old_curves.csv,
+old_targets.csv, dump_old.py}` (commit 65a6fb2).
 
 | Item | Value | Cell |
 |---|---|---|
@@ -84,7 +87,8 @@ flexible-energy databook, real 2025, Central only, 2026–2060) → `Aurora_Curv
 | Capex | PV equipment 330 + BoP 20 = 350 k€/MWp; MV cable 3,700; HV substation 9,500; land 620; BESS 22,000; total 57,170 k€; pre-RtB devex 3,182; early works 1,510 (milestones 24.75 k€/MW) | Control!D82, D83, D52, D104:D106, D115; HTM_Model!D147; Calculation!F60, F30 |
 | Opex (real 2025) | O&M 14.96 k€/MW; balancing 5 €/MWh; land lease 96 k€/yr from COD; MV cable O&M 5 k€/MW; route-to-market 0 %; BESS fixed 30.8 k€/MW; indexed with the Aurora euro index | Control!D59:D62, D77, D96; HTM_Model row 20 |
 | Revenue | Aurora Central baseload real 2025 × **flat 65 % capture**; GoO 1.75 €/MWh real; post-2060 inflation 2 % | Aurora_Curve!C, D4; Control!D7, D58, D13 |
-| RtB deal | premium 90 k€/MW; Futureal share 60 % (typed); connection rights 150; transaction costs 200; PSH land apport 150; preferred return 12 % p.a. monthly; BG margin 1.75 % over 1M EURIBOR; deposits 3,192.56 | Stat_inp!E24, E36, E33, E37, E34, E69, E110, E97; Dyn_Inp row 50 |
+| RtB deal | premium 90 k€/MW; **Futureal share price-dependent** in the Negotiated case: `IF(price<90, 60 %, IF(price<=100, 50 % + (100 − price)/100, 50 %))` = 60 % at 90, 50 % at ≥ 100 (case 3 column I = 60 % flat, case 1 column G = 50 %); connection rights 150; transaction costs 200; PSH land apport 150; preferred return 12 % p.a. monthly; BG margin 1.75 % over 1M EURIBOR; deposits 3,192.56 | Stat_inp!E24, J36 (K36 for Calculation!G34), E33, E37, E34, E69, E110, E97; Dyn_Inp row 50 |
+| Early works / milestones | six milestone lines E44:E49 = 2.46, 2.46, 0.41, 7.54, 10.66, 1.23 k€/MW; Calculation!F30 = SUM(F24:F29) = **24.75 k€/MW** (all six); `Stat_inp!E50 = SUM(E44:E47)` = 12.87 is a partial subtotal of the first four lines and is not referenced | Stat_inp!E44:E50; Calculation!F24:F30 |
 | Debt | **none** (no gearing, DSCR, DSRA, IDC, fees) | – |
 | Tax | CIT 9 %; 30-year straight line excl. land; loss cap 50 %; no HIPA, no tax on the RtB gain | Control!D66, D65, D102 |
 | Valuation | NPV rate 8 %; FX 400 HUF/EUR; buyer pays the RtB price (90); buyer target IRR only as a sensitivity axis 7–11 % | Control!D9, D70, D71; Stat_inp!E23; Sensitivities!D71:D75 |
@@ -94,7 +98,9 @@ Aurora inside the model: Q2-26 HUN flexible-energy databook, Central only, annua
 Curves!E22:E23: 119.34, 110.00) and to the new dataset (§6.2). Selected PV capture nominal 79.83 / 80.70 / 75.89
 (P9:P11). BESS 4 h degraded 2027: gross discharge 162.09 €/kW (after the 0.591 scaling), ancillary 14.70, network
 −6.40, cost of PV stored −77.00, net 97.16 €/kW nominal (Aurora_Curve!V10, W10, Y10, AA10, AC10). The Low/High
-"scenarios" (Control!D2:D3 = ±15 %) are not Aurora outputs and the switch is not wired (Aurora_Curve!G8:G53 typed).
+switch **is wired** (Aurora_Curve!G8:G53 = `INDEX(D:F,$G$2)`, G2 = Control!D6 = 2 Central), but the Low/High curves are
+**Central × (1 − 15 %) / (1 + 15 %)** (Aurora_Curve!D9 = C9×(1+$D$2) = 102.45, F9 = 138.61), i.e. scalar stresses, not
+Aurora outputs (the databook is Central only).
 
 ### 3.2 Reconciliation targets (original model)
 **Caveat:** the cached HTM chain is broken (Aurora_Curve!C8 = the text "no "), so Summary's HTM cells cache as
@@ -111,7 +117,7 @@ reproduces every other cached sheet exactly). **[confirm]** that the user accept
 | Project IRR (unlevered, post-CIT) | 6.37 % [R] | Summary!D31 (HTM_Model!D79) |
 | Buyer IRR at 90 k€/MW; buyer MOIC; buyer NPV @ 8 % | 5.57 % [R]; 1.986x [R]; −12.52 m€ [R] | Summary!D33, D34, D36 |
 | First full year 2029: 75.61 GWh; 72.56 €/MWh nominal; revenue 8.849 m€ | | Summary!H21:H24 |
-| Lifetime: PV revenue 233.19; GoO 6.71; total 349.82; EBITDA 177.87 (50.8 %); capex 57.17; opex 171.95; BESS net 109.92 m€ [R] | | Summary!H25:H34, H53, H59 |
+| Lifetime: PV revenue 233.19 [R]; GoO 6.71 (cached); total 349.82 [R]; EBITDA 177.87 (50.8 %) [R]; capex 57.17 (cached); opex 171.95 [R]; BESS net 109.92 m€ (cached) | | Summary!H25:H34, H53, H59 |
 
 Tolerance 0.1 % / 0.1 pp on each line, or a quantified fix (§13).
 
@@ -142,8 +148,10 @@ All three cases run through the same rows. A case differs only in what the reven
 selected curves feed in. Nothing is copied.
 
 ### 6.1 Scenario A – reconstruction of the original model
-Takes every operating, price, capex, opex, debt and tax assumption of `Zalahalap_model_10112025_v3` (§3.1), including its
-own Aurora curves (on `Curves`, labelled with their vintage). It is the reconciliation benchmark, not a decision case.
+Takes every operating, price, capex, opex, debt and tax assumption of `Zalahalap_model_10112025_v3` (§3.1) **as its
+Negotiated case (Stat_inp!E17 = 4) selects them**, including its own Aurora curves (Central, and the ±15 % Low/High
+stresses, on `Curves` labelled with their vintage) and the price-dependent Futureal share (a `Curves` band table:
+60 % below 90, linear to 50 % at 100). It is the reconciliation benchmark, not a decision case.
 Deliberate fixes to its methodology are listed in §13 and switched by `In_Fix_*` flags so that the reconciliation can
 step through them (fix off = old method).
 
@@ -268,12 +276,16 @@ Changes 071025 → 221025: the 549,000 line added (deducted from the price, cred
 55/45; result FUTUREAL −74,351, PSH +74,351.
 
 **Inconsistencies to resolve before building (§16 Q9–Q11):** the RtB price here is 120 k€/MWp on 63 MWp vs 90 k€/MW
-on 61 MW and a 60 % Futureal share in the original model (Stat_inp!E24, E36); the "consideration based" variant
+on 61 MW in the original model (Stat_inp!E24); the original's Negotiated-case share rule (Stat_inp!J36: 60 % below
+90 k€/MW, sliding to 50 % at 100 and above) would give Futureal **50 %** at 120 k€/MW, whereas this sheet splits
+55/45 after deductions and then adds the loans, interest and 549 k€ back to Futureal (52.5 % of the gross
+consideration) – two different mechanisms, not one; the "consideration based" variant
 (FUTUREAL alone bears the deductions) has no 221025 version; the 549,000 and the 562,500 lines are unlabelled;
 rows 70/73 are mislabelled ("50 % PSH shares", "TOTAL PSH" in the FUTUREAL block).
 
 **Model implementation (Bora pattern, dated):**
-- Inputs: `In_JV_Price_Basis` (k€/MWp), `In_FEP_Share` 55 %, `In_DSA_Per_MWp` 15 k€, `In_Loan_Rate` 12 %
+- Inputs: `In_JV_Price_Basis` (k€/MWp), `In_FEP_Share` 55 % (or the original's price-dependent band table when
+  `In_Share_Rule` = 1, so Scenario A reconciles), `In_DSA_Per_MWp` 15 k€, `In_Loan_Rate` 12 %
   (act/365 from each draw to the exit, 31-Dec capitalisation as Bora – **a deliberate fix vs the flat 12 %**, switchable),
   `In_SPV_Price` 549 k€, `In_NonDevex_Loan` 562.5 k€ + its basis once explained.
 - Calc rows (per Calc sheet): FEP loans drawn (devex schedule → principal corkscrew per class, Bora claims block
@@ -363,7 +375,7 @@ Scenario A ties to the stored reconciliation targets within tolerance (one row p
 2. Pre-RtB cost reimbursement booked at the sale month (RTB_Model!H69, Oct-26) before the costs are incurred (H68,
    Oct-26 → Mar-27), which drives the 224.5 % vs 181.8 % XIRR gap: reimbursement at the later of sale and spend. (S)
 3. Bank-guarantee phantom: Calculation!H118:H120 point one row high (Dyn_Inp!G13:G15), booking 1,213.88 at month 0;
-   Control!D75 = 2,023.12 typed from it (correct 809.25). (S)
+   Control!D75 = `INDEX(Calculation!H122:Z122,D49)` = 2,023.12 inherits it (correct 809.25). (S)
 4. Project IRR (HTM_Model!D79) excludes pre-RtB and early-works cash despite its label: ours includes all project cash.
 5. PV export not capped at 50 MVA (76 GWh/yr DC against 50 MVA, no clipping line): clipping/grid cap row added. (S)
 6. BESS "no-grid discharge scaling" 0.591 (Control!D98) taken from the 2 h rows while the 4 h block is selected, and the
@@ -378,9 +390,11 @@ Scenario A ties to the stored reconciliation targets within tolerance (one row p
 11. FX 400 (Stat_inp!E23) vs Aurora 397.77: one `In_FX`.
 12. Quarterly timeline for the RtB route (original monthly) and XIRR on period-end dates; NPV discounted to the first
     period end (original: 31-Dec-25, HTM_Model!I4).
-13. House rules: no typed values on calc sheets (Control!D75/D76, Calculation!G267 = 29.648, Stat_inp!E33:E37/E44:E49
-    typed, Aurora_Curve!G8:G53 typed), no stale sensitivity caches (Sensitivities/Sens_Engine differ from recalc in 81
-    cells), one break-even price (the original shows 9.63 / 29.65 / 107.7), `n/a` + check instead of IFERROR(…,0).
+13. House rules: no typed values on calc sheets (Calculation!G267 = 29.648 is the one found; Control!D75/D76,
+    Stat_inp column E and Aurora_Curve!G8:G53 are formulas), no Excel data tables (Calculation rows 187, 236, 242,
+    254–258: not recalculated by LibreOffice, replaced by stored macro results), no stale sensitivity caches
+    (Sensitivities/Sens_Engine differ from recalc in 81 cells), one break-even price (the original shows
+    9.63 / 29.65 / 107.7), `n/a` + check instead of IFERROR(…,0).
 Known original-model bugs that are **not** reproduced (noted in the reconciliation): Summary!D28 → RTB_Model!D75
 instead of D78; Sensitivities!E39:E42 use D73/D74; Calculation!G225 omits G221; Dyn_Inp!G24/H26:Y26 row offsets;
 Control!D26 formula overrides the construction-start default; stale notes (Control!E8, E52, E82, E97, E115; HTM!E46…).
@@ -442,8 +456,10 @@ Phase 3 – audit: `python3 -m fepm audit projects/zalahalap`, reconciliation re
 9. JV: is the 221025 purchase-price-based sheet the agreed mechanism (55/45 after deductions, 15 k€/MWp DSA loan,
    12 % flat interest)? What are the 549,000 "FEP SPV acquisition price" and the 562,500 non-devex loan
    (= 4,500,000 × 50/400)?
-10. JV price basis: 120 k€/MWp × 63 (JV sheet) vs 90 k€/MW × 61 (original) – which is the live RtB price, and is the
-    60 % share in the original superseded?
+10. JV share rule: the original model's Negotiated case makes Futureal's share price-dependent (60 % below 90 k€/MW,
+    sliding to 50 % at ≥ 100; Stat_inp!J36), which gives 50 % at the JV sheet's 120 k€/MWp, not 55 %. Which rule is
+    current – the sliding scale, the fixed 55/45, or 55/45 as the negotiated point of the scale – and is the price
+    basis 120 k€/MWp × 63 or 90 k€/MW × 61?
 11. JV at COD and HTM: does the same split apply to a COD sale, and does FEP buy PSH out for the hold case (at the RtB
     entitlement) or does PSH stay at 45 %?
 12. E.ON PPA: confirm the handling fee is MAX(7.6 % × DAM, 5 €/MWh) (printed "7,6%"); is a 3-year tenor the maximum;
