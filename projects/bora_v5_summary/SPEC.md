@@ -178,3 +178,22 @@ Verification, in this order:
    Units: EUR k on the timeline (as HTM), E in EUR m. No IRRs here (they are on the Dashboard). Freeze panes at I6.
    A check row at the bottom: total spending + EBITDA + tax + decommissioning = unlevered post-tax cash flow (0 = OK),
    feeding Master_Check.
+
+## 10. Amendments, third round (user, 22-Oct-2026)
+
+1. **CN case zeroes the EU commitments.** The ÖSZ-9 rows on the Dashboard are no longer levers: EU turbines flag and EU
+   transformers flag = `N(Scenario_Name="EU turbine")` (black formulas, points follow: 82.50 EU, 67.50 CN). Keep the
+   defined names `Dash_EU_Turbine` / `Dash_EU_Transformer` on these cells.
+2. **Wind built = 10 % below the bid, no sanction.** New lever `Dash_Build_Shortfall` = 10 % (GYIK Q28/30/76: a shortfall
+   up to 10 % carries no sanction). New named cell on Inputs block U `In_Wind_Built` = `Inputs!E18*(1-Dash_Build_Shortfall)`
+   (252 MW at 40 %). Committed MW (Inputs E16/E18, 280 MW) stays the base of the PB (E92), the bid security and the points.
+   Built MW drives: HTM E35 (installed capacity → `In_Wind_Built`), the capex (Inputs E173 becomes "per built MW":
+   per-MW lines × (1 + contingency) + substation × (1 + contingency) ÷ In_Wind_Built + BESS capex × E20 ÷ In_Wind_Built;
+   E174 likewise; HTM E27 = E173 × In_Wind_Built), the Dashboard capex lines (section 3) and both per-MW columns, the
+   bottleneck factor ((built − MVA) ÷ built). BESS is built in full. Dashboard section 2 shows "Wind committed (bid)" 280
+   and "Wind built (bid less 10 %, no sanction)" 252; the per-MW column header reads "k€/MW built".
+3. **Cash_Flow, fewer rows:** Total spending | Revenue | Operating costs | EBITDA (NOI) | Tax | Unlevered post-tax cash
+   flow | Debt drawdown | Debt service | Equity cash flow | Cumulative equity cash flow. Nothing else; drop the tie-out check
+   row (and its Dashboard check row).
+4. **NOI on the Dashboard section 4:** label "EBITDA (NOI), first full year" and add one row "EBITDA (NOI), lifetime" (HTM G70).
+5. **Wording:** replace "both bids" everywhere by "BORA 1 + BORA 2 (2 × 100 MVA)" in section headers; elsewhere drop it.
