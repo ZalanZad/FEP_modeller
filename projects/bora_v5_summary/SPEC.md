@@ -138,3 +138,20 @@ Verification, in this order:
    mHUF × 1.0 / FX, first-year generation = 280 × 2,460 × 0.98 × (1 − 0.05 × 80/280), points = 82.50 (20 + 15 + 9 + 13.5
    + 5 + 0 + 0 + 5 + 12 + 3).
 4. Compact dump `out/summary_dump.txt` (label | unit | values | note) for the Fable review.
+
+## 8. Amendments after the first build (22-Oct-2026, Fable review)
+
+1. **RtB price basis everywhere.** MOIC!H226:N226 (premium sensitivity) = premium × `In_MVA_Per_Bid*In_Bids`; HTM E227:E243
+   and HTM G221/G222 (implied maximum premium) on the MVA basis, unit k€/MVA. MOIC G266 then passes.
+2. **Deposits reconciliation.** The source totals (Inputs G87/G88) describe the old 200 MW / PB 1.5× / supplementary case,
+   so that check is a regression test only (it lives in `regression.py`). On the sheet, Deposits E34 becomes an internal
+   check: gross total H19 = sum of the item rows, and payable J19 = MOIC!G40 (total payable flows). Relabel C28:C34.
+3. **Two cases, not three.** Cases 1 and 2 are now identical. Keep "EU turbine" (column G) and "CN turbine" (column H,
+   moved from I; clear I). Update G7:H8 names and descriptions, `Scenario_Names` = G7:H7, `Stored_Results` 2 columns.
+4. **Levers live on Summary.** Section 1 holds the bid levers as blue inputs (the `In_*` names point at these cells);
+   Inputs block U keeps only the band tables, weights, offerable ranges and the derived `In_Bottleneck_Factor`.
+   One ÖSZ-4 row: offer in E, points in F, the scored ratio in G (note: basis).
+5. **No duplicate rows.** Drop "FEP equity IRR" (equals the 100 % equity IRR); keep one row "Equity IRR, levered post-tax
+   (FEP, 100 %)". Relabel "Total gross, incl. supplementary security" → "Total gross".
+6. **Round-trip repairs.** HTM G7, G10, G14 number format back to General (they show 3000.00 %).
+7. Master_Check must be 0 after RunAllScenarios; `regression.py` must still pass.
