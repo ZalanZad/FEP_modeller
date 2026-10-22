@@ -57,17 +57,18 @@ def hand_checks(wb):
     u = {inp.cell(r, 3).value: inp.cell(r, 5).value for r in range(300, inp.max_row + 1) if inp.cell(r, 3).value}
     N = lambda n: s[next(wb.defined_names[n].destinations)[1].replace("$", "")].value  # noqa: E731  Dashboard levers
     case = inp["E6"].value                               # live case column G/H
-    v = lambda r: inp.cell(r, 6 + case).value if inp.cell(r, 6 + case).value is not None else inp[f"G{r}"].value  # noqa: E731
+    v = lambda r: inp.cell(r, 6 + case).value if inp.cell(r, 6 + case).value is not None else inp[f"G{r}"].value  # noqa
 
     mva = N("Dash_MVA_Per_Bid") * inp["E82"].value
-    inst = mva * (1 + N("Dash_Overbuild"))
+    inst = mva * (1 + N("Dash_Overbuild"))                # committed (bid): PB and points base
+    built = inst * (1 - N("Dash_Build_Shortfall"))       # built: capex and generation base
     bess_mw = N("Dash_BESS_Share") * mva
     mwh = bess_mw * v(21)
     fx = v(11)
     out = []
 
     # Capex breakdown (€ m) from the Inputs rates; IDC and debt fees are taken from HTM (schedule-driven).
-    wind = sum(v(r) for r in (162, 163, 164, 165, 166, 169, 170)) * inst / 1000
+    wind = sum(v(r) for r in (162, 163, 164, 165, 166, 169, 170)) * built / 1000
     subst = v(167) / 1000
     cont = (wind + subst) * v(171)
     bess = N("Dash_BESS_Capex_MWh") * v(21) * bess_mw / 1000
@@ -77,20 +78,21 @@ def hand_checks(wb):
     idc, fees = wb["HTM"]["G79"].value / 1000, -wb["HTM"]["G85"].value / 1000
     allin = wind + subst + cont + bess + ind + direct + muni + idc + fees
     out += [("All-in cost to COD, € m", allin, S("All-in cost to COD")),
-            ("All-in cost, k€/MW installed", allin * 1000 / inst, S("All-in cost to COD", "F")),
+            ("All-in cost, k€/MW built", allin * 1000 / built, S("All-in cost to COD", "F")),
             ("All-in cost, k€/MVA", allin * 1000 / mva, S("All-in cost to COD", "G")),
             ("BESS capex, € m", bess, S("BESS")),
             ("Contingency, € m", cont, S("Contingency"))]
 
-    # Performance security: 2.5 % × (installed MW × 406 + MWh × 200) mHUF × multiple.
+    # Performance security: 2.5 % × (committed MW × 406 + MWh × 200) mHUF × multiple.
     pb = v(77) * (inst * v(75) + mwh * v(89)) * N("Dash_PB_Mult")
-    out += [("Performance security, mHUF", pb, S("Performance security (gross; bid credit in Deposits J10)")),
-            ("Performance security, € m at FX", pb / fx, S("Performance security (gross; bid credit in Deposits J10)") / fx)]
+    perf = S("Performance security (gross; bid credit in Deposits J10)")
+    out += [("Performance security, mHUF", pb, perf), ("Performance security, € m at FX", pb / fx, perf / fx)]
 
-    # First full year generation: installed MW × hours × (1 − curtailment) × (1 − loss × overbuilt / installed).
-    gen = inst * v(179) * (1 - v(180)) * (1 - v(181)) * (1 - N("Dash_Bottleneck_Loss") * (inst - mva) / inst) / 1000
+    # First full year generation: built MW × hours × (1 − curtailment) × (1 − loss × (built − MVA) / built).
+    loss = N("Dash_Bottleneck_Loss") * (built - mva) / built
+    gen = built * v(179) * (1 - v(180)) * (1 - v(181)) * (1 - loss) / 1000
     out += [("Net generation, first full year, GWh", gen, S("Net generation, first full year")),
-            ("Equivalent hours per MW installed", gen * 1000 / inst, S("Equivalent full-load hours, first full year", "F")),
+            ("Equivalent hours per MW built", gen * 1000 / built, S("Equivalent full-load hours, first full year", "F")),
             ("Equivalent hours per MVA", gen * 1000 / mva, S("Equivalent full-load hours, first full year", "G"))]
 
     # Points: band lookups from the Inputs block U tables.

@@ -17,59 +17,63 @@ Brownfield site (ÖSZ-7) | flag | 0 | 0 |
 Shared connection (ÖSZ-8) | flag | 1 | 5 | 
 EU turbines, at least 80 % (ÖSZ-9) | flag | 1 | 12 | 
 EU transformers, at least 80 % (ÖSZ-9) | flag | 1 | 3 | 
+Wind built below the bid (no sanction up to 10 %) | % | 0.1 |  | 
 Energy lost on overbuilt MW (grid bottleneck) | % | 0.05 |  | 
 Turbine route (case) | case | EU turbine |  | 
 Total points | points |  | 82.5 | 
-2. Capacity and basis, both bids |  |  |  | 
+2. Capacity and basis – BORA 1 + BORA 2 (2 × 100 MVA) |  |  |  | 
 Connection capacity | MVA | 200 |  | 
-Installed wind | MW | 280 |  | 
+Wind committed (bid) | MW | 280 |  | 
+Wind built (bid less 10 %, no sanction) | MW | 252 |  | 
 BESS power | MW | 80 |  | 
 BESS energy | MWh | 320 |  | 
-Overbuilt wind above connection capacity | MW | 80 |  | 
-Bottleneck loss applied to generation | % | 0.0142857 |  | 
-k€/MW = per installed wind MW; k€/MVA = per connection MVA |  |  |  | 
-3. Build cost to COD, both bids |  |  |  | 
- |  | € m | k€/MW inst. | k€/MVA
-Turbines | € m | 266 | 950 | 1330
-Installation | € m | 22.4 | 80 | 112
-Foundations | € m | 25.2 | 90 | 126
-Balance of plant, civil | € m | 19.6 | 70 | 98
-Balance of plant, electrical | € m | 16.8 | 60 | 84
-Substation and 132 kV bay | € m | 12 | 42.8571 | 60
-Owner's costs | € m | 11.2 | 40 | 56
-Land and easements | € m | 4.2 | 15 | 21
-Contingency | € m | 18.87 | 67.3929 | 94.35
-BESS | € m | 32 | 114.286 | 160
-Connection fee, indirect (net of TSO security) | € m | 37.5733 | 134.19 | 187.867
-Connection fee, direct | € m | 1.39273 | 4.97403 | 6.96364
-Municipal one-off | € m | 10 | 35.7143 | 50
-Interest during construction | € m | 15.5538 | 55.5495 | 77.7692
-Debt fees (upfront, commitment) | € m | 7.53128 | 26.8974 | 37.6564
-All-in cost to COD | € m | 500.321 | 1786.86 | 2501.61
-4. Generation and operations, both bids |  |  |  | 
- |  | Value | per MW inst. | per MVA
+Wind built above connection capacity | MW | 52 |  | 
+Bottleneck loss applied to generation | % | 0.0103175 |  | 
+k€/MW = per built wind MW; k€/MVA = per connection MVA |  |  |  | 
+3. Build cost to COD – BORA 1 + BORA 2 (2 × 100 MVA) |  |  |  | 
+ |  | € m | k€/MW built | k€/MVA
+Turbines | € m | 239.4 | 950 | 1197
+Installation | € m | 20.16 | 80 | 100.8
+Foundations | € m | 22.68 | 90 | 113.4
+Balance of plant, civil | € m | 17.64 | 70 | 88.2
+Balance of plant, electrical | € m | 15.12 | 60 | 75.6
+Substation and 132 kV bay | € m | 12 | 47.619 | 60
+Owner's costs | € m | 10.08 | 40 | 50.4
+Land and easements | € m | 3.78 | 15 | 18.9
+Contingency | € m | 17.043 | 67.631 | 85.215
+BESS | € m | 32 | 126.984 | 160
+Connection fee, indirect (net of TSO security) | € m | 37.5733 | 149.1 | 187.867
+Connection fee, direct | € m | 1.39273 | 5.5267 | 6.96364
+Municipal one-off | € m | 10 | 39.6825 | 50
+Interest during construction | € m | 14.3034 | 56.7596 | 71.517
+Debt fees (upfront, commitment) | € m | 6.92581 | 27.4834 | 34.629
+All-in cost to COD | € m | 460.098 | 1825.79 | 2300.49
+4. Generation and operations – BORA 1 + BORA 2 (2 × 100 MVA) |  |  |  | 
+ |  | Value | per MW built | per MVA
 First full operating year | year | 2032 |  | 
-Net generation, first full year | GWh | 665.381 |  | 
-Equivalent full-load hours, first full year | h/yr |  | 2376.36 | 3326.9
-Net capacity factor, first full year | % |  | 0.271274 | 0.379784
-Energy lost to the bottleneck, first full year | GWh | 9.6432 |  | 
+Net generation, first full year | GWh | 601.254 |  | 
+Equivalent full-load hours, first full year | h/yr |  | 2385.93 | 3006.27
+Net capacity factor, first full year | % |  | 0.272366 | 0.343181
+Energy lost to the bottleneck, first full year | GWh | 6.26808 |  | 
 Achieved price, first full year | €/MWh | 90.9 |  | 
-Revenue, first full year | € m | 60.4831 |  | 
-EBITDA, first full year | € m | 45.938 |  | 
-EBITDA margin, first full year | % | 0.759518 |  | 
-Operating costs, first full year (k€ per MW / MVA) | € m | k€ | 14.5451 | 51.9467 | 72.7254
-Lifetime net generation | GWh | 19144.7 |  | 
-LCOE | €/MWh | 100.868 |  | 
+Revenue, first full year | € m | 54.6539 |  | 
+EBITDA (NOI), first full year | € m | 41.5224 |  | 
+EBITDA margin, first full year | % | 0.759733 |  | 
+Operating costs, first full year (k€ per MW / MVA) | € m | k€ | 13.1315 | 52.1093 | 65.6577
+EBITDA (NOI), lifetime | € m | 1291.4 |  | 
+Lifetime net generation | GWh | 17299.6 |  | 
+LCOE | €/MWh | 102.646 |  | 
 5. Returns, live case (Live_Results) |  |  |  | 
-Project IRR, unlevered pre-tax | % | 0.0792805 |  | 
-Project IRR, unlevered post-tax | % | 0.0742885 |  | 
-Project NPV, unlevered post-tax | € m | -21.4 |  | 
-Equity IRR, levered post-tax (FEP, 100 %) | % | 0.0819641 |  | 
-FEP NPV, build and operate | € m | 5.06026 |  | 
-FEP MOIC, build and operate | x | 4.40077 |  | 
-FEP peak exposure, build and operate | € m | 210.386 |  | 
-Minimum DSCR | x | 1.15812 |  | 
-Debt at COD | € m | 301.895 |  | 
+Tender points | points | 82.5 |  | 
+Project IRR, unlevered pre-tax | % | 0.0769389 |  | 
+Project IRR, unlevered post-tax | % | 0.0720727 |  | 
+Project NPV, unlevered post-tax | € m | -27.394 |  | 
+Equity IRR, levered post-tax (FEP, 100 %) | % | 0.0787221 |  | 
+FEP NPV, build and operate | € m | -3.05645 |  | 
+FEP MOIC, build and operate | x | 4.23083 |  | 
+FEP peak exposure, build and operate | € m | 196.595 |  | 
+Minimum DSCR | x | 1.13946 |  | 
+Debt at COD | € m | 277.625 |  | 
 Debt at COD ÷ all-in cost to COD | % | 0.603403 |  | 
 Payback year (FEP equity) | year | 2045 |  | 
 RtB: FEP net profit post-tax | € m | 16.2066 |  | 
@@ -77,9 +81,9 @@ RtB: FEP IRR post-tax | % | 0.360081 |  |
 RtB: FEP MOIC | x | 1.34461 |  | 
 RtB: FEP NPV | € m | 10.0276 |  | 
 RtB: A.RES net profit post-tax | € m | 7.67465 |  | 
-Buyer IRR, unlevered post-tax, at the RtB price | % | 0.0746127 |  | 
-Implied maximum RtB premium (buyer NPV = 0) | k€/MVA | 23.6499 |  | 
-6. Securities and fees, both bids (Deposits) |  |  |  | 
+Buyer IRR, unlevered post-tax, at the RtB price | % | 0.0724102 |  | 
+Implied maximum RtB premium (buyer NPV = 0) | k€/MVA | -14.1036 |  | 
+6. Securities and fees – BORA 1 + BORA 2 (2 × 100 MVA) (Deposits) |  |  |  | 
 Participation fee | mHUF | 6 |  | 
 Bid security | mHUF | 888.4 |  | 
 Performance security (gross; bid credit in Deposits J10) | mHUF | 4442 |  | 
@@ -92,24 +96,25 @@ Of which cash, in FEP cash flows | € m | 41.4482 |  |
 Of which bank guarantee, in FEP cash flows | € m | 12.1699 |  | 
 7. Stored results by case (Stored_Results, written by RunAllScenarios) |  |  |  | 
  |  | EU turbine | CN turbine | 
-Project IRR, unlevered pre-tax | % | 0.0792805 | 0.111201 | 
-Project IRR, unlevered post-tax | % | 0.0742885 | 0.104072 | 
-Project NPV, unlevered post-tax | € m | -21.4 | 71.6886 | 
-Equity IRR, levered post-tax (FEP, 100 %) | % | 0.0819641 | 0.12025 | 
-FEP NPV, build and operate | € m | 5.06026 | 87.7576 | 
-FEP MOIC, build and operate | x | 4.40077 | 5.72032 | 
-FEP peak exposure, build and operate | € m | 210.386 | 186.256 | 
-Minimum DSCR | x | 1.15812 | 1.87899 | 
-Debt at COD | € m | 301.895 | 181.836 | 
+Tender points | points | 82.5 | 67.5 | 
+Project IRR, unlevered pre-tax | % | 0.0769389 | 0.10725 | 
+Project IRR, unlevered post-tax | % | 0.0720727 | 0.100361 | 
+Project NPV, unlevered post-tax | € m | -27.394 | 56.3841 | 
+Equity IRR, levered post-tax (FEP, 100 %) | % | 0.0787221 | 0.114924 | 
+FEP NPV, build and operate | € m | -3.05645 | 71.2913 | 
+FEP MOIC, build and operate | x | 4.23083 | 5.45402 | 
+FEP peak exposure, build and operate | € m | 196.595 | 175.766 | 
+Minimum DSCR | x | 1.13946 | 1.83647 | 
+Debt at COD | € m | 277.625 | 168.585 | 
 Debt at COD ÷ all-in cost to COD | % | 0.603403 | 0.506733 | 
-Payback year (FEP equity) | year | 2045 | 2040 | 
+Payback year (FEP equity) | year | 2045 | 2041 | 
 RtB: FEP net profit post-tax | € m | 16.2066 | 16.2066 | 
 RtB: FEP IRR post-tax | % | 0.360081 | 0.360081 | 
 RtB: FEP MOIC | x | 1.34461 | 1.34461 | 
 RtB: FEP NPV | € m | 10.0276 | 10.0276 | 
 RtB: A.RES net profit post-tax | € m | 7.67465 | 7.67465 | 
-Buyer IRR, unlevered post-tax, at the RtB price | % | 0.0746127 | 0.104754 | 
-Implied maximum RtB premium (buyer NPV = 0) | k€/MVA | 23.6499 | 609.974 | 
+Buyer IRR, unlevered post-tax, at the RtB price | % | 0.0724102 | 0.101053 | 
+Implied maximum RtB premium (buyer NPV = 0) | k€/MVA | -14.1036 | 513.578 | 
 8. Checks |  |  |  | 
  |  | Fails | Status | 
 MOIC engine checks (MOIC G270) | # | 0 | OK | 
@@ -120,7 +125,6 @@ Stored results = live case | # | 0 | OK |
 ÖSZ-1 offer within the offerable range | # | 0 | OK | 
 ÖSZ-2 offer within the offerable range | # | 0 | OK | 
 ÖSZ-4 BESS ratio at least the minimum | # | 0 | OK | 
-Cash_Flow ties to the equity cash flow | # | 0 | OK | 
 Capacity: BESS MW ≤ wind MW, duration ≥ minimum | # | 0 | OK | 
 Master check (number of failing rows) | # | 0 | OK | 
 9. Key assumptions, live case |  |  |  | 
@@ -141,31 +145,16 @@ DSRA | months | 0 |  |
 Cash sweep | % | 0 |  | 
 ***END*** |  |  |  | 
 == Cash_Flow (timeline: first three years … last year) ==
- |  | Total € m | k€/MW inst. | k€/MVA |  |  |  | … | 
+ |  | Total € m | k€/MW built | k€/MVA |  |  |  | … | 
 Year | year |  |  |  | 2026 | 2027 | 2028 | … | 2061
-Spending |  |  |  |  |  |  |  | … | 
-Development phase | EUR k | -33.4053 | -119.305 | -167.027 | -3144.62 | -1586.52 | -2483.92 | … | 0
-Construction capex excl. connection fees | EUR k | -428.27 | -1529.54 | -2141.35 | 0 | 0 | 0 | … | 0
-Connection fees | EUR k | -38.966 | -139.164 | -194.83 | 0 | 0 | 0 | … | 0
-Municipal one-off | EUR k | -10 | -35.7143 | -50 | 0 | 0 | 0 | … | 0
-IDC and debt fees paid by equity | EUR k | -7.53128 | -26.8974 | -37.6564 | 0 | 0 | 0 | … | 0
-Total spending | EUR k | -518.173 | -1850.62 | -2590.86 | -3144.62 | -1586.52 | -2483.92 | … | 0
-Operations |  |  |  |  |  |  |  | … | 
-Revenue | EUR k | 2011.9 | 7185.36 | 10059.5 | 0 | 0 | 0 | … | 36989.9
-Operating costs | EUR k | -583.332 | -2083.33 | -2916.66 | 0 | 0 | 0 | … | -12925.1
-EBITDA | EUR k | 1428.57 | 5102.03 | 7142.84 | 0 | 0 | 0 | … | 24064.8
-Tax | EUR k | -74.3466 | -265.524 | -371.733 | 0 | 0 | 0 | … | -2165.83
-Decommissioning and terminal value | EUR k | -8.4 | -30 | -42 | 0 | 0 | 0 | … | -8400
-Project |  |  |  |  |  |  |  | … | 
-Unlevered post-tax cash flow | EUR k | 825.414 | 2947.91 | 4127.07 | -3144.62 | -1586.52 | -2483.92 | … | 13499
-Cumulative unlevered post-tax cash flow | EUR k |  |  |  | -3144.62 | -4731.15 | -7215.07 | … | 825414
-Debt |  |  |  |  |  |  |  | … | 
-Debt drawdown | EUR k | 286.342 | 1022.65 | 1431.71 | 0 | 0 | 0 | … | 0
-Debt service incl. cash sweep | EUR k | -398.516 | -1423.27 | -1992.58 | 0 | 0 | 0 | … | 0
-DSRA funding / release | EUR k | 0 | 0 | 0 | 0 | 0 | 0 | … | 0
-Equity |  |  |  |  |  |  |  | … | 
-Equity cash flow | EUR k | 715.475 | 2555.27 | 3577.38 | -3144.62 | -1586.52 | -2483.92 | … | 13499
-Cumulative equity cash flow | EUR k |  |  |  | -3144.62 | -4731.15 | -7215.07 | … | 715475
-Check |  |  |  |  |  |  |  | … | 
-Spending + EBITDA + tax + decommissioning + debt flows ≠ equity cash flow | # | 0 |  |  | 0 | 0 | 0 | … | 0
+Total spending | EUR k | -479.2 | -1901.59 | -2396 | -3144.62 | -1586.52 | -2483.92 | … | 0
+Revenue | EUR k | 1818 | 7214.29 | 9090 | 0 | 0 | 0 | … | 33425
+Operating costs | EUR k | -526.597 | -2089.67 | -2632.99 | 0 | 0 | 0 | … | -11667.4
+EBITDA (NOI) | EUR k | 1291.4 | 5124.62 | 6457.02 | 0 | 0 | 0 | … | 21757.5
+Tax | EUR k | -66.3209 | -263.178 | -331.604 | 0 | 0 | 0 | … | -1958.18
+Unlevered post-tax cash flow | EUR k | 736.246 | 2921.61 | 3681.23 | -3144.62 | -1586.52 | -2483.92 | … | 12239.4
+Debt drawdown | EUR k | 263.321 | 1044.93 | 1316.61 | 0 | 0 | 0 | … | 0
+Debt service | EUR k | -366.477 | -1454.28 | -1832.39 | 0 | 0 | 0 | … | 0
+Equity cash flow | EUR k | 635.166 | 2520.5 | 3175.83 | -3144.62 | -1586.52 | -2483.92 | … | 12239.4
+Cumulative equity cash flow | EUR k |  |  |  | -3144.62 | -4731.15 | -7215.07 | … | 635166
 ***END*** |  |  |  |  |  |  |  | … | 

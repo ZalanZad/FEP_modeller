@@ -192,6 +192,7 @@ Verification, in this order:
    E174 likewise; HTM E27 = E173 × In_Wind_Built), the Dashboard capex lines (section 3) and both per-MW columns, the
    bottleneck factor ((built − MVA) ÷ built). BESS is built in full. Dashboard section 2 shows "Wind committed (bid)" 280
    and "Wind built (bid less 10 %, no sanction)" 252; the per-MW column header reads "k€/MW built".
+   HTM G32 and G150 (capex per MW) divide by `In_Wind_Built`, label "Capex per MW built".
 3. **Cash_Flow, fewer rows:** Total spending | Revenue | Operating costs | EBITDA (NOI) | Tax | Unlevered post-tax cash
    flow | Debt drawdown | Debt service | Equity cash flow | Cumulative equity cash flow. Nothing else; drop the tie-out check
    row (and its Dashboard check row).
