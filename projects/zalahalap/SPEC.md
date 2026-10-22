@@ -31,14 +31,17 @@ needs to be thought over again"):**
 
 **Fix round 1 (22-Oct-2026: Fable's financial review + the audit; user: "build now, we will adjust").** Built as
 defaults; every item pending the user is a flagged placeholder on `Inputs`:
-6. **Grid charging (M1):** export-only connection (teaser; v3 Control!D90). `In_Grid_Import_MW` = 0 **[pending user:
-   does the grid agreement allow import?]**. With 0 import the Aurora stack is scaled to PV-only charging by the block's
-   own factor charge-from-PV × RTE ÷ discharge (≈ 0.595 in 2027; v3's 0.591), derived on `Curves`; aFRR-down and
-   grid-charge revenue are lost. Import > 0 restores the grid-charged share pro rata (import ÷ BESS MW) and caps grid
-   charging at import × hours. Hourly limits live inside Aurora's dispatch; Excel checks the annual balance.
+6. **Grid charging (M1; confirmed by the user, 22-Oct-2026: "batery cannot chage from the grid"):** export-only
+   connection, `In_Grid_Import_MW` = 0 (confirmed). Fix round 2 replaces the crude whole-stack scaling (0.595 in 2027)
+   with a **component** PV-only factor per Aurora block, from `data/aurora_extract.py`: [(DA s+14 + ID s+16
+   discharge cashflow) × MIN(1, −s+13 × RTE ÷ (s+5 + s+7)) + PV transfer s+20 + aFRR-up capacity s+22] ÷ s+27 (DC 4h:
+   0.779 in 2027, 0.941 on average 2027–60); aFRR energy, grid-charge costs and volume network charges (RHD, grid-drawn
+   energy only) drop out. aFRR-down + FCR capacity ((s+23 + s+24) ÷ s+27, 0.167 in 2027) is added back times
+   `In_AFRR_Down_Share` (0, placeholder: the share deliverable from PV state of charge). Both pieces are blue Curves
+   rows; the Calc sheets combine them. Hourly limits live inside Aurora's dispatch.
 7. **Two PV prices (M2):** PV exported directly at Aurora's direct price (s+34 + s+35)/s+31; PV sent to the BESS at
    the transfer price s+36/s+32 (the counterpart of the stack's −s+20). Offers and fees act on the direct price only.
-   The blended curve (s+37 ÷ RES output) stays selectable. Curves carry short codes ("DC 4h direct", "DC 4h transfer",
+   (Fix round 2: the unused blended and DA÷grid curves are removed from Curves.) Curves carry short codes ("DC 4h direct", "DC 4h transfer",
    "DC 4h" for the BESS block); the full Aurora names are on `Curves`.
 8. **Unlevered tax:** project, buyer-unlevered and implied-price views use an unlevered tax (no interest or fees, own
    loss carry-forward); levered views keep the actual SPV tax. (Bana had no such convention.)
@@ -55,7 +58,8 @@ defaults; every item pending the user is a flagged placeholder on `Inputs`:
 13. **PSH (D3):** PSH profit and its share of proceeds are shown; its IRR is a memo (150 k€ in-kind apport).
 14. **Sets (D5):** "RtB price = implied", "BESS capex 200 k€/MWh" and "No BESS repower" (BESS retired at the
     repower year, no augmentation) replace "PV price +10 %", "Opex +10 %" and "Debt rate +1 pp" (§10).
-15. **Other:** implied prices floored at 0 with a "below zero" flag; clipping 0 % for the DC-coupled cases B and C
+15. **Other:** one BESS availability haircut (`In_BESS_Haircut`; Aurora's 98 % is inside the blocks, the two
+    cancelling availability inputs are removed); implied prices floored at 0 with a "below zero" flag; clipping 0 % for the DC-coupled cases B and C
     (`In_Clip_Loss_DC`), v3 + fix 5 (2 %) kept in A; min DSCR "n/a" without debt; the six asset-deal goal seeks are
     dropped until the deal form is answered (`In_Sale_Form` now only drives the FEP gain tax; the asset-deal buyer
     step-up is not modelled); tax losses lapse on one date (NTP + 5 years), a flagged simplification.
@@ -459,8 +463,9 @@ Scenario A ties to the stored reconciliation targets within tolerance (one row p
     E48 (650 k€) and E49 (75 k€) go to construction capex at NTP, so total project cost is unchanged but 725 k€ is no
     longer reimbursed at the RtB sale, no longer earns the 12 % return and no longer sits in "capital" (RtB MOIC
     and capital targets move; the reconciliation set uses `In_Milestones_Scope` = 6). (S)
-16. **Grid charging (fix round 1, M1):** export-only grid; the Aurora stack scaled to PV-only charging (the v3
-    0.591 idea, now from the selected block's own rows). (S: `In_Grid_Import_MW`)
+16. **Grid charging (fix rounds 1–2, M1):** no grid charging (user-confirmed); the Aurora stack kept by component
+    (DA/ID discharge at the PV-covered share, PV transfer, aFRR-up) instead of v3's 0.591 discharge scaling.
+    (S: `In_Grid_Import_MW`, `In_AFRR_Down_Share`)
 17. **PV price (fix round 1, M2):** direct export and PV-to-BESS energy priced separately (v3: one flat 65 % capture
     on all output). (S: curve names)
 18. **Tax views (fix round 1):** unlevered views on an unlevered tax; FEP taxed on the 12 % return; DSA and SPV price
@@ -498,7 +503,7 @@ Phase 3 – audit: `python3 -m fepm audit projects/zalahalap`, reconciliation re
 | 2 | Deal form | `In_Sale_Form` = share sale at RtB and at COD; gain exempt (`In_Sale_Gain_Taxed` 0); buyer reimburses the JV loans and the four-line early works (as RTB_Model row 69) | `In_Sale_Form` drives the FEP gain tax only (fix round 1) |
 | 3 | Buyer target IRR | 8.0 % unlevered post-tax at RtB and at COD (original Control!D9; midpoint of Sensitivities!D71:D75); implied prices closed-form (§9), floored at 0 | set 7 |
 | 4 | Dates | Scenario A: original (acq. 30-Nov-25, RtB 31-Jul-26, sale 31-Oct-26, NTP 01-Apr-27, COD 01-Apr-28). B and C: RtB 31-Dec-26, sale 31-Mar-27, NTP 30-Jun-27, **COD 31-Mar-2028 for PV and BESS** (teaser); MET/E.ON contracts from 01-Jan-28 / COD. Life 35 years. | set 13 (COD +12 m) |
-| 5 | BESS | 50 MW × **4 h = 200 MWh** (teaser, original), DC co-located, Aurora block "2027 solar DC 1.0cy 4h", availability 98 %, RTE 0.86 (Aurora Inputs!C17:C18, information only), haircut 0 %, capex 110 k€/MWh (original Control!D94; Aurora's reference ≈ 267 k€/MWh is flagged), augmentation 110 k€/MWh indexed at the block's repower year (2048), **no grid import: PV-only charging** (fix round 1) | sets 12 (2 h), 13 (no BESS), 14 (capex 200), 15 (no repower) |
+| 5 | BESS | 50 MW × **4 h = 200 MWh** (teaser, original), DC co-located, Aurora block "2027 solar DC 1.0cy 4h", availability 98 %, RTE 0.86 (Aurora Inputs!C17:C18, information only), haircut 0 %, capex 110 k€/MWh (original Control!D94; Aurora's reference ≈ 267 k€/MWh is flagged), augmentation 110 k€/MWh indexed at the block's repower year (2048), **no grid charging (user-confirmed): component PV-only factor** (fix rounds 1–2) | sets 12 (2 h), 13 (no BESS), 14 (capex 200), 15 (no repower) |
 | 6 | PV price | Aurora direct-export and PV-to-BESS transfer prices (fix round 1), Central only | sets 3, 16 |
 | 7 | PV yield | 1,265 kWh/kWp (teaser; original 1,250 in Scenario A), availability 99.5 %, degradation 0.3 %/yr, clipping 2 % in case A (v3 + fix 5), 0 % in the DC-coupled cases B and C (placeholder until the yield report) | set 4 (−10 %) |
 | 8 | Capex / opex | original model values (§3.1): PV 350 k€/MWp, MV cable 3,700, substation 9,500, land 620, opex lines as Control!D59:D62, D96; devex to RtB 3,182 k€; early works 12.87 k€/MW (four lines) + E48/E49 in capex at NTP | sets 7, 8 |
@@ -524,6 +529,6 @@ Phase 3 – audit: `python3 -m fepm audit projects/zalahalap`, reconciliation re
 12. Offers: E.ON fee 7.6 % and GoO treatment; E.ON BESS bands after 2028 and A vs B; MET fixed-PPA indexation/GoO,
     downregulation scope, PSA 50/50 reference, 90 MWh; MVM 45 €/MWh scope and BESS; which pairings as sets.
 13. Yield report (P50/P90, clipping) and cable/substation quotes.
-14. Grid agreement: is import allowed for BESS charging (`In_Grid_Import_MW`, 0 now)? Material: about −6 pp on the hold
-    IRR versus full grid charging.
+14. ~~Grid import~~ answered 22-Oct-2026: no grid charging. Still open: the share of aFRR-down/FCR capacity the
+    battery can deliver from PV state of charge (`In_AFRR_Down_Share`, 0 now; worth up to ~17 % of the 2027 stack).
 15. Offers vs the built BESS: re-quote MET/E.ON for 50 MW / 200 MWh, or build the offered duration?

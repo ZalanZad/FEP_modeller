@@ -83,7 +83,7 @@ def params(**over):
         mwp=61, mva=50, yld=1250, rtb=dt.date(2026, 7, 31), exit=dt.date(2026, 10, 31), ntp=dt.date(2027, 3, 31),
         cod=dt.date(2028, 3, 31), acq=dt.date(2025, 11, 30), life=35, pre_first=dt.date(2026, 10, 31),
         pre_last=dt.date(2027, 3, 31), pv_curve="v3_capture", block="2027 solar DC 1.0cy 4h",
-        pv_avail=0.995, deg=0.003, clip=0.02, bess_on=1, bess_mw=50, bess_h=4, bess_avail=0.98, aurora_avail=0.98,
+        pv_avail=0.995, deg=0.003, clip=0.02, bess_on=1, bess_mw=50, bess_h=4, afrr_down=0.0,
         haircut=0.0, bess_capex=110, aug_cost=110, aug_year=0, aug_year_v3=2048, bess_opex=30.8, goo=1.75,
         pv_capex=350, cable=3700, subst=9500, land=620, pre_rtb=3182, pre_reimb=1,
         scope=4, late_capex=1, ew_reimb=1, ew_int=1, ew_psh=0,
@@ -180,10 +180,10 @@ def run(p):
     if bkey == "v3":
         res_sh = [1.0] * N
         v_res = [C["v3_res"][y] for y in year]
-    else:
-        dis_, res_ = C[("discharge", bkey)], C[("charge_res", bkey)]
-        res_sh = [1.0 if dis_[y] == 0 else min(1, -res_[y] * 0.86 / dis_[y]) for y in year]
-        v_res = [res_[y] for y in year]
+    else:                                                     # PV-only factor by component (fix round 2)
+        pvo, dcap = C[("pv_only_factor", bkey)], C[("down_cap_share", bkey)]
+        res_sh = [min(1, (pvo[y] if y > 2025 else 1.0) + p["afrr_down"] * dcap[y]) for y in year]
+        v_res = [C[("charge_res", bkey)][y] for y in year]
     gcov = min(1, p["grid_import"] / max(1, bmw))
     if p["fix7"]:
         rc = C[("repower_count", p["block"])] if p["fix6"] else None
@@ -191,7 +191,7 @@ def run(p):
     else:
         aug_y = p["aug_year_v3"]
     live = [1 - (1 - p["repower"]) * (1 if y >= aug_y else 0) for y in year]
-    stack = [x * i * (1 - p["haircut"]) * p["bess_avail"] / p["aurora_avail"] * (r + (1 - r) * gcov)
+    stack = [x * i * (1 - p["haircut"]) * (r + (1 - r) * gcov)
              for x, i, r in zip(stk_real, infl, res_sh)]
     gen = [p["mwp"] * p["yld"] * p["pv_avail"] * (1 - p["deg"]) ** el * o * y for el, o, y in zip(elapsed, ops, yf)]
     clip_sh = p["clip"] * (p["fix5"] if p["pv_curve"] == "v3_capture" else 1)
@@ -576,8 +576,8 @@ def workbook_bridge():
 IMPLIED = "Implied RtB price at the target IRR, floored at 0 (E), closed form (F)"
 BLK = "2027 solar DC 1.0cy 4h"
 FIX1 = [  # case B, cumulative from the build before fix round 1 (shadow switches)
-    ("Build before fix round 1 (shadow)", dict(LEGACY)),
-    ("M1: export-only grid, BESS charged from PV only", dict(grid_import=0)),
+    ("v1 build, 5b343d2 (shadow)", dict(LEGACY)),
+    ("M1: no grid charging, PV-only factor by component", dict(grid_import=0)),
     ("M2: two PV prices (direct export, transfer to the BESS)",
      dict(pv_curve=("direct_price", BLK), pv_tr_curve=("transfer_price", BLK))),
     ("Clipping 0 % for the DC-coupled case", dict(clip=0.0)),
@@ -672,9 +672,9 @@ def report(set2, res, base, checks2, checks1, base_b):
     for k, lbl, u, _ in OUTS:
         if k in sh2:
             L.append(f"| {lbl} | {fmt(sh2[k], u)} | {fmt(res[0][1][k], u)} | {sh2[k] - res[0][1][k]:.2e} |")
-    L += ["", "## 5. Fix round 1 (22-Oct-2026): case B bridge, build before → new base (shadow, cumulative)", "",
-          "Each step switches one change on in the independent shadow; the first line equals the workbook before fix "
-          "round 1 (hold 10.72 %, implied RtB 165.4 k€/MWp, buyer IRR 8.83 %), the last line is checked against the "
+    L += ["", "## 5. Fix rounds 1–2 (22-Oct-2026): case B bridge, v1 → new base (shadow, cumulative)", "",
+          "Each step switches one change on in the independent shadow; the first line equals the v1 workbook (commit "
+          "5b343d2: hold 10.72 %, implied RtB 165.4 k€/MWp, buyer IRR 8.83 %), the last line is checked against the "
           "new workbook (Calc_2, base set). The DSRA fix (COD sale only), D1 and D2 do not move these columns.", "",
           "| Step | " + " | ".join(lbl for _, lbl, _ in FIX1_OUTS) + " |", "|---|" + "---:|" * len(FIX1_OUTS)]
     prev = None

@@ -35,7 +35,7 @@ SHORT = {"2027 solar DC 1.0cy 4h": "DC 4h", "2027 solar DC 1.0cy 2h": "DC 2h", "
          "2030 solar DC 1.5cy 2h": "DC 2h 1.5cy 2030"}       # Aurora block (Degraded batteries) -> short curve code
 BLOCK_FULL = "2027 solar DC 1.0cy 4h"                       # default Aurora battery block (SPEC §15 item 5)
 BLOCK, BLOCK_2H = SHORT[BLOCK_FULL], SHORT["2027 solar DC 1.0cy 2h"]
-DIRECT, TRANSFER, CAPTURE = " direct", " transfer", " blended"   # PV curve names: block code + suffix
+DIRECT, TRANSFER = " direct", " transfer"                  # PV curve names: block code + suffix
 V3_PV, V3_BESS = "v3 capture", "v3 BESS"
 PH = "placeholder – pending user (SPEC §16 Q{})"
 EW_NOTE = "provisional – early works to be revisited (user 22-Oct-26)"
@@ -82,7 +82,9 @@ def inputs(m):
     a("Clip_Loss_DC", "Clipping, cases B, C (DC-coupled BESS)", "%", 0,
       source="Aurora s+29 = 0; " + PH.format(13))
     a("Grid_Import_MW", "Grid import allowed for BESS charging", "MW", 0,
-      source="placeholder – pending user: does the grid allow import?", fmt="money1")
+      source="confirmed by user, 22-Oct-2026 (no grid charging)", fmt="money1")
+    a("AFRR_Down_Share", "aFRR-down/FCR capacity deliverable from PV charge", "%", 0,
+      source="placeholder – aFRR-down/FCR share deliverable from PV SoC")
 
     i.section("BESS")
     a("BESS_On", "BESS built (1 = yes)", "flag", 1, {S["No BESS"]: 0}, source="Teaser p1; SPEC §10")
@@ -90,8 +92,6 @@ def inputs(m):
     a("BESS_Hours", "BESS duration", "h", 4, {S["BESS 2 h"]: 2}, source="Teaser; " + PH.format(6), fmt="money1")
     a("BESS_Block", "Aurora battery block (Degraded batteries)", "text", BLOCK, {S["BESS 2 h"]: BLOCK_2H},
       source="Aurora Q2-26; " + PH.format(6))
-    a("BESS_Avail", "BESS availability, project", "%", 0.98, source=PH.format(6))
-    a("Aurora_Avail", "BESS availability inside Aurora's dispatch", "%", 0.98, source="Aurora Q2-26 Inputs C18")
     a("BESS_RTE", "Round-trip efficiency (energy check only)", "%", 0.86, source="Aurora Q2-26 Inputs C17")
     a("BESS_Haircut", "Haircut on merchant BESS revenue", "%", 0, {S["BESS revenue −20%"]: "=Sens_Step_Large", S["PV and BESS prices −20%"]: "=Sens_Step_Large"},
       source="SPEC §6.2, §10")
@@ -309,9 +309,12 @@ def curves(m):
     note("Aurora battery revenue blocks (Degraded batteries) are fixed dispatch outputs of Aurora's model: they do "
          "NOT re-optimise when inputs change.")
     note("BESS MW scales them linearly; hours and cycles switch blocks. RTE, degradation, grid cap, PV:BESS ratio "
-         "and charging rules act only through the haircut, availability and augmentation inputs.")
-    note("Grid charging: the connection is export-only (teaser; v3 Control D90). With In_Grid_Import_MW = 0 the "
-         "stack is scaled to charging from PV only (factor below); aFRR-down and grid-charge revenue are lost.")
+         "and charging rules act only through the haircut, PV-only factor and augmentation inputs. Aurora's 98 % "
+         "availability is inside the blocks.")
+    note("No grid charging (user, 22-Oct-2026): the stack keeps DA/ID discharge at the share PV can charge, the PV "
+         "transfer cost and aFRR-up capacity (PV-only factor); aFRR energy and aFRR-down/FCR capacity are lost (the "
+         "deliverable share of the latter is In_AFRR_Down_Share).")
+    note("Network charges apply to grid-drawn energy only (Hungarian RHD); none with no import.")
     note("The hourly export and charging limits live inside Aurora's dispatch (1 MW PV : 1 MW storage : 1 MW grid); "
          "Excel only checks the annual energy balance.")
     note("Aurora data: data/aurora_extract.py → data/aurora_curves.csv (source rows cited per curve). Case A curves: "
@@ -354,14 +357,13 @@ def curves(m):
     price = {V3_PV: old("pv_capture_selected_real2025")}
     price[V3_PV + " Low"] = [x * 0.85 for x in price[V3_PV]]
     price[V3_PV + " High"] = [x * 1.15 for x in price[V3_PV]]
-    for suffix, key in ((DIRECT, "direct_price"), (TRANSFER, "transfer_price"), (CAPTURE, "implied_capture"),
-                        (" DA÷grid", "da_to_grid")):
+    for suffix, key in ((DIRECT, "direct_price"), (TRANSFER, "transfer_price")):
         for b in blocks:
             if (key, b) in au:
                 price[SHORT[b] + suffix] = _extend(au[(key, b)][0])
     price["Baseload (info)"] = _extend(au[("baseload", "Central")][0])
-    cv.add_block("Price", "PV prices, real 2025: <block> direct = (s+34+s+35)/s+31, transfer = s+36/s+32, blended = "
-                 "s+37/(s+31+s+32), DA÷grid = s+34/s+31 (SPEC literal); v3 Low/High = ∓ 15 %", "EUR/MWh",
+    cv.add_block("Price", "PV prices, real 2025: <block> direct = (s+34+s+35)/s+31, transfer = s+36/s+32; "
+                 "v3 Low/High = ∓ 15 %", "EUR/MWh",
                  YEARS, price, source="v3 Aurora_Curve L; Aurora s+34:s+37 over s+31, s+32 (aurora_curves.csv)",
                  fmt="money2")
     r = line("Aurora euro inflation index (2025 = 1; +2 % a year after 2060)", "index",
@@ -376,24 +378,23 @@ def curves(m):
             ("ChargeRES", "BESS charge from PV (s+13, negative; v3: Z)", "charge_res",
              "bess_charge_from_pv_mwh_per_mw", -1),
             ("ChargeGrid", "BESS charge from the grid (s+12, negative)", "charge_grid", None, 1)]
-    first_row = {}
     for name, label, key, oldkey, sign in vols:
         data = {V3_BESS: [sign * x for x in old(oldkey)] if oldkey else [0.0] * len(YEARS)}
         for b in blocks:
             data[SHORT[b]] = _extend(au[(key, b)][0])
-        first_row[name] = cv.r + 3                      # add_block: blank, bar, years, then the curves
         cv.add_block(name, label, "MWh/MW", YEARS, data, source="Aurora Q2-26 Degraded batteries", fmt="money")
-    names = [V3_BESS] + [SHORT[b] for b in blocks]
-    share = {n: [None] * len(YEARS) for n in names}
-    r0 = cv.r + 3
-    cv.add_block("ResShare", "BESS stack kept with PV-only charging = charge from PV × RTE ÷ discharge (v3: already "
-                 "scaled, 1)", "factor", YEARS, share, source="Aurora s+13, s+11; Inputs BESS RTE", fmt="factor")
-    for k, n in enumerate(names):
-        for y in range(len(YEARS)):
-            col = L(10 + y)
-            dis, res = f"{col}{first_row['Discharge'] + k}", f"{col}{first_row['ChargeRES'] + k}"
-            f = 1 if k == 0 else f"=IF({dis}=0,1,MIN(1,-{res}*In_BESS_RTE/{dis}))"
-            apply(ws.cell(r0 + k, 10 + y, f), "input" if k == 0 else "calc", "factor")
+    for name, label, key, v3val, src in [
+            ("PVOnly", "Stack kept with PV-only charging: [(s+14+s+16)×MIN(1,−s+13×RTE÷(s+5+s+7))+s+20+s+22]÷s+27",
+             "pv_only_factor", 1.0, "Aurora s+5…s+27, Inputs C17; v3: scaled"),
+            ("DownCap", "aFRR-down and FCR capacity share of the stack: (s+23+s+24)÷s+27", "down_cap_share", 0.0,
+             "Aurora s+23, s+24, s+27; v3: 0")]:
+        data = {V3_BESS: [v3val] * len(YEARS)}
+        for b in blocks:
+            if (key, b) in au:
+                data[SHORT[b]] = _extend(au[(key, b)][0], first=v3val)
+            else:                                        # standalone block: charges from the grid by design
+                data[SHORT[b]] = [v3val] * len(YEARS)
+        cv.add_block(name, label, "factor", YEARS, data, source=src, fmt="factor")
 
     bar("Aurora battery blocks: repower year (first year with repower count ≥ 1, block row s+1)",
         "Aurora Degraded batteries")
@@ -616,12 +617,15 @@ def calc(m):
     c.row("goo", "Guarantee of origin price, nominal", "EUR/MWh", "=In_GoO*{infl}", total="none", fmt="money2")
     c.curve("stk_real", "BESS storage total cashflow, real 2025 (E: curve)", "EUR k/MW", "Stack",
             "INDEX(Case_BESS_Curve,1,{case.F})", fmt="money2")
-    c.curve("res_sh", "Stack kept with PV-only charging (E: curve)", "factor", "ResShare", "{stk_real.E}",
+    c.curve("pvo", "Stack kept with PV-only charging (E: curve)", "factor", "PVOnly", "{stk_real.E}", fmt="factor")
+    c.curve("dcap", "aFRR-down and FCR share of the stack (E: curve)", "factor", "DownCap", "{stk_real.E}",
             fmt="factor")
+    c.row("res_sh", "Stack kept without grid charging", "factor", "=MIN(1,{pvo}+In_AFRR_Down_Share*{dcap})",
+          total="none", fmt="factor")
     c.row("gcov", "Grid charging allowed: import ÷ BESS MW (E)", "%",
           e="MIN(1,In_Grid_Import_MW/MAX(1,{bess_mw.E}))", total="none", ef_fmt="pct")
     c.row("stack", "BESS merchant revenue per MW-year, nominal (haircut, availability, charging)", "EUR k/MW",
-          "={stk_real}*{infl}*(1-In_BESS_Haircut)*In_BESS_Avail/In_Aurora_Avail*({res_sh}+(1-{res_sh})*{gcov.E})",
+          "={stk_real}*{infl}*(1-In_BESS_Haircut)*({res_sh}+(1-{res_sh})*{gcov.E})",
           total="none", fmt="money2")
     c.row("aug_y", "BESS repower year (E: used, F: repower year of the curve)", "year",
           e="IF(In_Fix_Augment=0,In_Augment_Year_v3,IF(In_Augment_Year>0,In_Augment_Year,{self.F}))",
@@ -684,11 +688,13 @@ def calc(m):
     c.curve("v_res", "Aurora block: charge from PV per MW (E: curve)", "MWh", "ChargeRES", "{stk_real.E}", fmt="money")
     c.curve("v_grid", "Aurora block: charge from the grid per MW", "MWh", "ChargeGrid", "{stk_real.E}", fmt="money")
     c.curve("v_dis", "Aurora block: discharge per MW", "MWh", "Discharge", "{stk_real.E}", fmt="money")
+    c.row("dis_pv", "Aurora block: discharge per MW coverable by PV charging", "MWh",
+          "=MIN({v_dis},-{v_res}*In_BESS_RTE)", total="none", fmt="money")
     c.row("to_bess", "PV energy sent to the BESS", "MWh",
           "=MIN({gen}+{clip},-{v_res}*{bess_mw.E}*{ops}*{yf}*{b_live})")
     c.row("pv_exp", "PV energy exported directly", "MWh", "={gen}+{clip}-{to_bess}")
     c.row("dis", "BESS discharge (scaled to the charging allowed)", "MWh",
-          "={v_dis}*{bess_mw.E}*{ops}*{yf}*{b_live}*({res_sh}+(1-{res_sh})*{gcov.E})")
+          "={bess_mw.E}*{ops}*{yf}*{b_live}*({gcov.E}*{v_dis}+(1-{gcov.E})*{dis_pv})")
     c.row("chg", "BESS charge from the grid (within the import allowed)", "MWh",
           "=-{v_grid}*{bess_mw.E}*{ops}*{yf}*{b_live}*{gcov.E}")
     c.row("export", "Energy exported (E: first full year)", "MWh", "={pv_exp}+{dis}",
@@ -998,7 +1004,7 @@ def calc(m):
     c.xirr("psh_c_irr", "Memo: PSH IRR – sale at COD (on a 150 k€ in-kind apport)", "psh_c", iferror=True)
 
     c.section("Hold to maturity (FEP buys PSH out at the exit at PSH's RtB entitlement)")
-    c.row("htm_k", "FEP share of equity flows after the exit (E), PSH buy-out = RtB entitlement (F)", "%",
+    c.row("htm_k", "FEP share of equity flows after the exit (E), buy-out: PSH RtB entitlement at px_rtb (F)", "%",
           e="1-In_PSH_Stays*{shr.F}", f="(1-In_PSH_Stays)*{w_psh_r.F}", total="none", ef_fmt="pct")
     fmt("htm_k", "F", "money")
     c.row("htm_w", "FEP share of the equity flows", "%", "=1-{post_x}*(1-{htm_k.E})", total="none", fmt="pct")
@@ -1043,7 +1049,6 @@ def checks(m):
     k.add_check("Grid charging ≤ import allowed × hours", "=N({chg}>In_Grid_Import_MW*Hours_In_Day*{days}+Tolerance)")
     k.add_check("PV direct export + PV to the BESS ≤ PV generation",
                 "=N({pv_exp}+{to_bess}>{gen}+{clip}+Tolerance)+N({pv_exp}<-Tolerance)")
-    k.add_check("Total export ≤ PV direct export + BESS discharge", "=N({export}>{pv_exp}+{dis}+Tolerance)")
     k.add_check("RtB waterfall: paid + distributable = available, no step above its due",
                 "=N(ABS({w_chk.E})>Tolerance)+N({w_chk.F}>0)", per_period=False)
     k.add_check("RtB: FEP + PSH + sale costs = consideration",
@@ -1113,7 +1118,7 @@ GLANCE = [  # subheader, or (label ≤ 44 characters, unit, template, scale, out
     "Hold to maturity",
     ("Development costs (100 %)", "EUR m", "{dev_capex.E}", "Thousand", None, False),
     ("Construction capex (100 %)", "EUR m", "{f_capex.E}", "Thousand", None, False),
-    ("FEP equity contributed (all outflows)", "EUR m", "{htm_cap.E}", "Thousand", None, False),
+    ("FEP equity contributed (incl. 2048 repower)", "EUR m", "{htm_cap.E}", "Thousand", None, False),
     ("FEP distributions (all inflows)", "EUR m", 'SUMIF({htm_cf.all},">0")', "Thousand", None, False),
     ("FEP profit", "EUR m", "{htm_cf.I}", "Thousand", "HTM_Profit", False),
     ("FEP IRR, levered, after tax", "%", "{htm_irr.E}", None, "HTM_IRR", True),
@@ -1122,7 +1127,8 @@ GLANCE = [  # subheader, or (label ≤ 44 characters, unit, template, scale, out
     ("FEP NPV", "EUR m", "{htm_npv.E}", "Thousand", "HTM_NPV", False),
     ("Project IRR, unlevered, after tax", "%", "{proj_irr.E}", None, "Project_IRR", False),
     ("Project IRR, unlevered, before tax", "%", "{proj_irr_pre.E}", None, None, False),
-    ("PSH profit (bought out at its RtB share)", "EUR m", "{psh_h.I}", "Thousand", None, False),
+    ("PSH buy-out: RtB entitlement at px_rtb", "EUR m", "{htm_k.F}", "Thousand", None, False),
+    ("PSH profit (bought out at the exit)", "EUR m", "{psh_h.I}", "Thousand", None, False),
     ("Memo: PSH IRR (150 k€ in-kind apport)", "%", "{psh_h_irr.E}", None, None, False),
 ]
 FMTS = {"%": "pct", "x": "mult", "flag": "flag", "EUR m": "money2", "EUR k/MWp": "money1", "text": "text"}
@@ -1147,7 +1153,7 @@ def dashboard(m):
     link("BESS built", "MW", "{bess_mw.E}", fmt="money1")
     link("BESS energy", "MWh", "{bess_mw.F}", fmt="money")
     link("Grid import allowed for charging", "MW", "In_Grid_Import_MW", fmt="money1")
-    link("Stack kept with PV-only charging, COD year", "%", 'AVERAGEIF({year.all},YEAR({codd.F})+1,{res_sh.all})')
+    link("Stack kept without grid charging, year 1", "%", 'AVERAGEIF({year.all},YEAR({codd.F})+1,{res_sh.all})')
     link("Buyer target IRR (unlevered, after tax)", "%", "In_Buyer_IRR_RtB")
     link("Futureal share at the RtB exit", "%", "{shr.E}", out="FEP_Share")
     link("Futureal share at a COD sale", "%", "{shr_c.E}")

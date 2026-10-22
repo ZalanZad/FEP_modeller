@@ -69,16 +69,16 @@ Values in € k (profit, NPV, lifetime totals). Each step removes the set-2 over
 | + Fix 2: pre-RtB costs reimbursed as spent | §13.2 | +0.0 | -17.77 pp | +0.000x | +0.00 pp | +0.0 | +0.00 pp | +0.00 pp | +0.0 | +0.0 |
 | + Fix 3: no bank-guarantee phantom | §13.3 | +31.9 | +3.64 pp | +0.008x | +0.01 pp | +71.2 | +0.02 pp | +0.01 pp | +0.0 | +0.0 |
 | + Fix 5: PV export clipped (2 %) | §13.5 | +0.0 | +0.00 pp | +0.000x | -0.22 pp | -1,044.7 | -0.22 pp | -0.21 pp | -4,786.2 | -4,403.8 |
-| + Fix 6: Aurora 4 h block total for the BESS | §13.6 | +0.0 | +0.00 pp | +0.000x | +2.52 pp | +12,958.4 | +2.59 pp | +2.45 pp | +53,831.4 | +53,831.4 |
-| + Fix 7: augmentation indexed, Aurora repower year | §13.7 | +0.0 | +0.00 pp | +0.000x | -0.43 pp | -2,233.3 | -0.43 pp | -0.43 pp | +0.0 | +0.0 |
+| + Fix 6: Aurora 4 h block total for the BESS | §13.6 | +0.0 | +0.00 pp | +0.000x | +5.50 pp | +30,285.5 | +5.66 pp | +5.34 pp | +127,762.1 | +127,762.1 |
+| + Fix 7: augmentation indexed, Aurora repower year | §13.7 | +0.0 | +0.00 pp | +0.000x | -0.29 pp | -2,233.3 | -0.29 pp | -0.30 pp | +0.0 | +0.0 |
 | + Fix 8: dated act/365 return, 31-Dec capitalisation | §13.8 | -2.9 | -0.15 pp | -0.000x | -0.00 pp | -3.6 | +0.00 pp | +0.00 pp | +0.0 | +0.0 |
 | + User: share step (60 % at 90) | §13.14, §0.4 | +0.0 | +0.00 pp | +0.000x | +0.00 pp | +0.0 | +0.00 pp | +0.00 pp | +0.0 | +0.0 |
-| + User: early works, four lines; E48/E49 at NTP | §13.15, §0.3, §0.5 | -6.8 | +10.30 pp | +0.050x | +0.00 pp | +17.6 | +0.00 pp | +0.00 pp | +0.0 | +0.0 |
-| + Tax: HIPA and innovation contribution | §13.10 | +0.0 | +0.00 pp | +0.000x | -0.43 pp | -2,200.6 | -0.44 pp | -0.42 pp | +0.0 | -9,154.7 |
-| + Tax defaults: BESS 10 years, losses lapse after 5 years | §15.9 | +0.0 | +0.00 pp | +0.000x | +0.14 pp | +730.8 | +0.14 pp | +0.13 pp | +0.0 | +0.0 |
-| + JV sheet 221025: SPV 549, DSA loan, no PSH land step | §7, §15.10 | -671.8 | -80.79 pp | -0.175x | -0.12 pp | -689.4 | -0.24 pp | +0.00 pp | +0.0 | +0.0 |
-| + Debt: 55 % gearing (Bana terms) | §13.9, §15.1 | +0.0 | +0.00 pp | +0.000x | +0.65 pp | +3,831.6 | +0.00 pp | +0.00 pp | +0.0 | +0.0 |
-| **Workbook, base set** | | 2,272.0 | 84.73 % | 1.306x | 7.73 % | -981.8 | 7.33 % | 6.75 % | 398,029.8 | 217,753.4 |
+| + User: early works, four lines; E48/E49 at NTP | §13.15, §0.3, §0.5 | -6.8 | +10.30 pp | +0.050x | +0.01 pp | +17.6 | +0.01 pp | +0.00 pp | +0.0 | +0.0 |
+| + Tax: HIPA and innovation contribution | §13.10 | +0.0 | +0.00 pp | +0.000x | -0.45 pp | -2,599.1 | -0.46 pp | -0.43 pp | +0.0 | -10,855.1 |
+| + Tax defaults: BESS 10 years, losses lapse after 5 years | §15.9 | +0.0 | +0.00 pp | +0.000x | +0.14 pp | +730.8 | +0.15 pp | +0.13 pp | +0.0 | +0.0 |
+| + JV sheet 221025: SPV 549, DSA loan, no PSH land step | §7, §15.10 | -671.8 | -80.79 pp | -0.175x | -0.16 pp | -689.4 | -0.31 pp | +0.00 pp | +0.0 | +0.0 |
+| + Debt: 55 % gearing (Bana terms) | §13.9, §15.1 | +0.0 | +0.00 pp | +0.000x | +2.04 pp | +3,832.2 | +0.00 pp | +0.00 pp | +0.0 | +0.0 |
+| **Workbook, base set** | | 2,272.0 | 84.73 % | 1.306x | 12.19 % | 15,947.4 | 10.46 % | 9.76 % | 471,960.5 | 289,983.7 |
 
 Last step vs the base set: largest difference 0.00e+00 (the steps restore every set-2 override).
 
@@ -96,23 +96,23 @@ Last step vs the base set: largest difference 0.00e+00 (the steps restore every 
 | Lifetime revenue | 348,984.6 | 348,984.6 | 0.00e+00 |
 | Lifetime EBITDA | 177,480.5 | 177,480.5 | 0.00e+00 |
 
-## 5. Fix round 1 (22-Oct-2026): case B bridge, build before → new base (shadow, cumulative)
+## 5. Fix rounds 1–2 (22-Oct-2026): case B bridge, v1 → new base (shadow, cumulative)
 
-Each step switches one change on in the independent shadow; the first line equals the workbook before fix round 1 (hold 10.72 %, implied RtB 165.4 k€/MWp, buyer IRR 8.83 %), the last line is checked against the new workbook (Calc_2, base set). The DSRA fix (COD sale only), D1 and D2 do not move these columns.
+Each step switches one change on in the independent shadow; the first line equals the v1 workbook (commit 5b343d2: hold 10.72 %, implied RtB 165.4 k€/MWp, buyer IRR 8.83 %), the last line is checked against the new workbook (Calc_2, base set). The DSRA fix (COD sale only), D1 and D2 do not move these columns.
 
 | Step | FEP IRR – hold | FEP IRR – hold, pre-tax | Project IRR | Buyer IRR at 90 | Implied RtB price before the 0 floor (k€/MWp) | FEP profit – RtB (k€) | Revenue, first full year (k€) |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Build before fix round 1 (shadow) | 10.72 % | 11.54 % | 9.54 % | 8.83 % | 165.4 | 2,400.5 | 12,038.6 |
-| + M1: export-only grid, BESS charged from PV only | -6.30 pp | -6.77 pp | -4.52 pp | -4.36 pp | -361.5 | +0.0 | -2,394.3 |
-| + M2: two PV prices (direct export, transfer to the BESS) | -1.43 pp | -1.51 pp | -1.18 pp | -1.14 pp | -76.5 | +0.0 | -453.6 |
-| + Clipping 0 % for the DC-coupled case | +0.40 pp | +0.42 pp | +0.34 pp | +0.33 pp | +22.4 | +0.0 | +158.0 |
-| + D6: DSA and SPV price out of the SPV tax base | -0.01 pp | +0.00 pp | -0.01 pp | -0.01 pp | -0.6 | +0.0 | +0.0 |
-| + Unlevered tax in project, buyer and implied price | +0.00 pp | +0.00 pp | -0.13 pp | -0.12 pp | -11.3 | +0.0 | +0.0 |
+| v1 build, 5b343d2 (shadow) | 10.72 % | 11.54 % | 9.54 % | 8.83 % | 165.4 | 2,400.5 | 12,038.6 |
+| + M1: no grid charging, PV-only factor by component | -1.10 pp | -1.20 pp | -0.74 pp | -0.71 pp | -64.5 | +0.0 | -823.2 |
+| + M2: two PV prices (direct export, transfer to the BESS) | -1.24 pp | -1.33 pp | -0.87 pp | -0.84 pp | -74.3 | +0.0 | -453.6 |
+| + Clipping 0 % for the DC-coupled case | +0.37 pp | +0.40 pp | +0.26 pp | +0.25 pp | +21.6 | +0.0 | +158.0 |
+| + D6: DSA and SPV price out of the SPV tax base | -0.01 pp | -0.00 pp | -0.01 pp | -0.01 pp | -0.8 | +0.0 | +0.0 |
+| + Unlevered tax in project, buyer and implied price | +0.00 pp | +0.00 pp | -0.16 pp | -0.15 pp | -13.4 | +0.0 | +0.0 |
 | + D7: FEP taxed on the 12 % return | +0.00 pp | +0.00 pp | +0.00 pp | +0.00 pp | +0.0 | -26.0 | +0.0 |
-| **Shadow, new base** | 3.37 % | 3.68 % | 4.04 % | 3.52 % | -262.3 | 2,374.4 | 9,348.7 |
-| **Workbook, Calc_2 base** | 3.37 % | – | 4.04 % | 3.52 % | – | 2,374.4 | – |
+| **Shadow, new base** | 8.74 % | 9.41 % | 8.02 % | 7.37 % | 34.0 | 2,374.4 | 10,919.8 |
+| **Workbook, Calc_2 base** | 8.74 % | – | 8.02 % | 7.37 % | – | 2,374.4 | – |
 
-Implied RtB price in the workbook (floored at 0): 0.0 k€/MWp.
+Implied RtB price in the workbook (floored at 0): 34.0 k€/MWp.
 
 ## 6. Structural changes (§13 items without a switch)
 

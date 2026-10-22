@@ -18,6 +18,11 @@ calendar-year averages 2026–2060, Central scenario only. One CSV row per serie
   - the two prices the model uses (fix round 1): "direct_price" = (RES day-ahead s+34 + intraday s+35) × 1000 ÷
     RES-to-grid volume s+31, for PV exported directly; "transfer_price" = RES-to-storage cashflow s+36 × 1000 ÷
     RES-to-storage volume s+32, for PV sent to the BESS (the counterpart of the stack's −s+20).
+  - the PV-only factor per co-located block (fix round 2): the share of the storage total kept when the battery
+    cannot charge from the grid = [(DA s+14 + ID s+16 discharge cashflow) x MIN(1, charge-from-PV s+13 x RTE /
+    (DA s+5 + ID s+7 discharge volume)) + PV transfer s+20 + aFRR-up capacity s+22] / storage total s+27; aFRR energy
+    (s+18, s+19), grid-charge costs (s+15, s+17) and the volume network charges (s+26, grid-drawn only) drop out.
+    "down_cap_share" = (aFRR-down s+23 + FCR s+24) / s+27, multiplied on the sheet by In_AFRR_Down_Share.
 Aurora's battery blocks are fixed dispatch outputs: nothing here re-optimises when model inputs change.
 Stdlib + openpyxl.
 """
@@ -62,6 +67,7 @@ def main():
     assert ws.cell(7, 6).value == 2026
     take("Common Assumptions", 14, "euro_index", "Central", "index 2025=1")
     deg = wb[SHEET]
+    rte = wb["Inputs"]["C17"].value                 # round-trip efficiency in Aurora's dispatch (0.86)
     for s, name in BLOCKS.items():
         assert str(deg.cell(s, 2).value).startswith(name[:4]), (s, deg.cell(s, 2).value)
         got = {}
@@ -82,6 +88,17 @@ def main():
                         for c, vol in zip(got["res_to_storage_cashflow"], got["res_to_storage"])]
             rows.append(["transfer_price", name, "EUR/MWh", f"{SHEET}!{s + 36}/{s + 32}",
                          "RES-to-storage cashflow x 1000 / RES-to-storage volume"] + transfer)
+            row = lambda o: [deg.cell(s + o, FIRST_COL + k).value or 0.0 for k in range(len(YEARS))]  # noqa: E731
+            dav, idv, res, dac, idc, s20, s22, s23, s24, s27 = (row(o) for o in (5, 7, 13, 14, 16, 20, 22, 23, 24, 27))
+            base, cap = [], []
+            for k in range(len(YEARS)):
+                cov = min(1, -res[k] * rte / (dav[k] + idv[k])) if dav[k] + idv[k] else 0.0
+                base.append(((dac[k] + idc[k]) * cov + s20[k] + s22[k]) / s27[k] if s27[k] else 1.0)
+                cap.append((s23[k] + s24[k]) / s27[k] if s27[k] else 0.0)
+            rows.append(["pv_only_factor", name, "factor", f"{SHEET}!s+14,16,5,7,13,20,22,27 (s={s}); Inputs!C17",
+                         "[(s+14+s+16) x MIN(1,-s+13 x RTE/(s+5+s+7)) + s+20 + s+22] / s+27"] + base)
+            rows.append(["down_cap_share", name, "factor", f"{SHEET}!(s+23+s+24)/s+27 (s={s})",
+                         "aFRR-down + FCR capacity cashflow / storage total"] + cap)
             da = [c * 1000 / vol if vol else 0.0 for c, vol in zip(got["res_da_cashflow"], got["res_to_grid"])]
             rows.append(["da_to_grid", name, "EUR/MWh", f"{SHEET}!{s + 34}/{s + 31}",
                          "RES Day-Ahead cashflow x 1000 / RES-to-grid volume"] + da)
