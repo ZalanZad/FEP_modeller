@@ -224,3 +224,9 @@ Verification, in this order:
 5. **Review.** After the build, the `model-reviewer` (Fable) reads `out/summary_dump.txt` as a senior modeller against the
    tender rules (`docs/domain/tender_2026_rules.md`) and market practice; its findings are verified by `model-auditor`
    and fixed in this build before delivery.
+6. **Lump sums scale with capacity.** The colleague's lump sums were quoted for the 200 MVA Bora project (substation
+   Inputs E167, admin E207, signing fee E24, DD E25, sale costs E26, the BORA_Devex line items via the devex scaling
+   factor E294). New block U cells: `In_Source_MVA` = 200 ("Source basis of the lump sums: Bora 2 × 100 MVA") and
+   `In_Scale = Dash_MVA / In_Source_MVA`. Each lump sum = source value × `In_Scale` (the case columns keep the source
+   values; the Live column E applies the factor; E294 = `In_Scale`). At 200 MVA nothing changes (regression); at 100 MVA
+   every € m figure is exactly half. Show "Lump sums scaled from the 200 MVA source" among the key assumptions.
