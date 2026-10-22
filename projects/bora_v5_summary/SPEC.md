@@ -337,3 +337,31 @@ Verification, in this order:
    The statement follows, unchanged.
 3. Regression: the scenario is Base and the key-input table holds the source values in the Base column for that run
    (turbine 950, PPA 90, P50 2,460, O&M 12, premium 150 — the same as the delivered Base).
+
+## 16. Seventh round (user, 22-Oct-2026): a real refinancing at COD + 1 year
+
+Case 3 becomes "EU turbine, refinanced at COD + 1 year": construction and the first operating year on the normal debt
+(60 % at 5 %, 15-year annuity, as case 1); at the end of the year after the COD year the loan is refinanced:
+- new inputs (Inputs block U, case-driven via a new case row where needed): `In_Refi_On` (case 3 = 1, others 0),
+  `In_Refi_Lag` = 1 year after the COD year, `In_Refi_Gearing_Add` = +4 pp on the base gearing (new loan = (gearing +
+  4 pp) × the same capex base as the original sizing, HTM E75 basis), `In_Refi_Rate` = 4.5 %, `In_Refi_Tenor` = 15 years
+  from the refinancing year, `In_Refi_Fee` = the upfront fee rate (Inputs E219) on the new loan, paid by equity.
+- HTM debt block (rows 75–89), minimal edits so that with `In_Refi_On` = 0 nothing changes (regression):
+  - a "Refinancing year" cell and a flag row (year = refinancing year);
+  - drawdown row: + new loan in the refinancing year; repayment row: + repayment of the whole outstanding balance in the
+    refinancing year (before the new loan), then the new annuity (PMT at the refi rate over the refi tenor on the new
+    loan) from the following year; interest row: the rate becomes a row (5 % up to the refinancing year, refi rate
+    after); the annuity cell E82 becomes a row where needed (one formula per row, ≤ 2 nested functions, ~100 chars:
+    add meaningful helper rows "Old loan annuity" and "New loan annuity" rather than long IFs);
+  - fees row: + refi fee in the refinancing year;
+  - the cash released to equity (new loan − old balance − fee) flows through the equity cash flow automatically via
+    the drawdown/repayment rows.
+- Dashboard returns table: rows "Refinanced at COD + 1 (1 = yes)", "Debt after refinancing (€ m)", "Gearing after
+  refinancing", "Minimum DSCR after refinancing" (min over years after the refinancing year); the existing min DSCR
+  row becomes "Minimum DSCR, whole life". Cash_Flow: the debt drawdown and debt service rows pick the refinancing up
+  automatically; add nothing.
+- Key assumptions: refi year, rate, tenor, +4 pp.
+- Verification: with refi off, every figure of cases 1 and 2 and the regression are unchanged; in case 3 the debt
+  balance jumps to 64 % of the base in the refi year, the DSCR after refinancing is ≥ 1.5x (report it; do not force it),
+  the equity cash flow in the refi year includes the release, the loan is fully repaid at the end of the new tenor
+  (HTM check row 167 stays OK), and Cash_Flow still foots.
