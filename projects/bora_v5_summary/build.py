@@ -510,17 +510,23 @@ SENS_LINKS = {"price": ("HTM", "D", 178), "capex": ("HTM", "D", 188), "gearing":
               "premium": ("Inputs", "E", 142), "buyer_rate": ("HTM", "E", COD + 14)}
 
 
+# gearing-grid tie: "n/a" (0 fails) when the live gearing is not one of the steps
+GEAR_STATUS = '=IF(HTM!$G$257="OK","OK",IF(E{r}=0,"n/a","CHECK"))'
+
+
 def sensitivity_links(wb, lv):
-    """§13.3: the engine reads the Dashboard step inputs (one link per step); the old case values are cleared."""
+    """§13.3: the engine reads the Dashboard step inputs (one link per step). The Inputs rows that used to hold the
+    gearing and premium steps (E142:E148, E244:E250) are cleared: every reader points at the Dashboard."""
     for key, (sheet, col, row) in SENS_LINKS.items():
         _, dash_ref = next(wb.defined_names[f"Dash_{key.title()}_Steps"].destinations)
         dash_row = dash_ref.split("$")[-1]
         for i in range(len(lv["steps"][key])):
-            wb[sheet][f"{col}{row + i}"] = f"=Dashboard!${L(5 + i)}${dash_row}"
             if sheet == "Inputs":
-                wb[sheet][f"G{row + i}"] = None
+                wb[sheet][f"{col}{row + i}"] = wb[sheet][f"G{row + i}"] = None
+            else:
+                wb[sheet][f"{col}{row + i}"] = f"=Dashboard!${L(5 + i)}${dash_row}"
         if sheet == "Inputs":
-            wb[sheet][f"F{row}"] = f"Steps set on the Dashboard (Dash_{key.title()}_Steps)"
+            wb[sheet][f"F{row}"] = f"Steps read from the Dashboard (Dash_{key.title()}_Steps)"
     # the engine rows that read Inputs E142:E148 / E244:E250 point straight at the Dashboard (no link-to-a-link)
     _, ref = next(wb.defined_names["Dash_Premium_Steps"].destinations)
     prem = ref.split("$")[-1]
@@ -744,7 +750,7 @@ def summary(wb, lv, cf_check):
         for token, row in (("{m}", "mun"), ("{c}", "com")):
             f = f.replace(token, str(s.rows[row]))
         r = s.line(key, label, "#", f, fmt="int")
-        _write(ws, r, 6, _status(f"E{r}"))
+        _write(ws, r, 6, GEAR_STATUS.format(r=r) if key == "c_gear" else _status(f"E{r}"))
     first, last = s.rows["c_moic"], s.rows["c_cap"]
     r = s.line("master", "Master check (number of failing rows)", "#", f"=SUM(E{first}:E{last})", fmt="int",
                bold=True)
@@ -758,7 +764,6 @@ def summary(wb, lv, cf_check):
                                        ("a_ppa", "PPA price, first operating year", "€/MWh", "E191", "money1"),
                                        ("a_ppa_esc", "PPA escalation", "%", "E192", "pct"),
                                        ("a_tenor", "PPA tenor", "years", "E193", "int"),
-                                       ("a_gear", "Gearing (debt on capex incl. connection)", "%", "E217", "pct"),
                                        ("a_rate", "Debt interest rate", "%", "E218", "pct"),
                                        ("a_debt_tenor", "Debt tenor (annuity from the first full year)", "years",
                                         "E220", "int"),
@@ -783,7 +788,7 @@ def summary(wb, lv, cf_check):
 CF_FIRST, CF_YEARS = 9, 36                 # I.. timeline = HTM H:AQ (2026-2061)
 CF_ROWS = [                                # key, label, HTM row(s) linked
     ("dev", "Development phase (devex, fees, securities net, A.RES buy-out)", "24"),
-    ("build", "Build cost to COD (capex, connection, municipal, IDC, debt fees)", "30+117"),
+    ("build", "Build cost to COD (capex, connection, municipal, debt fees; IDC is debt-funded)", "30+117"),
     ("spend", "Total spending (development, build, financing)", "dev+build"), ("rev", "Revenue", "54"),
     ("opex", "Operating costs", "69"), ("ebitda", "EBITDA (NOI)", "70"),
     ("dep", "Tax depreciation (memo)", "-92"), ("ebit", "EBIT (memo)", "ebitda+dep"), ("tax", "Tax (levered)", "100"),

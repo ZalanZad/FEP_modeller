@@ -155,7 +155,6 @@ Net P50 hours (IC paper 27-Jul-26) | h/yr | 2460 |  |
 PPA price, first operating year | €/MWh | 90 |  | 
 PPA escalation | % | 0.01 |  | 
 PPA tenor | years | 30 |  | 
-Gearing (debt on capex incl. connection) | % | 0.6 |  | 
 Debt interest rate | % | 0.05 |  | 
 Debt tenor (annuity from the first full year) | years | 15 |  | 
 Lender minimum DSCR (gearing test) | x | 1.5 |  | 
@@ -175,7 +174,7 @@ Wind built = bid − 10 %: tolerance per GYIK Q28/30/76, not in the Kiírás its
  |  | Total € m | k€/MW built | k€/MVA |  |  |  | … | 
 Year | year |  |  |  | 2026 | 2027 | 2028 | … | 2061
 Development phase (devex, fees, securities net, A.RES buy-out) | EUR k | -8.59934 | -68.2488 | -85.9934 | -1572.31 | -793.261 | -1241.96 | … | 0
-Build cost to COD (capex, connection, municipal, IDC, debt fees) | EUR k | -222.897 | -1769.03 | -2228.97 | 0 | 0 | 0 | … | 0
+Build cost to COD (capex, connection, municipal, debt fees; IDC is debt-funded) | EUR k | -222.897 | -1769.03 | -2228.97 | 0 | 0 | 0 | … | 0
 Total spending (development, build, financing) | EUR k | -231.497 | -1837.28 | -2314.97 | -1572.31 | -793.261 | -1241.96 | … | 0
 Revenue | EUR k | 909 | 7214.29 | 9090 | 0 | 0 | 0 | … | 16712.5
 Operating costs | EUR k | -263.299 | -2089.67 | -2632.99 | 0 | 0 | 0 | … | -5833.72
