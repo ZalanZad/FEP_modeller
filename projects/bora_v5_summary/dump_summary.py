@@ -35,7 +35,7 @@ def dump(dash, cf, path, htm=None):
         if any(v is not None for v in cells):
             lines.append(" | ".join(fmt(v) for v in cells))
     lines.append("== Cash_Flow (timeline: first three years … last year) ==")
-    last = max(c.column for c in cf[5] if c.value is not None)
+    last = max(c.column for c in cf[8] if c.value is not None)            # row 8 = year header
     for r in range(4, cf.max_row + 1):
         cells = [cf.cell(r, c).value for c in (3, 4, 5, 6, 7, 9, 10, 11)] + ["…", cf.cell(r, last).value]
         if any(v is not None for v in cells[:8]):

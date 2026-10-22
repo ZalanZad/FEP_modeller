@@ -194,12 +194,12 @@ Verification, in this order:
    and "Wind built (bid less 10 %, no sanction)" 252; the per-MW column header reads "k€/MW built".
    HTM G32 and G150 (capex per MW) divide by `In_Wind_Built`, label "Capex per MW built".
 3. **Cash_Flow is an equity cash-flow statement that foots** (amended after the final audit): Total spending
-   (development, build, financing) | Revenue | Operating costs | EBITDA (NOI) | Tax (levered) | Debt drawdown | Debt
+   (development, build, financing) | Revenue | Operating costs | EBITDA | Tax (levered) | Debt drawdown | Debt
    service (incl. cash sweep and DSRA) | Decommissioning and terminal value | Equity cash flow (= HTM 123) | Cumulative
    equity cash flow. Spending + EBITDA + tax + drawdown + debt service + decommissioning = equity cash flow every year
    (revenue and operating costs are inside EBITDA); a check row counts the years that do not foot and feeds
    Master_Check (with its Dashboard check row). No unlevered row on this sheet.
-4. **NOI on the Dashboard section 4:** label "EBITDA (NOI), first full year" and add one row "EBITDA (NOI), lifetime" (HTM G70).
+4. **EBITDA on the Dashboard section 4:** label "EBITDA, first full year" and add one row "EBITDA, lifetime" (HTM G70).
 5. **Wording:** replace "both bids" everywhere by "BORA 1 + BORA 2 (2 × 100 MVA)" in section headers; elsewhere drop it.
 
 ## 11. Amendments, fourth round (user, 22-Oct-2026): one capacity lever, buyer at 8 %, consistency
@@ -274,7 +274,7 @@ Verification, in this order:
    Amended: case 3 gearing is 64 % (the engine's maximum at the 1.5x lender minimum, HTM G256 = 64.1 %, rounded down;
    65 % gave 1.48x). The stored = live check compares numbers only (column I = stored − live for the selected case,
    0 where either is text), so a "none in range" or "n/a" output cannot break Master_Check.
-2. **Cash_Flow: EBIT and NOI.** Under "EBITDA (NOI)" two memo rows (grey italic, outside the foot): "Tax depreciation"
+2. **Cash_Flow: EBIT and EBITDA.** Under "EBITDA" two memo rows (grey italic, outside the foot): "Tax depreciation"
    (HTM 92) and "EBIT" (= EBITDA + depreciation). The foot and the check are unchanged.
 3. **Sensitivities with blue inputs on the Dashboard, formulas in the engine** (section 7). The four drivers that move the
    answer most, each a one-row grid whose step values are blue `Dash_` inputs on the Dashboard that the engine reads:
@@ -287,7 +287,7 @@ Verification, in this order:
      and the buyer IRR (HTM 227–233).
    Every grid cell is a link; the live value column is marked "◄ live" by a formula. Nothing stored.
 4. **Cash_Flow per MW built:** below the statement, a compact block "Per MW built, k€/MW" with three rows across the
-   timeline: total spending, EBITDA (NOI), equity cash flow (each = row ÷ In_Wind_Built). One formula per row.
+   timeline: total spending, EBITDA, equity cash flow (each = row ÷ In_Wind_Built). One formula per row.
 5. After the build: Fable review of the dump, auditor verification, fixes, delivery.
 
 ## 14. Second expert review (22-Oct-2026): adopted items
@@ -329,7 +329,7 @@ Verification, in this order:
    RunAllScenarios is run (the stored = live check flags it, by design).
 2. **Cash_Flow header** (rows 4–9, above the statement): "All-in cost to COD" and "Revenue, first full year", each
    `€ m | k€/MW built | k€/MVA` (links to the Dashboard); then the per-MW-built timeline block (total spending, revenue,
-   EBITDA (NOI), equity cash flow per MW built per year) moved up here from the bottom, with "Revenue" added to it.
+   EBITDA, equity cash flow per MW built per year) moved up here from the bottom, with "Revenue" added to it.
    The statement follows, unchanged.
 3. Regression: the scenario is Base and the key-input table holds the source values in the Base column for that run
    (turbine 950, PPA 90, P50 2,460, O&M 12, premium 150 — the same as the delivered Base).

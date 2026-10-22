@@ -45,7 +45,7 @@ NEW = {"Dash_MVA": 100, "Dash_Municipal": 50, "Dash_Community": 3, "In_Exit_Prof
                  "I7": "EU cheaper debt (64 % at 4.5 %)",
                  "I8": "As EU turbine, cheaper financing from NTP: 64 % gearing, 4.5 % all-in rate, 15-year tenor",
                  "I217": 0.64, "I218": 0.045, "I220": 15,
-                 "G78": 0, "G162": 950, "H162": 500, "G190": 0, "H190": None,
+                 "G78": 0, "H162": 500, "G190": 0, "H190": None,
                  "G193": 30, "G217": 0.60, "H217": 0.50, "G220": 15, "G11": 365, "G268": 0, "G269": 0},
        "steps": {"price": [0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3], "capex": [0.8, 0.9, 1, 1.1, 1.2],
                  "gearing": [0, 0.3, 0.4, 0.5, 0.55, 0.6, 0.65], "premium": [50, 75, 100, 125, 150, 175, 200],
@@ -57,11 +57,19 @@ SOURCE = {"Dash_MVA": 200, "Dash_Municipal": 20, "Dash_Community": 2, "In_Exit_P
                     "I7": "EU cheaper debt (64 % at 4.5 %)",
                  "I8": "As EU turbine, cheaper financing from NTP: 64 % gearing, 4.5 % all-in rate, 15-year tenor",
                     "I217": 0.64, "I218": 0.045, "I220": 15,
-                    "G78": 0.05, "G162": 950, "H162": 500, "G190": 0, "H190": 1,
+                    "G78": 0.05, "H162": 500, "G190": 0, "H190": 1,
                     "G193": 10, "G217": 0.50, "H217": 0, "G220": 10, "G11": 370, "G268": 6, "G269": 0.5},
           "steps": {"price": [0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3], "capex": [0.8, 0.9, 1, 1.1, 1.2],
                     "gearing": [0, 0.3, 0.4, 0.5, 0.55, 0.6, 0.7], "premium": [50, 75, 100, 125, 150, 175, 200],
                  "buyer_rate": [0.07, 0.08, 0.09]}}
+# §15.1 key inputs by scenario (Dashboard section 0): key, label, unit, format, Pessimistic | Base | Optimistic, the
+# Inputs base-case cell that reads the Live value. Base = the delivered base = the source values (regression).
+SCENARIOS = ["Pessimistic", "Base", "Optimistic"]
+KEY_INPUTS = [("k_turb", "Turbine supply, EU", "k€/MW", "money", [1050, 950, 850], "G162"),
+              ("k_ppa", "PPA price, first operating year", "€/MWh", "money1", [80, 90, 100], "G191"),
+              ("k_p50", "Net P50 hours", "h/yr", "money", [2300, 2460, 2600], "G179"),
+              ("k_om", "O&M full-service contract", "k€/MW/yr", "money1", [14, 12, 10], "G201"),
+              ("k_prem", "RtB premium", "k€/MVA", "money", [100, 150, 200], "G141")]
 # Dashboard section 1 levers that are the same in both builds: name -> value
 LEVERS = {"Dash_BESS_Capex_MWh": 100, "Dash_Bottleneck_Loss": 0.05, "Dash_OSZ4_Basis": 0,
           "Dash_Partial": 1, "Dash_Brownfield": 0, "Dash_Shared": 1}
@@ -514,6 +522,26 @@ SENS_LINKS = {"price": ("HTM", "D", 178), "capex": ("HTM", "D", 188), "gearing":
 GEAR_STATUS = '=IF(HTM!$G$257="OK","OK",IF(E{r}=0,"n/a","CHECK"))'
 
 
+def key_input_links(wb, rows):
+    """§15.1: the Inputs base-case column (G) reads the Live key inputs; CN (H) keeps 500, the others inherit G."""
+    inp = wb["Inputs"]
+    for key, *_, ref in KEY_INPUTS:
+        inp[ref] = f"=Dashboard!$H${rows[key]}"
+        font = copy(inp[ref].font)
+        font.color = "00B050"
+        inp[ref].font = font
+
+
+def cf_header(wb, rows):
+    """§15.2: Cash_Flow rows 5-6 link the all-in cost and the first-full-year revenue on the Dashboard."""
+    ws = wb["Cash_Flow"]
+    for c in "EFG":
+        _write(ws, 5, " EFG".index(c) + 4, f"=Dashboard!${c}${rows['allin']}", "link", "money1" if c == "E" else "money")
+    _write(ws, 6, 5, f"=Dashboard!$E${rows['rev']}", "link", "money1")
+    _write(ws, 6, 6, "=E6*Thousand/In_Wind_Built", "calc", "money")
+    _write(ws, 6, 7, "=E6*Thousand/Dash_MVA", "calc", "money")
+
+
 def sensitivity_links(wb, lv):
     """§13.3: the engine reads the Dashboard step inputs (one link per step). The Inputs rows that used to hold the
     gearing and premium steps (E142:E148, E244:E250) are cleared: every reader points at the Dashboard."""
@@ -559,12 +587,32 @@ def summary(wb, lv, cf_check):
     ws.sheet_view.showGridLines = False
     _columns(ws, {"A": 3, "B": 3, "C": 58, "D": 9, **{L(c): 11 for c in range(5, LAST + 1)}})
     ws.column_dimensions.group(L(LAST + 1), "XFD", hidden=True)
-    ws["B2"] = '=Inputs!$A$1&" – Dashboard"'
+    ws["B2"] = '=Inputs!$A$1&" – Dashboard – "&Dash_Scenario&" scenario"'
     _banner(ws, 2, LAST)
     apply(ws.cell(3, 3, "Master check (section 8)"), "label").font = Font(name=FONT, size=SIZE, bold=True)
     _write(ws, 3, 5, _status("Master_Check"), "total")
     _ok_format(ws, "E3")
     s = Sheet(ws)
+
+    # 0. Key inputs by scenario: blue table, Live by INDEX/MATCH; the Inputs base-case column reads Live.
+    s.bar("0. Key inputs by scenario")
+    sc = s.line("scenario", "Scenario (Pessimistic, Base, Optimistic)", "", "Base", fmt="@", kind="input")
+    ws[f"E{sc}"].alignment = Alignment(horizontal="left")
+    define(wb, "Dash_Scenario", f"Dashboard!$E${sc}")
+    hdr = s.r
+    for col, h in zip("EFGH", SCENARIOS + ["Live"]):
+        apply(ws[f"{col}{hdr}"], "header").value = h
+    s.r += 1
+    dv = DataValidation(type="list", formula1=f"$E${hdr}:$G${hdr}", allow_blank=False, showErrorMessage=True,
+                        errorTitle="Scenario", error="Pick Pessimistic, Base or Optimistic.")
+    ws.add_data_validation(dv)
+    dv.add(f"E{sc}")
+    for key, label, unit, fmt, values, _ in KEY_INPUTS:
+        r = s.line(key, label, unit, *values, fmt=fmt, kind="input")
+        _write(ws, r, 8, f"=INDEX(E{r}:G{r},MATCH(Dash_Scenario,$E${hdr}:$G${hdr},0))", "link", fmt)
+    define(wb, "Dash_Key_Inputs", f"Dashboard!$E${s.rows[KEY_INPUTS[0][0]]}:$G${s.r - 1}")
+    key_out = s.r                                               # filled at the end (rows below are not built yet)
+    s.r += 3
 
     # 1. Bid strategy: the levers are blue inputs here (names Dash_*); points next to each scored item.
     s.bar("1. Bid strategy and tender points (levers)")
@@ -663,12 +711,12 @@ def summary(wb, lv, cf_check):
            "={gen}*(1-In_Bottleneck_Factor)/In_Bottleneck_Factor", fmt="money1")
     s.line("price", "Achieved price, first full year", "€/MWh", first_year(49), fmt="money1")
     s.line("rev", "Revenue, first full year", "€ m", first_year(54, "/Thousand"), fmt="money1")
-    s.line("ebitda", "EBITDA (NOI), first full year", "€ m", first_year(70, "/Thousand"), fmt="money1")
+    s.line("ebitda", "EBITDA, first full year", "€ m", first_year(70, "/Thousand"), fmt="money1")
     s.line("margin", "EBITDA margin, first full year", "%", first_year(71), fmt="pct")
     s.line("opex", "Operating costs, first full year", "€ m", first_year(69, "/Thousand", "-"), fmt="money1")
     s.line("opex_mw", "Operating costs per MW built and per MVA, first full year", "k€", None,
            f"=E{s.rows['opex']}*Thousand/{{built}}", f"=E{s.rows['opex']}*Thousand/{{mva}}", fmt="money1")
-    s.line("life_ebitda", "EBITDA (NOI), lifetime", "€ m", "=HTM!$G$70/Thousand", fmt="money1")
+    s.line("life_ebitda", "EBITDA, lifetime", "€ m", "=HTM!$G$70/Thousand", fmt="money1")
     s.line("life_gen", "Lifetime net generation", "GWh", "=HTM!$G$38", fmt="money")
     s.line("lcoe", "LCOE", "€/MWh", "=HTM!$G$156", fmt="money1")
 
@@ -760,9 +808,7 @@ def summary(wb, lv, cf_check):
 
     # 9. Key assumptions (links to the engine inputs).
     s.bar("9. Key assumptions, live case")
-    for key, label, unit, ref, fmt in (("a_p50", "Net P50 hours (IC paper 27-Jul-26)", "h/yr", "E179", "money"),
-                                       ("a_ppa", "PPA price, first operating year", "€/MWh", "E191", "money1"),
-                                       ("a_ppa_esc", "PPA escalation", "%", "E192", "pct"),
+    for key, label, unit, ref, fmt in (("a_ppa_esc", "PPA escalation", "%", "E192", "pct"),
                                        ("a_tenor", "PPA tenor", "years", "E193", "int"),
                                        ("a_rate", "Debt interest rate", "%", "E218", "pct"),
                                        ("a_debt_tenor", "Debt tenor (annuity from the first full year)", "years",
@@ -781,6 +827,13 @@ def summary(wb, lv, cf_check):
         s.line(key, label, unit, f"=Inputs!${ref[0]}${ref[1:]}", fmt=fmt)
     apply(ws.cell(s.r, 3, "Wind built = bid − 10 %: tolerance per GYIK Q28/30/76, not in the Kiírás itself"), "unit")
     _end(ws, s.r + 2, LAST)
+    for i, (label, unit, ref, fmt) in enumerate((("All-in cost to COD per MW built", "k€/MW", f"F{s.rows['allin']}", "money"),
+                                                 ("All-in cost to COD per MVA", "k€/MVA", f"G{s.rows['allin']}", "money"),
+                                                 ("Equity IRR (FEP, 100 %)", "%", "HTM!G137", "pct"))):
+        apply(ws.cell(key_out + i, 3, label), "label")
+        apply(ws.cell(key_out + i, 4, unit), "unit")
+        sheet, cell = ref.split("!") if "!" in ref else ("", ref)
+        _write(ws, key_out + i, 8, f"={sheet + '!' if sheet else ''}${cell[0]}${cell[1:]}", "link", fmt)
     return s.rows
 
 
@@ -790,14 +843,15 @@ CF_ROWS = [                                # key, label, HTM row(s) linked
     ("dev", "Development phase (devex, fees, securities net, A.RES buy-out)", "24"),
     ("build", "Build cost to COD (capex, connection, municipal, debt fees; IDC is debt-funded)", "30+117"),
     ("spend", "Total spending (development, build, financing)", "dev+build"), ("rev", "Revenue", "54"),
-    ("opex", "Operating costs", "69"), ("ebitda", "EBITDA (NOI)", "70"),
+    ("opex", "Operating costs", "69"), ("ebitda", "EBITDA", "70"),
     ("dep", "Tax depreciation (memo)", "-92"), ("ebit", "EBIT (memo)", "ebitda+dep"), ("tax", "Tax (levered)", "100"),
     ("draw", "Debt drawdown", "77"), ("ds", "Debt service (incl. cash sweep and DSRA)", "119+89"),
     ("decom", "Decommissioning and terminal value", "107+108"), ("ecf", "Equity cash flow", "123"),
     ("ecum", "Cumulative equity cash flow", "124"),
 ]
 CF_BOLD, CF_NO_TOTAL, CF_MEMO = {"spend", "ebitda", "ecf"}, {"ecum"}, {"dep", "ebit"}
-CF_PER_MW = ("spend", "ebitda", "ecf")                          # per MW built block below the statement
+CF_PER_MW = ("spend", "rev", "ebitda", "ecf")                   # per MW built block above the statement
+CF_TOP = 16                                                    # first statement row
 CF_FOOT = ("spend", "ebitda", "tax", "draw", "ds", "decom")       # revenue and opex are inside EBITDA
 
 
@@ -815,16 +869,27 @@ def cash_flow(wb):
     ws.column_dimensions.group(L(last + 1), "XFD", hidden=True)
     ws["B2"] = '=Inputs!$A$1&" – Equity cash flow, build and operate (HTM, EUR k)"'
     _banner(ws, 2, last)
-    for col, h in zip("EFG", ("Total € m", "k€/MW built", "k€/MVA")):
+    for col, h in zip("EFG", ("€ m", "k€/MW built", "k€/MVA")):          # header: links filled by cf_header()
         apply(ws[f"{col}4"], "header").value = h
-    apply(ws.cell(5, 3, "Year"), "label")
-    apply(ws.cell(5, 4, "year"), "unit")
+    for r, label in ((5, "All-in cost to COD"), (6, "Revenue, first full year")):
+        apply(ws.cell(r, 3, label), "label")
+    apply(ws.cell(8, 3, "Year"), "label")
+    apply(ws.cell(8, 4, "year"), "unit")
     for c in cols:
-        _write(ws, 5, c, f"=HTM!{L(c - 1)}$5", "header", "0")
-    ws.freeze_panes = "I6"
-    rows = {}
-    for r, (key, label, src) in enumerate(CF_ROWS, 7):
-        rows[key] = r
+        _write(ws, 8, c, f"=HTM!{L(c - 1)}$5", "header", "0")
+    ws.freeze_panes = "I9"
+    rows = {key: r for r, (key, _, _) in enumerate(CF_ROWS, CF_TOP)}
+    _bar(ws, 9, "Per MW built (k€/MW)", last, "subheader")
+    for r, key in enumerate(CF_PER_MW, 10):
+        apply(ws.cell(r, 3, dict((k, l) for k, l, _ in CF_ROWS)[key]), "label")
+        apply(ws.cell(r, 4, "k€/MW"), "unit")
+        for c in cols:
+            _write(ws, r, c, f"={L(c)}{rows[key]}/In_Wind_Built", "calc", "money1")
+    for col, h in zip("EFG", ("Total € m", "k€/MW built", "k€/MVA")):
+        apply(ws[f"{col}{CF_TOP - 1}"], "header").value = h
+    apply(ws.cell(CF_TOP - 1, 3, "Equity cash flow statement (EUR k)"), "label").font = Font(name=FONT, size=SIZE,
+                                                                                            bold=True)
+    for r, (key, label, src) in enumerate(CF_ROWS, CF_TOP):
         kind = "total" if key in CF_BOLD else "calc"
         apply(ws.cell(r, 3, label), "label")
         if key in CF_BOLD:
@@ -841,24 +906,15 @@ def cash_flow(wb):
         if key in CF_MEMO:                                             # memo rows: grey italic, outside the foot
             for c in range(3, last + 1):
                 ws.cell(r, c).font = Font(name=FONT, size=SIZE, italic=True, color=GREY)
-    r = 7 + len(CF_ROWS) + 1
+    r = CF_TOP + len(CF_ROWS) + 1
     apply(ws.cell(r, 3, "Check: rows above do not add up to the equity cash flow"), "label")
     apply(ws.cell(r, 4, "#"), "unit")
     for c in cols:
         parts = "+".join(f"{L(c)}{rows[k]}" for k in CF_FOOT)
         _write(ws, r, c, f"=N(ABS({parts}-{L(c)}{rows['ecf']})>Tolerance)", "calc", "0")
     _write(ws, r, 5, f"=SUM({L(CF_FIRST)}{r}:{L(last)}{r})", "total", "0")
-    check = r
-    r += 2
-    _bar(ws, r, "Per MW built", last, "subheader")
-    for key in CF_PER_MW:
-        r += 1
-        apply(ws.cell(r, 3, dict((k, l) for k, l, _ in CF_ROWS)[key]), "label")
-        apply(ws.cell(r, 4, "k€/MW"), "unit")
-        for c in cols:
-            _write(ws, r, c, f"={L(c)}{rows[key]}/In_Wind_Built", "calc", "money1")
     _end(ws, r + 2, last)
-    return check
+    return r
 
 
 def _cf_totals(ws, r, last, kind):
@@ -928,8 +984,10 @@ def edit(levers=NEW):
     block_u(wb, levers)
     cases(wb)
     engine(wb, levers)
-    summary(wb, levers, cash_flow(wb))
+    rows = summary(wb, levers, cash_flow(wb))
     sensitivity_links(wb, levers)
+    key_input_links(wb, rows)
+    cf_header(wb, rows)
     change_log(wb)
     for ws in wb.worksheets:                                   # open on Dashboard
         ws.sheet_view.tabSelected = ws.title == "Dashboard"

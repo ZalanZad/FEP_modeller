@@ -1,5 +1,16 @@
 == Dashboard ==
 Master check (section 8) |  | OK |  | 
+0. Key inputs by scenario |  |  |  | 
+Scenario (Pessimistic, Base, Optimistic) |  | Base |  | 
+ |  | Pessimistic | Base | Optimistic | Live
+Turbine supply, EU | k€/MW | 1050 | 950 | 850 | 950
+PPA price, first operating year | €/MWh | 80 | 90 | 100 | 90
+Net P50 hours | h/yr | 2300 | 2460 | 2600 | 2460
+O&M full-service contract | k€/MW/yr | 14 | 12 | 10 | 12
+RtB premium | k€/MVA | 100 | 150 | 200 | 150
+All-in cost to COD per MW built | k€/MW |  |  |  | 1825.79
+All-in cost to COD per MVA | k€/MVA |  |  |  | 2300.49
+Equity IRR (FEP, 100 %) | % |  |  |  | 0.0898136
 1. Bid strategy and tender points (levers) |  |  |  | 
  |  | Offer | Points | 
 Connection capacity (100 MVA per bid) | MVA | 100 |  | 
@@ -57,11 +68,11 @@ Net capacity factor, first full year | % |  | 0.272366 |
 Energy lost to the bottleneck, first full year | GWh | 3.13404 |  | 
 Achieved price, first full year | €/MWh | 90.9 |  | 
 Revenue, first full year | € m | 27.327 |  | 
-EBITDA (NOI), first full year | € m | 20.7612 |  | 
+EBITDA, first full year | € m | 20.7612 |  | 
 EBITDA margin, first full year | % | 0.759733 |  | 
 Operating costs, first full year | € m | 6.56577 |  | 
 Operating costs per MW built and per MVA, first full year | k€ |  | 52.1093 | 65.6577
-EBITDA (NOI), lifetime | € m | 645.702 |  | 
+EBITDA, lifetime | € m | 645.702 |  | 
 Lifetime net generation | GWh | 8649.79 |  | 
 LCOE | €/MWh | 99.8897 |  | 
 5. Returns by case |  |  |  | 
@@ -151,8 +162,6 @@ Gearing grid ties to the live case at the live gearing | # | 0 | OK |
 Capacity: BESS MW ≤ wind MW, duration ≥ minimum | # | 0 | OK | 
 Master check (number of failing rows) | # | 0 | OK | 
 9. Key assumptions, live case |  |  |  | 
-Net P50 hours (IC paper 27-Jul-26) | h/yr | 2460 |  | 
-PPA price, first operating year | €/MWh | 90 |  | 
 PPA escalation | % | 0.01 |  | 
 PPA tenor | years | 30 |  | 
 Debt interest rate | % | 0.05 |  | 
@@ -171,14 +180,22 @@ Degradation per year | % | 0.003 |  |
 Wind built = bid − 10 %: tolerance per GYIK Q28/30/76, not in the Kiírás itself |  |  |  | 
 ***END*** |  |  |  | 
 == Cash_Flow (timeline: first three years … last year) ==
- |  | Total € m | k€/MW built | k€/MVA |  |  |  | … | 
+ |  | € m | k€/MW built | k€/MVA |  |  |  | … | 
+All-in cost to COD |  | 230.049 | 1825.79 | 2300.49 |  |  |  | … | 
+Revenue, first full year |  | 27.327 | 216.881 | 273.27 |  |  |  | … | 
 Year | year |  |  |  | 2026 | 2027 | 2028 | … | 2061
+Per MW built (k€/MW) |  |  |  |  |  |  |  | … | 
+Total spending (development, build, financing) | k€/MW |  |  |  | -12.4787 | -6.29573 | -9.85684 | … | 0
+Revenue | k€/MW |  |  |  | 0 | 0 | 0 | … | 132.639
+EBITDA | k€/MW |  |  |  | 0 | 0 | 0 | … | 86.3394
+Equity cash flow | k€/MW |  |  |  | -12.4787 | -6.29573 | -9.85684 | … | 48.5689
+Equity cash flow statement (EUR k) |  | Total € m | k€/MW built | k€/MVA |  |  |  | … | 
 Development phase (devex, fees, securities net, A.RES buy-out) | EUR k | -8.59934 | -68.2488 | -85.9934 | -1572.31 | -793.261 | -1241.96 | … | 0
 Build cost to COD (capex, connection, municipal, debt fees; IDC is debt-funded) | EUR k | -222.897 | -1769.03 | -2228.97 | 0 | 0 | 0 | … | 0
 Total spending (development, build, financing) | EUR k | -231.497 | -1837.28 | -2314.97 | -1572.31 | -793.261 | -1241.96 | … | 0
 Revenue | EUR k | 909 | 7214.29 | 9090 | 0 | 0 | 0 | … | 16712.5
 Operating costs | EUR k | -263.299 | -2089.67 | -2632.99 | 0 | 0 | 0 | … | -5833.72
-EBITDA (NOI) | EUR k | 645.702 | 5124.62 | 6457.02 | 0 | 0 | 0 | … | 10878.8
+EBITDA | EUR k | 645.702 | 5124.62 | 6457.02 | 0 | 0 | 0 | … | 10878.8
 Tax depreciation (memo) | EUR k | -227.819 | -1808.09 | -2278.19 | 0 | 0 | 0 | … | 0
 EBIT (memo) | EUR k | 417.882 | 3316.53 | 4178.82 | 0 | 0 | 0 | … | 10878.8
 Tax (levered) | EUR k | -31.2854 | -248.297 | -312.854 | 0 | 0 | 0 | … | -979.089
@@ -188,10 +205,6 @@ Decommissioning and terminal value | EUR k | -3.78 | -30 | -37.8 | 0 | 0 | 0 | �
 Equity cash flow | EUR k | 306.727 | 2434.34 | 3067.27 | -1572.31 | -793.261 | -1241.96 | … | 6119.68
 Cumulative equity cash flow | EUR k |  |  |  | -1572.31 | -2365.57 | -3607.53 | … | 306727
 Check: rows above do not add up to the equity cash flow | # | 0 |  |  | 0 | 0 | 0 | … | 0
-Per MW built |  |  |  |  |  |  |  | … | 
-Total spending (development, build, financing) | k€/MW |  |  |  | -12.4787 | -6.29573 | -9.85684 | … | 0
-EBITDA (NOI) | k€/MW |  |  |  | 0 | 0 | 0 | … | 86.3394
-Equity cash flow | k€/MW |  |  |  | -12.4787 | -6.29573 | -9.85684 | … | 48.5689
 ***END*** |  |  |  |  |  |  |  | … | 
 == HTM block 17, sale at COD (G result; timeline: first three years … last year) ==
 17. Sale at COD – buyer earns the unlevered discount rate |  |  |  |  |  | … | 
