@@ -39,11 +39,11 @@ BAND_COL = 17                                              # Q: points bands (J:
 
 # Levers: the Dashboard section 1 inputs (Dash_*) and the case cells of SPEC §4 / §8.3 (Inputs G = EU, H = CN turbine).
 NEW = {"Dash_MVA": 100, "Dash_Municipal": 50, "Dash_Community": 3, "In_Exit_Profit_Charge": 0, "Dash_Overbuild": 0.40, "Dash_BESS_Share": 0.40, "Dash_PB_Mult": 1.0, "Dash_Build_Shortfall": 0.10,
-       "cases": {"G7": "EU turbine", "H7": "CN turbine",
+       "cases": {"G7": "EU turbine, normal debt (60 % at 5 %)", "H7": "CN turbine",
                  "G8": "EU turbines 950 k€/MW, 60 % gearing, 90 €/MWh PPA on all output for 30 years",
-                 "H8": "As EU turbine, but CN turbines 500 k€/MW and 50 % gearing",
-                 "I7": "EU cheaper debt (64 % at 4.5 %)",
-                 "I8": "As EU turbine, cheaper financing from NTP: 64 % gearing, 4.5 % all-in rate, 15-year tenor",
+                 "H8": "As the EU turbine case, but CN turbines 500 k€/MW and 50 % gearing",
+                 "I7": "EU turbine, refinanced debt (64 % at 4.5 %, from NTP)",
+                 "I8": "As the EU turbine case, refinanced debt from NTP: 64 % gearing, 4.5 % all-in rate, 15 years",
                  "I217": 0.64, "I218": 0.045, "I220": 15,
                  "G78": 0, "H162": 500, "G190": 0, "H190": None,
                  "G193": 30, "G217": 0.60, "H217": 0.50, "G220": 15, "G11": 365, "G268": 0, "G269": 0},
@@ -52,24 +52,24 @@ NEW = {"Dash_MVA": 100, "Dash_Municipal": 50, "Dash_Community": 3, "In_Exit_Prof
                  "buyer_rate": [0.07, 0.08, 0.09]}}
 SOURCE = {"Dash_MVA": 200, "Dash_Municipal": 20, "Dash_Community": 2, "In_Exit_Profit_Charge": 1, "Dash_Overbuild": 0.0,    # the v5 file as received:
           "Dash_BESS_Share": 0.50, "Dash_PB_Mult": 1.5, "Dash_Build_Shortfall": 0.0,
-          "cases": {"G7": "EU turbine", "H7": "CN turbine",                         # its cases 2 and 3
+          "cases": {"G7": "EU turbine, normal debt (60 % at 5 %)", "H7": "CN turbine",                         # its cases 2 and 3
                     "G8": "v5 case 2 (regression)", "H8": "v5 case 3 (regression)",
-                    "I7": "EU cheaper debt (64 % at 4.5 %)",
-                 "I8": "As EU turbine, cheaper financing from NTP: 64 % gearing, 4.5 % all-in rate, 15-year tenor",
+                    "I7": "EU turbine, refinanced debt (64 % at 4.5 %, from NTP)",
+                 "I8": "As the EU turbine case, refinanced debt from NTP: 64 % gearing, 4.5 % all-in rate, 15 years",
                     "I217": 0.64, "I218": 0.045, "I220": 15,
                     "G78": 0.05, "H162": 500, "G190": 0, "H190": 1,
                     "G193": 10, "G217": 0.50, "H217": 0, "G220": 10, "G11": 370, "G268": 6, "G269": 0.5},
           "steps": {"price": [0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3], "capex": [0.8, 0.9, 1, 1.1, 1.2],
                     "gearing": [0, 0.3, 0.4, 0.5, 0.55, 0.6, 0.7], "premium": [50, 75, 100, 125, 150, 175, 200],
                  "buyer_rate": [0.07, 0.08, 0.09]}}
-# §15.1 key inputs by scenario (Dashboard section 0): key, label, unit, format, Pessimistic | Base | Optimistic, the
+# §15.1 key inputs by scenario (Dashboard section 0): key, label, unit, format, Base | Low | High, the
 # Inputs base-case cell that reads the Live value. Base = the delivered base = the source values (regression).
-SCENARIOS = ["Pessimistic", "Base", "Optimistic"]
-KEY_INPUTS = [("k_turb", "Turbine supply, EU", "k€/MW", "money", [1050, 950, 850], "G162"),
-              ("k_ppa", "PPA price, first operating year", "€/MWh", "money1", [80, 90, 100], "G191"),
-              ("k_p50", "Net P50 hours", "h/yr", "money", [2300, 2460, 2600], "G179"),
-              ("k_om", "O&M full-service contract", "k€/MW/yr", "money1", [14, 12, 10], "G201"),
-              ("k_prem", "RtB premium", "k€/MVA", "money", [100, 150, 200], "G141")]
+SCENARIOS = ["Base", "Low", "High"]
+KEY_INPUTS = [("k_turb", "Turbine supply, EU", "k€/MW", "money", [950, 1050, 850], "G162"),
+              ("k_ppa", "PPA price, first operating year", "€/MWh", "money1", [90, 80, 100], "G191"),
+              ("k_p50", "Net P50 hours", "h/yr", "money", [2460, 2300, 2600], "G179"),
+              ("k_om", "O&M full-service contract", "k€/MW/yr", "money1", [12, 14, 10], "G201"),
+              ("k_prem", "RtB premium", "k€/MVA", "money", [150, 100, 200], "G141")]
 # Dashboard section 1 levers that are the same in both builds: name -> value
 LEVERS = {"Dash_BESS_Capex_MWh": 100, "Dash_Bottleneck_Loss": 0.05, "Dash_OSZ4_Basis": 0,
           "Dash_Partial": 1, "Dash_Brownfield": 0, "Dash_Shared": 1}
@@ -262,7 +262,7 @@ def engine(wb, lv):
         inp[f"F{r}"] = f"Set on the Dashboard ({name})"
     inp["D233"] = inp["D141"] = "k€/MVA"
     inp["F90"] = "Performance security multiple, set on the Dashboard (Dash_PB_Mult)"
-    inp["F217"] = "EU cheaper debt (I): max gearing at the lender minimum DSCR, rounded"
+    inp["F217"] = "EU refinanced debt (I): max gearing at the lender minimum DSCR, rounded"
     htm["C29"] = "Municipal one-off contribution (tender commitment, k€/MVA × MVA – paid in COD year)"
     for r in (24, 25, 26, 167, 207):                                    # §11.6 lump sums quoted for 200 MVA
         inp[f"E{r}"] = f'=IF(INDEX($G{r}:$P{r},$E$6)="",$G{r},INDEX($G{r}:$P{r},$E$6))*In_Scale'   # E9 is fixed at 1
@@ -396,7 +396,7 @@ def deposits_check(dep):
 # =========================================================================================== §5 cases
 def cases(wb):
     """§8.3 / §13.1: the CN turbine case moves from column I to H (H's own values go), I:P are cleared; column I then
-    takes case 3 "EU cheaper debt" (blank cells fall back to the EU column G). J:P are hidden.
+    takes case 3 "EU turbine, refinanced debt" (blank cells fall back to the EU column G). J:P are hidden.
     Formula cells in H (case number, `=H$253` links) stay as they are."""
     ws = wb["Inputs"]
     for r in range(7, U0):
@@ -596,7 +596,7 @@ def summary(wb, lv, cf_check):
 
     # 0. Key inputs by scenario: blue table, Live by INDEX/MATCH; the Inputs base-case column reads Live.
     s.bar("0. Key inputs by scenario")
-    sc = s.line("scenario", "Scenario (Pessimistic, Base, Optimistic)", "", "Base", fmt="@", kind="input")
+    sc = s.line("scenario", "Scenario (Base, Low, High)", "", "Base", fmt="@", kind="input")
     ws[f"E{sc}"].alignment = Alignment(horizontal="left")
     define(wb, "Dash_Scenario", f"Dashboard!$E${sc}")
     hdr = s.r
@@ -604,7 +604,7 @@ def summary(wb, lv, cf_check):
         apply(ws[f"{col}{hdr}"], "header").value = h
     s.r += 1
     dv = DataValidation(type="list", formula1=f"$E${hdr}:$G${hdr}", allow_blank=False, showErrorMessage=True,
-                        errorTitle="Scenario", error="Pick Pessimistic, Base or Optimistic.")
+                        errorTitle="Scenario", error="Pick Base, Low or High.")
     ws.add_data_validation(dv)
     dv.add(f"E{sc}")
     for key, label, unit, fmt, values, _ in KEY_INPUTS:

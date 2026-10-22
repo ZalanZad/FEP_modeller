@@ -1,13 +1,13 @@
 == Dashboard ==
 Master check (section 8) |  | OK |  | 
 0. Key inputs by scenario |  |  |  | 
-Scenario (Pessimistic, Base, Optimistic) |  | Base |  | 
- |  | Pessimistic | Base | Optimistic | Live
-Turbine supply, EU | k€/MW | 1050 | 950 | 850 | 950
-PPA price, first operating year | €/MWh | 80 | 90 | 100 | 90
-Net P50 hours | h/yr | 2300 | 2460 | 2600 | 2460
-O&M full-service contract | k€/MW/yr | 14 | 12 | 10 | 12
-RtB premium | k€/MVA | 100 | 150 | 200 | 150
+Scenario (Base, Low, High) |  | Base |  | 
+ |  | Base | Low | High | Live
+Turbine supply, EU | k€/MW | 950 | 1050 | 850 | 950
+PPA price, first operating year | €/MWh | 90 | 80 | 100 | 90
+Net P50 hours | h/yr | 2460 | 2300 | 2600 | 2460
+O&M full-service contract | k€/MW/yr | 12 | 14 | 10 | 12
+RtB premium | k€/MVA | 150 | 100 | 200 | 150
 All-in cost to COD per MW built | k€/MW |  |  |  | 1825.79
 All-in cost to COD per MVA | k€/MVA |  |  |  | 2300.49
 Equity IRR (FEP, 100 %) | % |  |  |  | 0.0898136
@@ -30,7 +30,7 @@ EU turbines, at least 80 % (ÖSZ-9) | flag | 1 | 12 |
 EU transformers, at least 80 % (ÖSZ-9) | flag | 1 | 3 | 
 Wind built below the bid (no sanction up to 10 %) | % | 0.1 |  | 
 Energy lost on overbuilt MW (grid bottleneck) | % | 0.05 |  | 
-Turbine route (case) | case | EU turbine |  | 
+Turbine route (case) | case | EU turbine, normal debt (60 % at 5 %) |  | 
 Total points | points |  | 82.5 | 
 Total points if ÖSZ-4 is scored on installed wind (GYIK Q20) | points |  | 78 | 
 2. Capacity and basis |  |  |  | 
@@ -76,7 +76,7 @@ EBITDA, lifetime | € m | 645.702 |  |
 Lifetime net generation | GWh | 8649.79 |  | 
 LCOE | €/MWh | 99.8897 |  | 
 5. Returns by case |  |  |  | 
- |  | Live | EU turbine | CN turbine | EU cheaper debt (64 % at 4.5 %) | Stored − live
+ |  | Live | EU turbine, normal debt (60 % at 5 %) | CN turbine | EU turbine, refinanced debt (64 % at 4.5 %, from NTP) | Stored − live
 Tender points | points | 82.5 | 82.5 | 67.5 | 82.5 | 0
 Build and operate |  |  |  | 
 Project IRR, unlevered pre-tax | % | 0.0806108 | 0.0806108 | 0.113235 | 0.0806108 | 0

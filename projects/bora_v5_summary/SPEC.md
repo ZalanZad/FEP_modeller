@@ -274,6 +274,8 @@ Verification, in this order:
    Amended: case 3 gearing is 64 % (the engine's maximum at the 1.5x lender minimum, HTM G256 = 64.1 %, rounded down;
    65 % gave 1.48x). The stored = live check compares numbers only (column I = stored − live for the selected case,
    0 where either is text), so a "none in range" or "n/a" output cannot break Master_Check.
+   Renamed (user, 22-Oct-26): the cases are "EU turbine, normal debt (60 % at 5 %)", "CN turbine" and "EU turbine,
+   refinanced debt (64 % at 4.5 %, from NTP)".
 2. **Cash_Flow: EBIT and EBITDA.** Under "EBITDA" two memo rows (grey italic, outside the foot): "Tax depreciation"
    (HTM 92) and "EBIT" (= EBITDA + depreciation). The foot and the check are unchanged.
 3. **Sensitivities with blue inputs on the Dashboard, formulas in the engine** (section 7). The four drivers that move the
@@ -327,6 +329,8 @@ Verification, in this order:
    the live case, so the effect of the scenario is visible without scrolling. The scenario name is written into the
    Dashboard banner. Sections renumber (0 then 1–9). Changing the scenario makes the stored results stale until
    RunAllScenarios is run (the stored = live check flags it, by design).
+   Renamed (user, 22-Oct-26): the scenario columns are "Base | Low | High" in that order (Low = the former Pessimistic,
+   High = the former Optimistic values); default Base.
 2. **Cash_Flow header** (rows 4–9, above the statement): "All-in cost to COD" and "Revenue, first full year", each
    `€ m | k€/MW built | k€/MVA` (links to the Dashboard); then the per-MW-built timeline block (total spending, revenue,
    EBITDA, equity cash flow per MW built per year) moved up here from the bottom, with "Revenue" added to it.
