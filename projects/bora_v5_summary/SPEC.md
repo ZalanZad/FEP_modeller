@@ -230,3 +230,30 @@ Verification, in this order:
    `In_Scale = Dash_MVA / In_Source_MVA`. Each lump sum = source value × `In_Scale` (the case columns keep the source
    values; the Live column E applies the factor; E294 = `In_Scale`). At 200 MVA nothing changes (regression); at 100 MVA
    every € m figure is exactly half. Show "Lump sums scaled from the 200 MVA source" among the key assumptions.
+
+## 12. Expert-review fixes (Fable review, 22-Oct-2026; verified items only)
+
+1. **One returns table instead of sections 5 and 7.** Section 5 "Returns by case": columns `Live | EU turbine | CN turbine`
+   (Live = `Live_Results`, the other two = `Stored_Results`), rows grouped: *Build and operate*: project IRR pre-tax,
+   post-tax, project NPV, equity IRR (FEP, 100 %), FEP NPV, FEP peak exposure, min DSCR, debt at COD (incl. capitalised
+   IDC), payback year. *Sale at COD to a buyer at 8 %*: COD price (€ m), per MW built, per MVA, FEP profit, FEP IRR,
+   **FEP NPV at 8 %** (new HTM row: XNPV-equivalent with HTM row 13 DFs), FEP MOIC. Section 7 is removed. Drop the rows
+   "Tender points" (section 1 has them), "Debt at COD ÷ all-in cost" and "FEP MOIC, build and operate".
+2. **RtB route shown once** (section 5b, one column, it does not depend on the turbine): RtB premium (k€/MVA, the buyer
+   also reimburses the securities, fees and land at cost), FEP profit, IRR, NPV, MOIC, peak exposure, A.RES profit, A.RES
+   buy-out paid in HTM at the RtB date (HTM G22 amount), buyer IRR at the premium, premium at which the buyer earns 8 %.
+3. **Debt tenor 15 years** (Inputs G220: 10 → 15; CN too). Key assumptions gain "Debt tenor" and "Minimum DSCR" is already
+   in the returns table. Flag in the report: 60 % gearing at a 10-year annuity gave a 1.14x DSCR, not bankable.
+4. **Sensitivity block (section 8, before the checks):** the engine's own tables: project IRR pre-tax and NPV by achieved
+   price × 70 %–130 % (HTM rows 178–184) and by capex × 80 %–120 % (HTM rows 188–192), as two compact rows each
+   (multiplier header, IRR, NPV). Links only.
+5. **Labels.** No cell references in labels (remove "(Deposits J10)", "(Inputs E141)", "(MOIC G270)", "(HTM G172)" etc.);
+   no mixed units in one cell ("€ m | k€" → unit "€ m", the k€ columns carry their own headers); drop the "Scored"
+   column of section 1 (the ÖSZ-4 basis row stays); drop "Net capacity factor per MVA"; "Total spending" →
+   "Total spending (development, build, financing)"; "Debt at COD (incl. capitalised IDC)"; "BESS (at cost; no BESS
+   revenue or opex modelled)"; "Municipal one-off (ÖSZ-1, basis MVA; the law leaves the MW basis open)".
+6. **Key assumptions** gain: net P50 hours 2,460 (IC paper 27-Jul-26), PPA escalation (Inputs E192), debt tenor,
+   tax depreciation years, "Wind built = bid − 10 %: tolerance per GYIK Q28/30/76, not in the Kiírás itself".
+7. Unchanged by decision of the user (state them in the report, not in the model): ÖSZ-4 scored on MVA (meeting-file
+   basis; GYIK Q20 reads installed wind → 78.0 points if so); PPA 90 €/MWh for 30 years; discount rate 8 % for project and
+   equity; CN case switches both ÖSZ-9 flags off.
