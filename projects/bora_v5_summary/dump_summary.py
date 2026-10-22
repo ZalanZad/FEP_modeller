@@ -77,8 +77,8 @@ def hand_checks(wb):
 
     # Performance security: 2.5 % × (installed MW × 406 + MWh × 200) mHUF × multiple.
     pb = v(77) * (inst * v(75) + mwh * v(89)) * N("Dash_PB_Mult")
-    out += [("Performance security, mHUF", pb, S("Performance security (bid security credited)")),
-            ("Performance security, € m at FX", pb / fx, S("Performance security (bid security credited)") / fx)]
+    out += [("Performance security, mHUF", pb, S("Performance security (gross; bid credit in Deposits J10)")),
+            ("Performance security, € m at FX", pb / fx, S("Performance security (gross; bid credit in Deposits J10)") / fx)]
 
     # First full year generation: installed MW × hours × (1 − curtailment) × (1 − loss × overbuilt / installed).
     gen = inst * v(179) * (1 - v(180)) * (1 - v(181)) * (1 - N("Dash_Bottleneck_Loss") * (inst - mva) / inst) / 1000

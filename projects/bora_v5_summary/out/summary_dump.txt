@@ -16,7 +16,7 @@ Brownfield site (ÖSZ-7) | flag | 0 | 0 |  | Bid
 Shared connection (ÖSZ-8) | flag | 1 | 5 |  | Bid
 EU turbines, at least 80 % (ÖSZ-9) | flag | 1 | 12 |  | Bid
 EU transformers, at least 80 % (ÖSZ-9) | flag | 1 | 3 |  | Bid
-Energy lost on overbuilt MW (grid bottleneck) | % | 0.05 |  |  | Bora!N18
+Energy lost on overbuilt MW (grid bottleneck) | % | 0.05 |  |  | Meeting file Bora!N18
 Turbine route (case) | case | EU turbine |  |  | Cases: Inputs G7:H7
 Total points | points |  | 82.5 |  | Kiírás Annex 3-4
 2. Capacity and basis, both bids |  |  |  |  | 
@@ -56,7 +56,7 @@ Achieved price, first full year | €/MWh | 90.9 |  |  | HTM row 49
 Revenue, first full year | € m | 60.4831 |  |  | HTM row 54
 EBITDA, first full year | € m | 45.938 |  |  | HTM row 70
 EBITDA margin, first full year | % | 0.759518 |  |  | HTM row 71
-Operating costs, first full year (k€ per MW / MVA) | € m | 14.5451 | 51.9467 | 72.7254 | HTM row 69
+Operating costs, first full year (k€ per MW / MVA) | € m | k€ | 14.5451 | 51.9467 | 72.7254 | HTM row 69
 Lifetime net generation | GWh | 19144.7 |  |  | HTM G38
 LCOE | €/MWh | 86.2015 |  |  | HTM G156
 5. Returns, live case (Live_Results) |  |  |  |  | 
@@ -81,7 +81,7 @@ Implied maximum RtB premium (buyer NPV = 0) | k€/MVA | 479.967 |  |  | HTM G22
 6. Securities and fees, both bids (Deposits) |  |  |  |  | 
 Participation fee | mHUF | 6 |  |  | Deposits H7
 Bid security | mHUF | 888.4 |  |  | Deposits H8
-Performance security (bid security credited) | mHUF | 4442 |  |  | Deposits H10
+Performance security (gross; bid credit in Deposits J10) | mHUF | 4442 |  |  | Deposits H10
 TSO connection-request security | mHUF | 900 |  |  | Deposits H11
 Connection fee, indirect (before TSO credit) | mHUF | 14614.3 |  |  | Deposits H18
 Connection fee, direct | mHUF | 508.346 |  |  | Deposits H12

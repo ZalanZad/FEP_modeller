@@ -214,6 +214,9 @@ def engine(wb, lv):
     inp["E20"] = "=Dash_BESS_Share*Dash_MVA_Per_Bid*In_Bids"
     inp["E168"] = "=Dash_BESS_Capex_MWh*E21"                            # 100 k€/MWh × hours
     inp["E90"] = "=Dash_PB_Mult"
+    for r in (16, 20):                                                 # stale case values, now unused
+        inp[f"G{r}"] = None
+        inp[f"F{r}"] = f"Driven by the Dashboard levers (E{r})"
     for ref, v in lv["cases"].items():                                 # case values (blue inputs already)
         inp[ref] = v
     for ref in ("G11", "G12", "G18"):                                  # TSO security and connection fees per MVA
@@ -393,7 +396,7 @@ def summary(wb, lv):
                                       "Osz9b_Pts", "Osz9_W")):
         lever(key, name, label, "flag", f"=E{{r}}*{pts}*{w}", note="Bid")
     lever("loss_in", "Dash_Bottleneck_Loss", "Energy lost on overbuilt MW (grid bottleneck)", "%", fmt="pct",
-          note="Bora!N18")
+          note="Meeting file Bora!N18")
     for k in ("ob", "bess", "pb", "mun", "com", "partial", "brown", "shared", "eu_t", "eu_tr"):
         ws[f"F{s.rows[k]}"].number_format = "0.00"
     case = wb["Inputs"]["G7"].value
@@ -462,7 +465,7 @@ def summary(wb, lv):
     s.line("rev", "Revenue, first full year", "€ m", first_year(54, "/Thousand"), fmt="money1", note="HTM row 54")
     s.line("ebitda", "EBITDA, first full year", "€ m", first_year(70, "/Thousand"), fmt="money1", note="HTM row 70")
     s.line("margin", "EBITDA margin, first full year", "%", first_year(71), fmt="pct", note="HTM row 71")
-    s.line("opex", "Operating costs, first full year (k€ per MW / MVA)", "€ m", first_year(69, "/Thousand", "-"),
+    s.line("opex", "Operating costs, first full year (k€ per MW / MVA)", "€ m | k€", first_year(69, "/Thousand", "-"),
            PER_MW, PER_MVA, fmt="money1", note="HTM row 69")
     for c in "FG":
         ws[f"{c}{s.rows['opex']}"].number_format = _fmt("money1")
@@ -480,7 +483,7 @@ def summary(wb, lv):
     # 6. Securities and fees (Deposits, tender currency).
     s.bar("6. Securities and fees, both bids (Deposits)")
     for key, label, ref in (("part", "Participation fee", "H7"), ("bid", "Bid security", "H8"),
-                            ("perf", "Performance security (bid security credited)", "H10"),
+                            ("perf", "Performance security (gross; bid credit in Deposits J10)", "H10"),
                             ("tso", "TSO connection-request security", "H11"),
                             ("ind", "Connection fee, indirect (before TSO credit)", "H18"),
                             ("dir", "Connection fee, direct", "H12")):
