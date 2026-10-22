@@ -1,8 +1,8 @@
-"""Compact dump of the Dashboard sheet (SPEC §7 step 4) and the hand checks of SPEC §7 step 3.
+"""Compact dump of the Dashboard and Cash_Flow sheets (SPEC §7 step 4, §9.4) and the hand checks of SPEC §7 step 3.
 
 Reads out/Bora_v5_Summary_recalc.xlsx (LibreOffice values), writes out/summary_dump.txt with one line per Dashboard
-row (label | unit | E | F | G | note), then recomputes capex, the PB, first-year generation and the points in Python
-from the Dashboard levers and the Inputs values and compares them with the Dashboard results.
+and Cash_Flow row (label | unit | E | F | G, plus the timeline ends on Cash_Flow), then recomputes capex, the PB,
+first-year generation and the points in Python from the Dashboard levers and the Inputs values and compares them with the Dashboard results.
 
     python3 projects/bora_v5_summary/dump_summary.py
 """
@@ -24,11 +24,18 @@ def fmt(v):
     return "" if v is None else str(v)
 
 
-def dump(ws, path):
-    lines = []
-    for r in range(3, ws.max_row + 1):
-        cells = [ws.cell(r, c).value for c in range(3, 9)]
+def dump(dash, cf, path):
+    """Dashboard: label | unit | E | F | G. Cash_Flow: the same plus the first three and the last timeline values."""
+    lines = ["== Dashboard =="]
+    for r in range(3, dash.max_row + 1):
+        cells = [dash.cell(r, c).value for c in range(3, 8)]
         if any(v is not None for v in cells):
+            lines.append(" | ".join(fmt(v) for v in cells))
+    lines.append("== Cash_Flow (timeline: first three years … last year) ==")
+    last = max(c.column for c in cf[5] if c.value is not None)
+    for r in range(4, cf.max_row + 1):
+        cells = [cf.cell(r, c).value for c in (3, 4, 5, 6, 7, 9, 10, 11)] + ["…", cf.cell(r, last).value]
+        if any(v is not None for v in cells[:8]):
             lines.append(" | ".join(fmt(v) for v in cells))
     path.write_text("\n".join(lines) + "\n")
     return len(lines)
@@ -108,7 +115,7 @@ def hand_checks(wb):
 
 def main():
     wb = openpyxl.load_workbook(OUT / "Bora_v5_Summary_recalc.xlsx", data_only=True)
-    n = dump(wb["Dashboard"], OUT / "summary_dump.txt")
+    n = dump(wb["Dashboard"], wb["Cash_Flow"], OUT / "summary_dump.txt")
     print(f"{OUT / 'summary_dump.txt'}: {n} lines")
     ok = True
     for label, py, xl in hand_checks(wb):
