@@ -156,3 +156,25 @@ Verification, in this order:
    (FEP, 100 %)". Relabel "Total gross, incl. supplementary security" → "Total gross".
 6. **Round-trip repairs.** HTM G7, G10, G14 number format back to General (they show 3000.00 %).
 7. Master_Check must be 0 after RunAllScenarios; `regression.py` must still pass.
+
+## 9. Amendments, second round (user, 22-Oct-2026)
+
+1. **EU turbine 950 k€/MW** (Inputs G162 = 950; CN H162 stays 500). The 600 of §4 was the fepm bid-model decision; this
+   workbook keeps the colleague's 950.
+2. **No Cover sheet.** Delete it. The master check status moves to the top of the Dashboard.
+3. **Dashboard column H (notes) removed.** No source notes on the Dashboard; the cell references are enough.
+4. **New first sheet `Cash_Flow`** (replaces the Cover): the 36-year annual grid of the HTM engine (2026–2061, HTM H5:AQ5),
+   formulas only, one formula per row copied across, every row a link to its HTM row. Layout: C label | D unit |
+   E Total | F per installed MW (k€/MW) | G per MVA (k€/MVA) | I.. timeline (year header row linked to HTM row 5).
+   Rows, in order (sign convention as HTM: outflows negative):
+   - Spending: development phase (HTM 24), construction capex excl. connection (27), connection fees (28), municipal
+     one-off (29), IDC and debt fees paid by equity (HTM 117), **total spending** (sum, bold);
+   - Operations: revenue (54), operating costs (69), **EBITDA** (70), tax (100), decommissioning and terminal value
+     (107/108 rows as HTM uses them in 122);
+   - Project: **unlevered post-tax cash flow** (110), cumulative (111);
+   - Debt: drawdown (116), debt service (119), DSRA (120);
+   - Equity: **equity cash flow** (123), cumulative (124).
+   E = SUM across the timeline; F = E ÷ installed MW (Inputs E18) ÷ 1 (k€ per MW); G = E ÷ (Dash_MVA_Per_Bid × In_Bids).
+   Units: EUR k on the timeline (as HTM), E in EUR m. No IRRs here (they are on the Dashboard). Freeze panes at I6.
+   A check row at the bottom: total spending + EBITDA + tax + decommissioning = unlevered post-tax cash flow (0 = OK),
+   feeding Master_Check.
