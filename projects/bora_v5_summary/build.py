@@ -46,6 +46,11 @@ REFI_INPUTS = [
     ("In_Refi_Fee", "Upfront fee on the new loan (paid by equity)", "% of debt", "=E219", "Inputs E219", "0.00%"),
 ]
 
+# Dashboard section 0 (Dash_Key_Inputs, rows: turbine EU k€/MW, PPA €/MWh, net P50 h, O&M k€/MW/yr, RtB premium
+# k€/MVA; columns Base | Low | High). User 22-Oct-26: Low = the former Base; new Base turbine 850, PPA 95 (lower
+# balancing fee, GoO 2–2.5 €/MWh), P50 2,500; High turbine 800.
+KEY_TABLE = {"Base": [850, 95, 2500, 12, 150], "Low": [950, 90, 2460, 12, 150], "High": [800, 100, 2600, 10, 200]}
+
 # Regression only (regression.py): the v5 source levers written onto the returned file, refinancing off.
 SOURCE = {"names": {"Dash_MVA": 200, "Dash_Municipal": 20, "Dash_Community": 2, "Dash_Overbuild": 0.0,
                     "Dash_BESS_Share": 0.5, "Dash_PB_Mult": 1.5, "Dash_Build_Shortfall": 0.0,
@@ -53,7 +58,8 @@ SOURCE = {"names": {"Dash_MVA": 200, "Dash_Municipal": 20, "Dash_Community": 2, 
           "cells": {"Inputs!G78": 0.05, "Inputs!G190": 0, "Inputs!H190": 1, "Inputs!G193": 10, "Inputs!G217": 0.5,
                     "Inputs!H217": 0, "Inputs!G220": 10, "Inputs!G11": 370, "Inputs!G268": 6, "Inputs!G269": 0.5,
                     f"Inputs!I{U_REFI}": 0},
-          "gearing_steps": [0, 0.3, 0.4, 0.5, 0.55, 0.6, 0.7]}
+          "gearing_steps": [0, 0.3, 0.4, 0.5, 0.55, 0.6, 0.7],
+          "key_base": [950, 90, 2460, 12, 150]}
 
 
 # =========================================================================================== helpers
@@ -278,6 +284,15 @@ def change_log(wb):
         ws[f"{col}{r}"] = v
 
 
+def key_table(wb, table):
+    """Write the Base, Low and High columns of the Dashboard key-input table (columns E, F, G)."""
+    sheet, ref = next(wb.defined_names["Dash_Key_Inputs"].destinations)
+    first = int(ref.split(":")[0].split("$")[-1])
+    for col, name in ((5, "Base"), (6, "Low"), (7, "High")):
+        for i, v in enumerate(table.get(name, [])):
+            wb[sheet].cell(first + i, col).value = v
+
+
 def apply_levers(wb, lv):
     """Regression only: write the source levers into the named cells, case cells and gearing steps."""
     for name, v in lv["names"].items():
@@ -291,6 +306,7 @@ def apply_levers(wb, lv):
     row, col = int(re.sub(r"\D", "", first)), openpyxl.utils.column_index_from_string(re.sub(r"\d", "", first))
     for i, v in enumerate(lv["gearing_steps"]):
         wb[sheet].cell(row, col + i).value = v
+    key_table(wb, {"Base": lv["key_base"]})
 
 
 # =========================================================================================== build
@@ -325,6 +341,7 @@ def edit(levers=None):
     htm_refi(wb)
     dashboard_refi(wb)
     change_log(wb)
+    key_table(wb, KEY_TABLE)
     if levers:
         apply_levers(wb, levers)
     return wb

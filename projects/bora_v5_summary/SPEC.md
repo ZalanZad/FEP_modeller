@@ -331,6 +331,9 @@ Verification, in this order:
    RunAllScenarios is run (the stored = live check flags it, by design).
    Renamed (user, 22-Oct-26): the scenario columns are "Base | Low | High" in that order (Low = the former Pessimistic,
    High = the former Optimistic values); default Base.
+   Updated (user, 22-Oct-26): Low = the former Base (950 / 90 / 2,460 / 12 / 150); new Base = 850 / 95 / 2,500 / 12 /
+   150 (turbine 850; PPA 95: lower balancing fee and a 2–2.5 €/MWh GoO price; P50 2,500); High = 800 / 100 / 2,600 /
+   10 / 200. The regression writes 950 / 90 / 2,460 / 12 / 150 into Base for its own run.
 2. **Cash_Flow header** (rows 4–9, above the statement): "All-in cost to COD" and "Revenue, first full year", each
    `€ m | k€/MW built | k€/MVA` (links to the Dashboard); then the per-MW-built timeline block (total spending, revenue,
    EBITDA, equity cash flow per MW built per year) moved up here from the bottom, with "Revenue" added to it.
