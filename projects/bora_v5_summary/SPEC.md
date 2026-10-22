@@ -365,3 +365,9 @@ Case 3 becomes "EU turbine, refinanced at COD + 1 year": construction and the fi
   balance jumps to 64 % of the base in the refi year, the DSCR after refinancing is ≥ 1.5x (report it; do not force it),
   the equity cash flow in the refi year includes the release, the loan is fully repaid at the end of the new tenor
   (HTM check row 167 stays OK), and Cash_Flow still foots.
+
+### 16.1 Base file for §16 (user, 22-Oct-2026)
+The user returned the workbook as `reference/Bora_model_RTB_COD_HTM_20261022.xlsm` (our 14172c1 output re-saved in Excel,
+plus a "Sum" column G on the Cash_Flow per-MW rows 9–13). From now on **this file is the source**: `build.py` is kept as
+`build_v1.py` (history), and the new `build.py` loads this file, applies §16 only, re-embeds `Scenarios.bas` and runs
+RunAllScenarios. Nothing else in the file changes ("don't change anything else"). Output name: `out/Bora_model_RTB_COD_HTM.xlsm`.
