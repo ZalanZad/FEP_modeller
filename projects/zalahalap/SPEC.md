@@ -7,16 +7,27 @@ built now. Items marked **[confirm]** are those defaults; they sit on `Inputs` i
 "DEFAULT – confirm" and are listed in §16.
 
 ## 0. User answers (22-Oct-2026, verbatim: "1 should jump from 60-50 at 90k i have sent you the aurora use that 3. use from the input sheet")
-1. **JV share is a step, not a slide:** Futureal 60 % when the RtB price is below `In_Share_Threshold` = 90 k€/MW,
-   50 % at or above it (`In_FEP_Share_Low` 60 %, `In_FEP_Share_High` 50 %). Boundary: the original model's price is
-   exactly 90 and its sliding rule gives 60 % there; the step rule as read gives 50 % → §13 item 14, with the
-   original rule kept as the reconciliation switch. **[confirm the boundary]**
+1. **JV share is a step, not a slide:** Futureal 60 % when the RtB price is at or below `In_Share_Threshold` =
+   90 k€/MW, 50 % above it (`In_FEP_Share_Low` 60 %, `In_FEP_Share_High` 50 %). Boundary: confirmed in item 4
+   below (60 % at exactly 90, as the original slide gives); the original slide stays as the switch `In_Share_Rule`.
 2. **Aurora: only the file the user sent** (`Aurora_Q2_26_HUN_Flexible_Energy_Data_AG.xlsm`). Scenario B uses the
    Aurora-implied PV capture; no flat 65 %, no synthetic Low/High (the ±15 % and Bora-ratio proxies are dropped);
    price risk is carried by the ±% price sets (§10). Scenario A keeps the original model's own curves and its ±15 %
    switch, because it reproduces that model.
 3. **Devex/early works from the input sheet:** `Stat_inp!E50` = SUM(E44:E47) = 12.87 k€/MW, not Calculation's
    24.75. See §3.1 (what E48/E49 are) and §13 item 15 (effect).
+
+**User answers, second round (22-Oct-2026, verbatim: "2 its 60 , 1 for now go into construction but the earlyworks
+needs to be thought over again"):**
+4. **Share boundary (§16 old Q1):** at exactly 90 k€/MW the share is **60 %**: Futureal 60 % when the RtB price is
+   ≤ `In_Share_Threshold` (90), 50 % when it is above. At the original price of 90 the step rule now gives the same
+   60 % as the original slide, so §13 item 14 no longer moves the Scenario A targets at 90 (`In_Share_Rule` stays as
+   the switch).
+5. **Early works (§16 old Q2):** keep the v1 default for now – E48/E49 (725 k€) go to construction capex at NTP
+   (`In_Milestones_Late_To_Capex` = 1). The early-works treatment as a whole will be revisited, so the lines, their
+   reimbursement and the 12 % return sit in a few isolated input rows and switches (`In_Milestones_Scope`,
+   `In_Milestones_Late_To_Capex`, `In_EW_Reimbursed`, `In_EW_Interest`, `In_EW_To_PSH`) with the note
+   "provisional – early works to be revisited (user 22-Oct-26)".
 
 **Deliverable: one workbook, `out/Zalahalap_Model.xlsm` (+ `_recalc.xlsx`).** No deck, no IC email. The deck/ic-writer
 steps of `CLAUDE.md` do not apply to this project; the model-builder → model-auditor loop and `MODELLING_STANDARDS.md` do.
@@ -409,9 +420,10 @@ Scenario A ties to the stored reconciliation targets within tolerance (one row p
     254–258: not recalculated by LibreOffice, replaced by stored macro results), no stale sensitivity caches
     (Sensitivities/Sens_Engine differ from recalc in 81 cells), one break-even price (the original shows
     9.63 / 29.65 / 107.7), `n/a` + check instead of IFERROR(…,0).
-14. **JV share rule (user §0.1):** step 60 % → 50 % at 90 k€/MW instead of the original's slide (60 % below 90, linear
-    to 50 % at 100). At the original's price of exactly 90 the slide gives 60 % and the step gives 50 %, so the RtB
-    targets move by 10 % of the distributable amount; the reconciliation set runs the slide (`In_Share_Rule` = 0). (S)
+14. **JV share rule (user §0.1, §0.4):** step 60 % (price ≤ 90 k€/MW) → 50 % (above) instead of the original's slide
+    (60 % at or below 90, linear to 50 % at 100). At the original's price of exactly 90 both give 60 %, so the step
+    does not move the Scenario A targets; the rules differ only between 90 and 100. The reconciliation set runs the
+    slide (`In_Share_Rule` = 0). (S)
 15. **Early works scope (user §0.3):** four milestone lines (12.87 k€/MW, 785 k€) instead of six (24.75, 1,510 k€).
     E48 (650 k€) and E49 (75 k€) go to construction capex at NTP, so total project cost is unchanged but 725 k€ is no
     longer reimbursed at the RtB sale, no longer earns the 12 % return and no longer sits in "capital" (RtB MOIC
@@ -458,10 +470,9 @@ Phase 3 – audit: `python3 -m fepm audit projects/zalahalap`, reconciliation re
 | 11 | Offers | terms as read in §6.3; E.ON fee 7.6 %; option A bands 2027/2028 then option B; MET 90 MWh scaled to the built MWh per MW; MVM 45 €/MWh on 100 % of PV output, no BESS instrument | sets 1, 17, 18 |
 
 ## 16. Still open (answers refine the defaults above; nothing blocks the build)
-1. Share rule boundary: at exactly 90 k€/MW, 50 % (as read, "jump at 90k") or 60 % (as the original model)?
-2. Early works: confirm that E48 (650 k€, 2nd design/transformer payment) and E49 (75 k€, 3rd land instalment) move
-   to construction capex rather than being dropped (§3.1 verdict: they are genuine costs; the input sheet's own
-   Negotiated-case total J50 includes them).
+(Q1 answered 22-Oct-2026: 60 % at exactly 90, §0 item 4. The other numbers are kept, Inputs notes cite them.)
+2. Early works: the treatment as a whole is to be revisited (user, 22-Oct-2026). For now E48 (650 k€) and E49 (75 k€)
+   go to construction capex at NTP; the lines, reimbursement and 12 % return are isolated switches on `Inputs`.
 3. JV: the 549 k€ "FEP SPV acquisition price" and the 562.5 k€ loan (= 4,500,000 × 50/400) – what are they; price
    basis 120 k€/MWp × 63 (JV sheet) vs 90 k€/MW × 61 (model); does the JV sheet's 55/45 survive the step rule?
 4. JV at COD sale and HTM: same split at COD; buy-out at the RtB entitlement vs PSH staying in?
