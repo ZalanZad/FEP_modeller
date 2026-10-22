@@ -307,5 +307,6 @@ Verification, in this order:
 6. Key assumptions: drop the zero rows (merchant share, DSRA, cash sweep) and the scale factor; add curtailment (2 %)
    and degradation (0.3 %/yr).
 7. To verify first (auditor), then fix only if real: (a) the gearing grid at the live step (60 %) gives 8.977 % /
-   1.5421x vs the returns table 8.981 % / 1.5426x; (b) the RtB grid's 50 k€/MVA step is 0.22 € m above the straight line
+   1.5421x vs the returns table 8.981 % / 1.5426x; **engine defect fixed:** the seven per-scenario taxable-income
+   rows (HTM 260…302) now include the TSO-bond depreciation term of H92; HTM G257 is a Dashboard check; (b) the RtB grid's 50 k€/MVA step is 0.22 € m above the straight line
    (tax at sale going negative?); (c) the "◄ live" marker column.

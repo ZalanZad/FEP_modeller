@@ -21,6 +21,7 @@ Wind built below the bid (no sanction up to 10 %) | % | 0.1 |  |
 Energy lost on overbuilt MW (grid bottleneck) | % | 0.05 |  | 
 Turbine route (case) | case | EU turbine |  | 
 Total points | points |  | 82.5 | 
+Total points if ÖSZ-4 is scored on installed wind (GYIK Q20) | points |  | 78 | 
 2. Capacity and basis |  |  |  | 
 Wind committed (bid) | MW | 140 |  | 
 Wind built (bid less 10 %, no sanction) | MW | 126 |  | 
@@ -64,7 +65,8 @@ EBITDA (NOI), lifetime | € m | 645.702 |  |
 Lifetime net generation | GWh | 8649.79 |  | 
 LCOE | €/MWh | 99.8897 |  | 
 5. Returns by case |  |  |  | 
- |  | Live | EU turbine | CN turbine | EU refinanced | Stored − live
+ |  | Live | EU turbine | CN turbine | EU cheaper debt (64 % at 4.5 %) | Stored − live
+Tender points | points | 82.5 | 82.5 | 67.5 | 82.5 | 0
 Build and operate |  |  |  | 
 Project IRR, unlevered pre-tax | % | 0.0806108 | 0.0806108 | 0.113235 | 0.0806108 | 0
 Project IRR, unlevered post-tax | % | 0.0756586 | 0.0756586 | 0.106121 | 0.0756529 | 0
@@ -73,7 +75,8 @@ Equity IRR, levered post-tax (FEP, 100 %) | % | 0.0898136 | 0.0898136 | 0.131594
 FEP NPV at 8 % | € m | 9.72199 | 9.72199 | 45.004 | 13.9865 | 0
 FEP peak exposure | € m | 90.1942 | 90.1942 | 79.7795 | 81.5014 | 0
 Minimum DSCR | x | 1.54256 | 1.54256 | 2.46903 | 1.50212 | 0
-Maximum gearing at the lender minimum DSCR | % | 0.618258 | 0.618258 | 0.65 | 0.641178 | 0
+Maximum gearing at the lender minimum DSCR | % | 0.618432 | 0.618432 | ≥ top step | 0.641349 | 0
+Gearing (debt ÷ capex) | % | 0.6 | 0.6 | 0.5 | 0.64 | 0
 Debt at COD (incl. capitalised IDC) | € m | 138.812 | 138.812 | 84.2926 | 147.29 | 0
 Payback year (FEP equity) | year | 2044 | 2044 | 2038 | 2043 | 0
 Sale at COD to a buyer at 8 % (31-Dec of the COD year) |  |  |  | 
@@ -109,17 +112,18 @@ Of which cash, in FEP cash flows | € m | 20.7241 |  |
 Of which bank guarantee, in FEP cash flows | € m | 6.08493 |  | 
 7. Sensitivities, live case (step values are inputs; the engine recalculates each step) |  |  |  | 
 Achieved price, % of base | % | 0.7 | 0.8 | 0.9 | 1 | 1.1 | 1.2 | 1.3
-Project IRR, pre-tax | % | 0.0348238 | 0.0516349 | 0.0667142 | 0.0806108 | 0.093651 | 0.106044 | 0.117932
-Project NPV, pre-tax at 8 % | € m | -67.7443 | -44.8157 | -21.8871 | 1.04155 | 23.9702 | 46.8988 | 69.8274
+Project IRR, pre-tax (engine block) | % | 0.0348238 | 0.0516349 | 0.0667142 | 0.0806108 | 0.093651 | 0.106044 | 0.117932
+Project NPV, pre-tax at 8 % (engine block) | € m | -67.7443 | -44.8157 | -21.8871 | 1.04155 | 23.9702 | 46.8988 | 69.8274
  |  |  |  |  | ◄ live
 Capex, % of base | % | 0.8 | 0.9 | 1 | 1.1 | 1.2
-Project IRR, pre-tax | % | 0.103248 | 0.0909715 | 0.0806108 | 0.0717045 | 0.063932
-Project NPV, pre-tax at 8 % | € m | 33.5259 | 17.2837 | 1.04155 | -15.2007 | -31.4429
+Project IRR, pre-tax (engine block) | % | 0.103248 | 0.0909715 | 0.0806108 | 0.0717045 | 0.063932
+Project NPV, pre-tax at 8 % (engine block) | € m | 33.5259 | 17.2837 | 1.04155 | -15.2007 | -31.4429
  |  |  |  | ◄ live
 Gearing (debt on capex) | % | 0 | 0.3 | 0.4 | 0.5 | 0.55 | 0.6 | 0.65
-FEP equity IRR | % | 0.0755771 | 0.080862 | 0.0832676 | 0.0861747 | 0.0878721 | 0.0897749 | 0.0919268
-FEP NPV ÷ equity at 8 % | x | -0.0459201 | 0.0100342 | 0.0401557 | 0.0812133 | 0.107875 | 0.140438 | 0.181102
-Minimum DSCR | x | n/a | 3.02912 | 2.28358 | 1.83931 | 1.67616 | 1.54214 | 1.42673
+FEP equity IRR | % | 0.0756001 | 0.0808908 | 0.0832991 | 0.0862094 | 0.0879089 | 0.0898136 | 0.0919676
+FEP NPV ÷ equity at 8 % | x | -0.0456813 | 0.010369 | 0.0405424 | 0.0816685 | 0.108376 | 0.140991 | 0.181718
+Minimum DSCR | x | n/a | 3.02995 | 2.2842 | 1.83981 | 1.67661 | 1.54256 | 1.42711
+DSCR vs lender minimum |  | n/a | OK | OK | OK | OK | OK | BELOW
  |  |  |  |  |  |  | ◄ live
 RtB premium | k€/MVA | 50 | 75 | 100 | 125 | 150 | 175 | 200
 FEP profit post-tax | € m | 1.32538 | 2.85331 | 4.60331 | 6.35331 | 8.10331 | 9.85331 | 11.6033
@@ -127,6 +131,11 @@ FEP IRR post-tax | % | 0.0624066 | 0.132678 | 0.2109 | 0.286691 | 0.360081 | 0.4
 FEP MOIC | x | 1.05636 | 1.12134 | 1.19576 | 1.27019 | 1.34461 | 1.41903 | 1.49345
 Buyer IRR, unlevered post-tax | % | 0.0769132 | 0.0757534 | 0.0746168 | 0.0735026 | 0.0724102 | 0.0713386 | 0.0702872
  |  |  |  |  |  | ◄ live
+Buyer discount rate (unlevered) | % | 0.07 | 0.08 | 0.09
+COD sale price | € m | 249.016 | 226.171 | 206.585
+FEP profit on the COD sale | € m | 20.0092 | -2.83603 | -22.4213
+RtB premium at which the buyer earns this rate | k€/MVA | 206.912 | -14.1036 | -199.761
+ |  |  | ◄ live | 
 8. Checks |  |  |  | 
  |  | Fails | Status | 
 Sale-at-RtB engine checks | # | 0 | OK | 
@@ -138,6 +147,7 @@ Stored results = live case (numbers only) | # | 0 | OK |
 ÖSZ-2 offer within the offerable range | # | 0 | OK | 
 ÖSZ-4 BESS ratio at least the minimum | # | 0 | OK | 
 Cash_Flow foots to the equity cash flow | # | 0 | OK | 
+Gearing grid ties to the live case at the live gearing | # | 0 | OK | 
 Capacity: BESS MW ≤ wind MW, duration ≥ minimum | # | 0 | OK | 
 Master check (number of failing rows) | # | 0 | OK | 
 9. Key assumptions, live case |  |  |  | 
@@ -145,7 +155,6 @@ Net P50 hours (IC paper 27-Jul-26) | h/yr | 2460 |  |
 PPA price, first operating year | €/MWh | 90 |  | 
 PPA escalation | % | 0.01 |  | 
 PPA tenor | years | 30 |  | 
-Merchant share of output | % | 0 |  | 
 Gearing (debt on capex incl. connection) | % | 0.6 |  | 
 Debt interest rate | % | 0.05 |  | 
 Debt tenor (annuity from the first full year) | years | 15 |  | 
@@ -158,14 +167,15 @@ Sale date (RtB route) | date | 2029-09-30 |  |
 COD | date | 2031-06-30 |  | 
 Operating life | years | 30 |  | 
 A.RES bought out at RtB in the build case (1 = yes) | flag | 1 |  | 
-DSRA | months | 0 |  | 
-Cash sweep | % | 0 |  | 
-Lump sums scaled from the 200 MVA source (factor) | x | 0.5 |  | 
+Curtailment | % | 0.02 |  | 
+Degradation per year | % | 0.003 |  | 
 Wind built = bid − 10 %: tolerance per GYIK Q28/30/76, not in the Kiírás itself |  |  |  | 
 ***END*** |  |  |  | 
 == Cash_Flow (timeline: first three years … last year) ==
  |  | Total € m | k€/MW built | k€/MVA |  |  |  | … | 
 Year | year |  |  |  | 2026 | 2027 | 2028 | … | 2061
+Development phase (devex, fees, securities net, A.RES buy-out) | EUR k | -8.59934 | -68.2488 | -85.9934 | -1572.31 | -793.261 | -1241.96 | … | 0
+Build cost to COD (capex, connection, municipal, IDC, debt fees) | EUR k | -222.897 | -1769.03 | -2228.97 | 0 | 0 | 0 | … | 0
 Total spending (development, build, financing) | EUR k | -231.497 | -1837.28 | -2314.97 | -1572.31 | -793.261 | -1241.96 | … | 0
 Revenue | EUR k | 909 | 7214.29 | 9090 | 0 | 0 | 0 | … | 16712.5
 Operating costs | EUR k | -263.299 | -2089.67 | -2632.99 | 0 | 0 | 0 | … | -5833.72
@@ -198,3 +208,13 @@ FEP IRR – sale at COD | % | -0.021468 |  |  |  | … |
 FEP profit – sale at COD | k€ | -2836.03 |  |  |  | … | 
 FEP MOIC – sale at COD | x | 0.96432 |  |  |  | … | 
 FEP NPV – sale at COD at the equity discount rate (Inputs E225) | k€ | -9500.35 |  |  |  | … | 
+Sale year (RtB route) | year | 2029 |  |  |  | … | 
+COD sale price at the buyer rate in E (step 1) | k€ | 249016 |  |  |  | … | 
+COD sale price at the buyer rate in E (step 2) | k€ | 226171 |  |  |  | … | 
+COD sale price at the buyer rate in E (step 3) | k€ | 206585 |  |  |  | … | 
+FEP profit – sale at COD at the buyer rate (step 1) | k€ | 20009.2 |  |  |  | … | 
+FEP profit – sale at COD at the buyer rate (step 2) | k€ | -2836.03 |  |  |  | … | 
+FEP profit – sale at COD at the buyer rate (step 3) | k€ | -22421.3 |  |  |  | … | 
+RtB premium at which the buyer earns the rate (step 1) | k€/MVA | 206.912 |  |  |  | … | 
+RtB premium at which the buyer earns the rate (step 2) | k€/MVA | -14.1036 |  |  |  | … | 
+RtB premium at which the buyer earns the rate (step 3) | k€/MVA | -199.761 |  |  |  | … | 
