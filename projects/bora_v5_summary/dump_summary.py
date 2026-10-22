@@ -1,6 +1,6 @@
 """Compact dump of the Dashboard and Cash_Flow sheets (SPEC §7 step 4, §9.4) and the hand checks of SPEC §7 step 3.
 
-Reads out/Bora_v5_Summary_recalc.xlsx (LibreOffice values), writes out/summary_dump.txt with one line per Dashboard
+Reads out/Bora_model_RTB_COD_HTM_recalc.xlsx (LibreOffice values), writes out/summary_dump.txt with one line per Dashboard
 and Cash_Flow row (label | unit | E | F | G, plus the timeline ends on Cash_Flow), then recomputes capex, the PB,
 first-year generation and the points in Python from the Dashboard levers and the Inputs values and compares them with the Dashboard results.
 
@@ -125,7 +125,7 @@ def hand_checks(wb):
 
 
 def main():
-    wb = openpyxl.load_workbook(OUT / "Bora_v5_Summary_recalc.xlsx", data_only=True)
+    wb = openpyxl.load_workbook(OUT / "Bora_model_RTB_COD_HTM_recalc.xlsx", data_only=True)
     n = dump(wb["Dashboard"], wb["Cash_Flow"], OUT / "summary_dump.txt", wb["HTM"])
     print(f"{OUT / 'summary_dump.txt'}: {n} lines")
     ok = True
