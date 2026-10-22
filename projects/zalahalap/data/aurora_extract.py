@@ -15,6 +15,9 @@ calendar-year averages 2026–2060, Central scenario only. One CSV row per serie
     produces, consistent with the storage total, which already deducts the PV energy stored (s+20). The SPEC's
     literal ratio, RES day-ahead cashflow (s+34) ÷ RES-to-grid volume (s+31), is kept as "da_to_grid": applied to
     all PV output it would count the stored energy twice.
+  - the two prices the model uses (fix round 1): "direct_price" = (RES day-ahead s+34 + intraday s+35) × 1000 ÷
+    RES-to-grid volume s+31, for PV exported directly; "transfer_price" = RES-to-storage cashflow s+36 × 1000 ÷
+    RES-to-storage volume s+32, for PV sent to the BESS (the counterpart of the stack's −s+20).
 Aurora's battery blocks are fixed dispatch outputs: nothing here re-optimises when model inputs change.
 Stdlib + openpyxl.
 """
@@ -36,6 +39,7 @@ SERIES = [  # offset, key, unit
     (27, "storage_total", "k€/MW/yr"), (11, "discharge", "MWh/MW"), (12, "charge_grid", "MWh/MW"),
     (13, "charge_res", "MWh/MW"), (1, "repower_count", "#"), (31, "res_to_grid", "MWh/MW RES"),
     (32, "res_to_storage", "MWh/MW RES"), (34, "res_da_cashflow", "k€/MW RES/yr"),
+    (35, "res_id_cashflow", "k€/MW RES/yr"), (36, "res_to_storage_cashflow", "k€/MW RES/yr"),
     (37, "res_total_cashflow", "k€/MW RES/yr")]
 COMPONENTS = range(14, 27)                       # s+14 … s+26: components of the storage total (information only)
 FIRST_COL, YEARS = 6, list(range(2026, 2061))    # F = 2026 … AN = 2060
@@ -70,6 +74,14 @@ def main():
             cap = [c * 1000 / vol if vol else 0.0 for c, vol in zip(got["res_total_cashflow"], out)]
             rows.append(["implied_capture", name, "EUR/MWh", f"{SHEET}!{s + 37}/({s + 31}+{s + 32})",
                          "RES total cashflow x 1000 / RES output (to grid + to storage)"] + cap)
+            direct = [(a + b) * 1000 / vol if vol else 0.0
+                      for a, b, vol in zip(got["res_da_cashflow"], got["res_id_cashflow"], got["res_to_grid"])]
+            rows.append(["direct_price", name, "EUR/MWh", f"{SHEET}!({s + 34}+{s + 35})/{s + 31}",
+                         "RES day-ahead + intraday cashflow x 1000 / RES-to-grid volume"] + direct)
+            transfer = [c * 1000 / vol if vol else 0.0
+                        for c, vol in zip(got["res_to_storage_cashflow"], got["res_to_storage"])]
+            rows.append(["transfer_price", name, "EUR/MWh", f"{SHEET}!{s + 36}/{s + 32}",
+                         "RES-to-storage cashflow x 1000 / RES-to-storage volume"] + transfer)
             da = [c * 1000 / vol if vol else 0.0 for c, vol in zip(got["res_da_cashflow"], got["res_to_grid"])]
             rows.append(["da_to_grid", name, "EUR/MWh", f"{SHEET}!{s + 34}/{s + 31}",
                          "RES Day-Ahead cashflow x 1000 / RES-to-grid volume"] + da)

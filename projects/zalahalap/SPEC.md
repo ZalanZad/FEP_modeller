@@ -29,6 +29,37 @@ needs to be thought over again"):**
    `In_Milestones_Late_To_Capex`, `In_EW_Reimbursed`, `In_EW_Interest`, `In_EW_To_PSH`) with the note
    "provisional – early works to be revisited (user 22-Oct-26)".
 
+**Fix round 1 (22-Oct-2026: Fable's financial review + the audit; user: "build now, we will adjust").** Built as
+defaults; every item pending the user is a flagged placeholder on `Inputs`:
+6. **Grid charging (M1):** export-only connection (teaser; v3 Control!D90). `In_Grid_Import_MW` = 0 **[pending user:
+   does the grid agreement allow import?]**. With 0 import the Aurora stack is scaled to PV-only charging by the block's
+   own factor charge-from-PV × RTE ÷ discharge (≈ 0.595 in 2027; v3's 0.591), derived on `Curves`; aFRR-down and
+   grid-charge revenue are lost. Import > 0 restores the grid-charged share pro rata (import ÷ BESS MW) and caps grid
+   charging at import × hours. Hourly limits live inside Aurora's dispatch; Excel checks the annual balance.
+7. **Two PV prices (M2):** PV exported directly at Aurora's direct price (s+34 + s+35)/s+31; PV sent to the BESS at
+   the transfer price s+36/s+32 (the counterpart of the stack's −s+20). Offers and fees act on the direct price only.
+   The blended curve (s+37 ÷ RES output) stays selectable. Curves carry short codes ("DC 4h direct", "DC 4h transfer",
+   "DC 4h" for the BESS block); the full Aurora names are on `Curves`.
+8. **Unlevered tax:** project, buyer-unlevered and implied-price views use an unlevered tax (no interest or fees, own
+   loss carry-forward); levered views keep the actual SPV tax. (Bana had no such convention.)
+9. **COD sale DSRA:** the seller is credited the DSRA balance (cash available = price − debt + DSRA); the levered
+   buyer pays for it once.
+10. **Shareholder items:** the DSA loan and the FEP SPV price leave the SPV tax base (D6). FEP pays CIT on the 12 %
+    return as interest income even under the participation exemption; the gain is taxed when `In_Sale_Form` = 1
+    (asset deal) or `In_Sale_Gain_Taxed` = 1 (D7).
+11. **COD share (D1):** `In_COD_Share_Basis` 0 = the RtB-price rule (default), 1 = fixed `In_COD_Share` **[pending
+    user, Q4]**; the hold buy-out is at PSH's RtB entitlement.
+12. **Offers (D2):** fixed BESS fees are not scaled above the offered duration (MET 1.8 h, E.ON 2 h); a flag shows
+    when the offer differs from the built configuration. Splitting a 4 h battery into a tolled slice and a merchant
+    slice is not physical with one 50 MW inverter, so the spare energy earns nothing under tolling (conservative).
+13. **PSH (D3):** PSH profit and its share of proceeds are shown; its IRR is a memo (150 k€ in-kind apport).
+14. **Sets (D5):** "RtB price = implied", "BESS capex 200 k€/MWh" and "No BESS repower" (BESS retired at the
+    repower year, no augmentation) replace "PV price +10 %", "Opex +10 %" and "Debt rate +1 pp" (§10).
+15. **Other:** implied prices floored at 0 with a "below zero" flag; clipping 0 % for the DC-coupled cases B and C
+    (`In_Clip_Loss_DC`), v3 + fix 5 (2 %) kept in A; min DSCR "n/a" without debt; the six asset-deal goal seeks are
+    dropped until the deal form is answered (`In_Sale_Form` now only drives the FEP gain tax; the asset-deal buyer
+    step-up is not modelled); tax losses lapse on one date (NTP + 5 years), a flagged simplification.
+
 **Deliverable: one workbook, `out/Zalahalap_Model.xlsm` (+ `_recalc.xlsx`).** No deck, no IC email. The deck/ic-writer
 steps of `CLAUDE.md` do not apply to this project; the model-builder → model-auditor loop and `MODELLING_STANDARDS.md` do.
 
@@ -368,12 +399,12 @@ COD; IDC capitalised; upfront and commitment fees; DSRA; cash sweep set. Tax cir
 ## 10. Key-assumption sets (Inputs columns; blank = base; max 18)
 1 Base (B on Calc_2 is the decision case; A on Calc_1 and the selected C on Calc_3 run alongside; PV offer C2a fixed +
 BESS tolling C2c as the default C pairing) · 2 Reconciliation (Scenario A inputs, every §13 switch off, gearing 0) ·
-3 PV price −10 % · 4 PV price +10 % · 5 PV yield −10 % (P90 when the yield report arrives) · 6 BESS revenue −20 % ·
-7 Capex +10 % · 8 Opex +10 % · 9 Buyer IRR +1 pp · 10 RtB and COD price −10 % · 11 Gearing −10 pp · 12 Debt rate +1 pp ·
-13 COD +12 months · 14 BESS 2 h (block "2027 solar DC 1.0cy 2h", 100 MWh) · 15 No BESS · 16 PV and BESS prices −20 %
-(the merchant downside, replacing any Aurora Low) · 17 C pairing: E.ON indexed PPA + E.ON option B · 18 C pairing:
-MVM 45 €/MWh + MET floor/PSA. **[confirm the list; 18 is the engine cap — further pairings are run by changing the
-`In_Offer_*` levers and re-running the macro.]**
+3 PV price −10 % · 4 PV yield −10 % (P90 when the yield report arrives) · 5 BESS revenue −20 % · 6 Capex +10 % ·
+7 Buyer IRR +1 pp · 8 RtB and COD price −10 % · 9 RtB price = implied · 10 Gearing −10 pp · 11 COD +12 months ·
+12 BESS 2 h (block "DC 2h", 100 MWh) · 13 No BESS · 14 BESS capex 200 k€/MWh · 15 No BESS repower · 16 PV and BESS
+prices −20 % (the merchant downside) · 17 C pairing: E.ON indexed PPA + E.ON option B · 18 C pairing: MVM 45 €/MWh +
+MET floor/PSA (fix round 1: PV +10 %, opex +10 % and debt rate +1 pp dropped for sets 9, 14, 15). **[confirm the list;
+18 is the engine cap — further pairings are run by changing the `In_Offer_*` levers and re-running the macro.]**
 
 ## 11. Checks (→ `Master_Check`)
 Bana list (levers in range, COD on a quarter end, debt within capacity and repaid, DSCR ≥ target, sources = uses to COD,
@@ -428,6 +459,12 @@ Scenario A ties to the stored reconciliation targets within tolerance (one row p
     E48 (650 k€) and E49 (75 k€) go to construction capex at NTP, so total project cost is unchanged but 725 k€ is no
     longer reimbursed at the RtB sale, no longer earns the 12 % return and no longer sits in "capital" (RtB MOIC
     and capital targets move; the reconciliation set uses `In_Milestones_Scope` = 6). (S)
+16. **Grid charging (fix round 1, M1):** export-only grid; the Aurora stack scaled to PV-only charging (the v3
+    0.591 idea, now from the selected block's own rows). (S: `In_Grid_Import_MW`)
+17. **PV price (fix round 1, M2):** direct export and PV-to-BESS energy priced separately (v3: one flat 65 % capture
+    on all output). (S: curve names)
+18. **Tax views (fix round 1):** unlevered views on an unlevered tax; FEP taxed on the 12 % return; DSA and SPV price
+    out of the SPV tax base.
 Known original-model bugs that are **not** reproduced (noted in the reconciliation): Summary!D28 → RTB_Model!D75
 instead of D78; Sensitivities!E39:E42 use D73/D74; Calculation!G225 omits G221; Dyn_Inp!G24/H26:Y26 row offsets;
 Control!D26 formula overrides the construction-start default; stale notes (Control!E8, E52, E82, E97, E115; HTM!E46…).
@@ -457,17 +494,17 @@ Phase 3 – audit: `python3 -m fepm audit projects/zalahalap`, reconciliation re
 ## 15. Frozen defaults (build now; each is an `Inputs` row in blue, note "DEFAULT – confirm", listed in §16)
 | # | Item | Default used in the build | Set / switch |
 |---|---|---|---|
-| 1 | Bank terms (the original has no debt) | gearing cap 55 % of PV+BESS construction cost; 15-year level annuity from COD at 5.0 % all-in; sizing DSCR 1.20x on contracted revenue, **1.35x on merchant and BESS revenue** (`In_DSCR_Merchant`); upfront 1.75 %, commitment 0.9 %; DSRA 6 months; no sweep. Values are the Bana wind indications, not ZHLP terms. | sets 11, 12 |
-| 2 | Deal form | `In_Sale_Form` = share sale at RtB and at COD; gain exempt (`In_Sale_Gain_Taxed` 0); buyer reimburses the JV loans and the four-line early works (as RTB_Model row 69) | asset-deal switch built, off |
-| 3 | Buyer target IRR | 8.0 % unlevered post-tax at RtB and at COD (original Control!D9; midpoint of Sensitivities!D71:D75); implied prices closed-form (§9) | set 9 |
+| 1 | Bank terms (the original has no debt) | gearing cap 55 % of PV+BESS construction cost; 15-year level annuity from COD at 5.0 % all-in; sizing DSCR 1.20x on contracted revenue, **1.35x on merchant and BESS revenue** (`In_DSCR_Merchant`); upfront 1.75 %, commitment 0.9 %; DSRA 6 months; no sweep. Values are the Bana wind indications, not ZHLP terms. | set 10 (gearing −10 pp) |
+| 2 | Deal form | `In_Sale_Form` = share sale at RtB and at COD; gain exempt (`In_Sale_Gain_Taxed` 0); buyer reimburses the JV loans and the four-line early works (as RTB_Model row 69) | `In_Sale_Form` drives the FEP gain tax only (fix round 1) |
+| 3 | Buyer target IRR | 8.0 % unlevered post-tax at RtB and at COD (original Control!D9; midpoint of Sensitivities!D71:D75); implied prices closed-form (§9), floored at 0 | set 7 |
 | 4 | Dates | Scenario A: original (acq. 30-Nov-25, RtB 31-Jul-26, sale 31-Oct-26, NTP 01-Apr-27, COD 01-Apr-28). B and C: RtB 31-Dec-26, sale 31-Mar-27, NTP 30-Jun-27, **COD 31-Mar-2028 for PV and BESS** (teaser); MET/E.ON contracts from 01-Jan-28 / COD. Life 35 years. | set 13 (COD +12 m) |
-| 5 | BESS | 50 MW × **4 h = 200 MWh** (teaser, original), DC co-located, Aurora block "2027 solar DC 1.0cy 4h", availability 98 %, RTE 0.86 (Aurora Inputs!C17:C18, information only), haircut 0 %, capex 110 k€/MWh (original Control!D94; Aurora's reference ≈ 267 k€/MWh is flagged), augmentation 110 k€/MWh indexed at the block's repower year (2048), grid charging as in Aurora's dispatch | sets 14 (2 h, 100 MWh, block "2027 solar DC 1.0cy 2h"), 15 (no BESS) |
-| 6 | PV price | Aurora-implied capture (§6.2), Central only | sets 3, 4, 16 |
-| 7 | PV yield | 1,265 kWh/kWp (teaser; original 1,250 in Scenario A), availability 99.5 %, degradation 0.3 %/yr, clipping at 49.9 MVA via `In_Clip_Loss` = 2 % of DC energy (placeholder until the yield report) | set 5 (−10 %) |
+| 5 | BESS | 50 MW × **4 h = 200 MWh** (teaser, original), DC co-located, Aurora block "2027 solar DC 1.0cy 4h", availability 98 %, RTE 0.86 (Aurora Inputs!C17:C18, information only), haircut 0 %, capex 110 k€/MWh (original Control!D94; Aurora's reference ≈ 267 k€/MWh is flagged), augmentation 110 k€/MWh indexed at the block's repower year (2048), **no grid import: PV-only charging** (fix round 1) | sets 12 (2 h), 13 (no BESS), 14 (capex 200), 15 (no repower) |
+| 6 | PV price | Aurora direct-export and PV-to-BESS transfer prices (fix round 1), Central only | sets 3, 16 |
+| 7 | PV yield | 1,265 kWh/kWp (teaser; original 1,250 in Scenario A), availability 99.5 %, degradation 0.3 %/yr, clipping 2 % in case A (v3 + fix 5), 0 % in the DC-coupled cases B and C (placeholder until the yield report) | set 4 (−10 %) |
 | 8 | Capex / opex | original model values (§3.1): PV 350 k€/MWp, MV cable 3,700, substation 9,500, land 620, opex lines as Control!D59:D62, D96; devex to RtB 3,182 k€; early works 12.87 k€/MW (four lines) + E48/E49 in capex at NTP | sets 7, 8 |
-| 9 | Tax | CIT 9 % (original; Bana's 15 % Pillar Two proxy as a set), HIPA 2 % + innovation 0.3 % on revenue, PV and cable/substation depreciation 30 y, BESS 10 y **[placeholder]**, loss cap 50 % / 5-year lapse, Robin Hood off (set) | sets as Bana |
+| 9 | Tax | CIT 9 % (original; Bana's 15 % Pillar Two proxy as a set), HIPA 2 % + innovation 0.3 % on revenue, PV and cable/substation depreciation 30 y, BESS 10 y **[placeholder]**, loss cap 50 % / 5-year lapse on one date (simplification), Robin Hood off; HIPA, innovation and the lapse flagged | – |
 | 10 | JV | 221025 sheet mechanics (§7) with the step share rule (§0.1); price basis **90 k€/MW on MWp** (`In_JV_Price_Basis`, the original's figure; the JV sheet's 120 is a set); 549 k€ SPV price and 562.5 k€ non-devex loan as typed in the sheet; COD sale uses the same split; HTM = FEP buys PSH out at the RtB entitlement (`In_PSH_Stays` 0) | sets 10, 18 |
-| 11 | Offers | terms as read in §6.3; E.ON fee 7.6 %; option A bands 2027/2028 then option B; MET 90 MWh scaled to the built MWh per MW; MVM 45 €/MWh on 100 % of PV output, no BESS instrument | sets 1, 17, 18 |
+| 11 | Offers | terms as read in §6.3; E.ON fee 7.6 %; option A bands 2027/2028 then option B; BESS fixed fees not scaled above the offered duration, flag when the offer ≠ built (fix round 1); MVM 45 €/MWh on 100 % of PV output, no BESS instrument | sets 1, 17, 18 |
 
 ## 16. Still open (answers refine the defaults above; nothing blocks the build)
 (Q1 answered 22-Oct-2026: 60 % at exactly 90, §0 item 4. The other numbers are kept, Inputs notes cite them.)
@@ -487,3 +524,6 @@ Phase 3 – audit: `python3 -m fepm audit projects/zalahalap`, reconciliation re
 12. Offers: E.ON fee 7.6 % and GoO treatment; E.ON BESS bands after 2028 and A vs B; MET fixed-PPA indexation/GoO,
     downregulation scope, PSA 50/50 reference, 90 MWh; MVM 45 €/MWh scope and BESS; which pairings as sets.
 13. Yield report (P50/P90, clipping) and cable/substation quotes.
+14. Grid agreement: is import allowed for BESS charging (`In_Grid_Import_MW`, 0 now)? Material: about −6 pp on the hold
+    IRR versus full grid charging.
+15. Offers vs the built BESS: re-quote MET/E.ON for 50 MW / 200 MWh, or build the offered duration?

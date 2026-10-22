@@ -94,9 +94,25 @@ def params(**over):
         disc=0.08, buyer_irr=0.08,
         gearing=0.55, dscr_c=1.20, dscr_m=1.35, tenor=15, debt_rate=0.05, upfront=0.0175, commit=0.009, dsra_m=6,
         cit=0.09, dep_years=30, dep_bess=10, loss_cap=0.5, loss_years=5,
+        # fix round 1 (False/legacy values reproduce the build before it)
+        pv_tr_curve=None, grid_import=0, repower=1, dep_sh=False, unlev_tax=True, int_tax=True,
     )
     p.update(over)
     return p
+
+
+def params_b(**over):
+    """Base set, case B (Aurora merchant, Calc_2)."""
+    blk = "2027 solar DC 1.0cy 4h"
+    p = params(mwp=63, mva=49.9, yld=1265, rtb=dt.date(2026, 12, 31), exit=dt.date(2027, 3, 31),
+               ntp=dt.date(2027, 6, 30), cod=dt.date(2028, 3, 31), pv_curve=("direct_price", blk),
+               pv_tr_curve=("transfer_price", blk), clip=0.0, block=blk)
+    p.update(over)
+    return p
+
+
+LEGACY = dict(pv_curve=("implied_capture", "2027 solar DC 1.0cy 4h"), pv_tr_curve=None, grid_import=50, clip=0.02,
+              dep_sh=True, unlev_tax=False, int_tax=False)     # case B as built before fix round 1
 
 
 SET2 = dict(scope=6, ew_psh=1, hipa=0, innov=0, step=0, spv=150, spv_int=1, dsa=0, psh_step=1,
@@ -153,25 +169,43 @@ def run(p):
     q4 = [1 if b.month == 12 else 0 for b in ends]
     q1 = [1 if b.month <= 3 else 0 for b in ends]
     infl = [C["index"][y] for y in year]
-    pv_real = [C[p["pv_curve"]][y] if isinstance(p["pv_curve"], str) and p["pv_curve"] in C else
-               C[("implied_capture", p["block"])][y] for y in year]
+    pv_real = [C[p["pv_curve"]][y] for y in year]
     pv_mkt = [x * i for x, i in zip(pv_real, infl)]
+    pv_tr = [C[p["pv_tr_curve"] or p["pv_curve"]][y] * i for y, i in zip(year, infl)]
     goo = [p["goo"] * i for i in infl]
     bkey = p["block"] if p["fix6"] else "v3"
     stk_real = [C["v3_bess"][y] if bkey == "v3" else C[("storage_total", bkey)][y] for y in year]
-    stack = [x * i * (1 - p["haircut"]) * p["bess_avail"] / p["aurora_avail"] for x, i in zip(stk_real, infl)]
     bmw = p["bess_mw"] * p["bess_on"]
     bmwh = bmw * p["bess_h"]
+    if bkey == "v3":
+        res_sh = [1.0] * N
+        v_res = [C["v3_res"][y] for y in year]
+    else:
+        dis_, res_ = C[("discharge", bkey)], C[("charge_res", bkey)]
+        res_sh = [1.0 if dis_[y] == 0 else min(1, -res_[y] * 0.86 / dis_[y]) for y in year]
+        v_res = [res_[y] for y in year]
+    gcov = min(1, p["grid_import"] / max(1, bmw))
+    if p["fix7"]:
+        rc = C[("repower_count", p["block"])] if p["fix6"] else None
+        aug_y = p["aug_year"] or (next((y for y in range(2026, 2061) if rc[y] >= 1), 0) if rc else 2048)
+    else:
+        aug_y = p["aug_year_v3"]
+    live = [1 - (1 - p["repower"]) * (1 if y >= aug_y else 0) for y in year]
+    stack = [x * i * (1 - p["haircut"]) * p["bess_avail"] / p["aurora_avail"] * (r + (1 - r) * gcov)
+             for x, i, r in zip(stk_real, infl, res_sh)]
     gen = [p["mwp"] * p["yld"] * p["pv_avail"] * (1 - p["deg"]) ** el * o * y for el, o, y in zip(elapsed, ops, yf)]
-    clip = [-g * p["clip"] * p["fix5"] for g in gen]
+    clip_sh = p["clip"] * (p["fix5"] if p["pv_curve"] == "v3_capture" else 1)
+    clip = [-g * clip_sh for g in gen]
     net = [g + c for g, c in zip(gen, clip)]
-    pv_rev = [n * x / 1000 for n, x in zip(net, pv_mkt)]
+    to_bess = [min(n, -v * bmw * o * y * lv) for n, v, o, y, lv in zip(net, v_res, ops, yf, live)]
+    pv_exp = [n - t for n, t in zip(net, to_bess)]
+    pv_rev = [(a * x + b * tr) / 1000 for a, x, b, tr in zip(pv_exp, pv_mkt, to_bess, pv_tr)]
     goo_rev = [n * x / 1000 for n, x in zip(net, goo)]
-    bess_rev = [x * bmw * o * y for x, o, y in zip(stack, ops, yf)]
+    bess_rev = [x * bmw * o * y * lv for x, o, y, lv in zip(stack, ops, yf, live)]
     rev = [a + b + c for a, b, c in zip(pv_rev, goo_rev, bess_rev)]
     opex = [-(p["om"] + p["cable_om"]) * p["mwp"] * i * o * y - p["bal"] * n / 1000 * i - p["lease"] * i * o * y
-            - p["bess_opex"] * bmw * i * o * y - r * (p["hipa"] + p["innov"])
-            for i, o, y, n, r in zip(infl, ops, yf, net, rev)]
+            - p["bess_opex"] * bmw * i * o * y * lv - r * (p["hipa"] + p["innov"])
+            for i, o, y, n, r, lv in zip(infl, ops, yf, net, rev, live)]
     ebitda = [r + x for r, x in zip(rev, opex)]
     # development
     spv = [-p["spv"] * a for a in acq_ev]
@@ -194,14 +228,7 @@ def run(p):
     capex_b = p["bess_capex"] * bmwh
     capex_tot = p["pv_capex"] * p["mwp"] + p["cable"] + p["subst"] + p["land"] + capex_b
     capex = [-(capex_tot + sum(ew_dev) + sum(ew_ntp)) * c for c in constr]
-    repower = 2048                                            # Aurora 4 h block: repower count 1 from 2048
-    if p["fix7"]:
-        rc = C[("repower_count", p["block"])] if p["fix6"] else None
-        repower = next((y for y in range(2026, 2061) if rc[y] >= 1), 0) if rc else 2048
-        aug_y = p["aug_year"] or repower
-    else:
-        aug_y = p["aug_year_v3"]
-    aug = [-p["aug_cost"] * bmwh * (i if p["fix7"] else 1) * (1 if y == aug_y else 0) * a
+    aug = [-p["aug_cost"] * p["repower"] * bmwh * (i if p["fix7"] else 1) * (1 if y == aug_y else 0) * a
            for i, y, a in zip(infl, year, q1)]
     cost = [a + b for a, b in zip(capex, ew_ntp)]
     idx = [(1 + rq) ** (k + 1) for k in range(N)]
@@ -247,25 +274,31 @@ def run(p):
         out["service"], out["cfads"], out["k"], out["d_close_cod"] = service, cfads, k, d_close_cod
         return out
 
-    tax = [0.0] * N
-    for _ in range(100):                                       # the tax circularity, as Solver.bas
-        db = debt(tax)
-        dep_base = capex_tot - capex_b - p["land"] + sum(db["idc"]) - sum(pre_dev) - sum(dsa) - sum(spv)
-        tdep = [-dep_base * x for x in dep]
-        tdep_b = [-capex_b * x for x in dep_b]
-        aug_i = sum(aug)
-        a0 = next((e for a, e in zip(aug, ends) if a < 0), EXCEL0) + one
-        tdep_a = [aug_i * x for x in (spread(a0, edate(a0 - one, p["dep_bess"] * 12)) if aug_i else [0] * N)]
-        taxable = [e + a + b + c + i + u + f + g for e, a, b, c, i, u, f, g in
-                   zip(ebitda, tdep, tdep_b, tdep_a, db["int"], db["up"], db["cf"], bg_hold)]
+    def losses(taxable):
         lapse_d = edate(p["ntp"], p["loss_years"] * 12)
-        lcf, new = 0.0, []
+        lcf, out = 0.0, []
         for t in range(N):
             add = max(0, -taxable[t])
             use = -min(lcf, p["loss_cap"] * max(0, taxable[t]))
             lapse = -(lcf + add + use) * (1 if starts[t] <= lapse_d <= ends[t] else 0)
             lcf = lcf + add + use + lapse
-            new.append(-p["cit"] * (max(0, taxable[t]) + use))
+            out.append(-p["cit"] * (max(0, taxable[t]) + use))
+        return out
+
+    tax = [0.0] * N
+    for _ in range(100):                                       # the tax circularity, as Solver.bas
+        db = debt(tax)
+        dep_base = capex_tot - capex_b - p["land"] - sum(pre_dev) - (sum(dsa) + sum(spv)) * p["dep_sh"]
+        tdep = [-dep_base * x for x in dep]
+        tdep_i = [-sum(db["idc"]) * x for x in dep]
+        tdep_b = [-capex_b * x for x in dep_b]
+        aug_i = sum(aug)
+        a0 = next((e for a, e in zip(aug, ends) if a < 0), EXCEL0) + one
+        tdep_a = [aug_i * x for x in (spread(a0, edate(a0 - one, p["dep_bess"] * 12)) if aug_i else [0] * N)]
+        taxable = [e + a + ii + b + c + i + u + f + g for e, a, ii, b, c, i, u, f, g in
+                   zip(ebitda, tdep, tdep_i, tdep_b, tdep_a, db["int"], db["up"], db["cf"], bg_hold)]
+        taxable_u = [e + a + b + c + g for e, a, b, c, g in zip(ebitda, tdep, tdep_b, tdep_a, bg_hold)]
+        new = losses(taxable)
         if max(abs(a - b) for a, b in zip(new, tax)) < 1e-9:
             tax = new
             break
@@ -273,9 +306,10 @@ def run(p):
     db = debt(tax)
     dev_cf = [sum(x) for x in zip(spv, trans, dsa, ew_dev, pre_dev, dep_cash, dep_back, dep_cod, bg_hold)]
     proj_pre = [a + b + c + d + e for a, b, c, d, e in zip(dev_cf, capex, ew_ntp, aug, ebitda)]
-    proj_cf = [a + t for a, t in zip(proj_pre, tax)]
+    tax_u = losses(taxable_u) if p["unlev_tax"] else tax
+    proj_cf = [a + t for a, t in zip(proj_pre, tax_u)]
     debt_cf = [a + b + c + d + e for a, b, c, d, e in zip(db["draw"], db["up"], db["cf"], db["service"], db["dsra"])]
-    eq_cf = [a + b for a, b in zip(proj_cf, debt_cf)]
+    eq_cf = [a + t + b for a, t, b in zip(proj_pre, tax, debt_cf)]
     # buyer at RtB
     first_exit = next(t for t in range(N) if exit_ev[t])
     ew_to_exit = -sum(x for x, a in zip(ew_dev, starts) if a <= p["exit"])
@@ -285,7 +319,7 @@ def run(p):
     bu_rtb = [px * (pc - dc + bg + dcod + ew) - rx - pr for px, pc, dc, bg, dcod, ew, rx, pr in
               zip(post_x, proj_cf, dev_cf, bg_hold, dep_cod, ew_dev, reimb_x, pre_reimb)]
     imp_r = V3.xnpv(p["buyer_irr"], bu_rtb[first_exit:], ends[first_exit:]) / p["mwp"]
-    price = p["price"] if p["price"] > 0 else imp_r
+    price = p["price"] if p["price"] > 0 else max(0, imp_r)
     consid = price * p["mwp"]
     buy_r = [b - consid * x for b, x in zip(bu_rtb, exit_ev)]
     # FEP return (12 %)
@@ -327,17 +361,21 @@ def run(p):
                zip(spv, trans, dsa, ew_dev, dep_cash, post_x, bg_rtb, pre_dev)]
     rtb_in = [db_ * (1 - px) + rx + pr + w_fep * x for db_, px, rx, pr, x in
               zip(dep_back, post_x, reimb_x, pre_reimb, exit_ev)]
-    rtb_cf = [a + b for a, b in zip(rtb_out, rtb_in)]
+    rtb_pre = [a + b for a, b in zip(rtb_out, rtb_in)]
+    rtb_cf = [a - p["cit"] * paid[3] * x * p["int_tax"] for a, x in zip(rtb_pre, exit_ev)]
     # hold to maturity
     htm_w = [1 - px * 0 for px in post_x]
     htm_cf = [e * w - w_psh * x for e, w, x in zip(eq_cf, htm_w, exit_ev)]
     psh_r = [-p["psh_land"] * a - p["psh_devex"] * p["mwp"] * w - d - p["ew_psh"] * e + w_psh * x
              for a, w, d, e, x in zip(acq_ev, dsa_w, dsa, ew_dev, exit_ev)]
     return dict(
-        rtb_profit=sum(rtb_cf), rtb_irr=V3.xirr(rtb_cf, ends), rtb_moic=sum(rtb_in) / -sum(rtb_out),
+        rtb_profit=sum(rtb_cf), rtb_irr=V3.xirr(rtb_cf, ends), rtb_irr_pre=V3.xirr(rtb_pre, ends),
+        rtb_moic=(sum(rtb_in) + sum(rtb_cf) - sum(rtb_pre)) / -sum(rtb_out),
+        htm_irr_pre=V3.xirr([h - t for h, t in zip(htm_cf, tax)], ends), proj_irr_pre=V3.xirr(proj_pre, ends),
+        first_rev=sum(r for r, y in zip(rev, year) if y == cod.year + 1),
         htm_irr=V3.xirr(htm_cf, ends), htm_moic=sum(x for x in htm_cf if x > 0) / -sum(x for x in htm_cf if x < 0),
         htm_npv=V3.xnpv(p["disc"], htm_cf, ends), proj_irr=V3.xirr(proj_cf, ends),
-        buyer_irr=V3.xirr(buy_r[first_exit:], ends[first_exit:]), implied_rtb=imp_r,
+        buyer_irr=V3.xirr(buy_r[first_exit:], ends[first_exit:]), implied_rtb=max(0, imp_r), implied_raw=imp_r,
         life_revenue=sum(rev), life_ebitda=sum(ebitda), share=sh, w_fep=w_fep, w_psh=w_psh, dist=dist,
         psh_profit=sum(psh_r), debt_cod=db["d_close_cod"], tax=sum(tax), ends=ends, rtb_cf=rtb_cf, htm_cf=htm_cf,
     )
@@ -370,7 +408,7 @@ OUTS = [  # key, label, unit, (column, Calc_1 row label)
     ("rtb_moic", "FEP MOIC – RtB", "x", ("E", "FEP MOIC – sale at RtB (receipts after tax ÷ outlays)")),
     ("htm_irr", "FEP IRR – HTM", "%", ("E", "FEP IRR – hold to maturity, levered, after tax")),
     ("htm_npv", "FEP NPV – HTM", "k", ("E", "FEP NPV – hold to maturity")),
-    ("proj_irr", "Project IRR", "%", ("E", "Project IRR, unlevered, after the SPV's actual tax")),
+    ("proj_irr", "Project IRR", "%", ("E", "Project IRR, unlevered, after tax")),
     ("buyer_irr", "Buyer IRR at 90", "%", ("E", "Buyer IRR at RtB, unlevered, after tax")),
     ("life_revenue", "Lifetime revenue", "k", ("I", "Revenue (E: first full year)")),
     ("life_ebitda", "Lifetime EBITDA", "k", ("I", "EBITDA (E: first full year)")),
@@ -390,13 +428,13 @@ TARGET_MAP = {  # v3 target key -> (column, Calc_1 row label, scale to the targe
     "htm_npv": ("E", "FEP NPV – hold to maturity", 1000),
     "htm_capital": ("E", "FEP capital invested – hold to maturity (outflows)", 1000),
     "htm_payback": None,
-    "project_irr": ("E", "Project IRR, unlevered, after the SPV's actual tax", 1),
+    "project_irr": ("E", "Project IRR, unlevered, after tax", 1),
     "buyer_irr": ("E", "Buyer IRR at RtB, unlevered, after tax", 1),
     "buyer_moic": None, "buyer_npv": None,
     "ffy_gwh": ("E", "PV generation after availability and degradation (E: first full year)", 1000),
     "ffy_price": None,
     "ffy_revenue": ("E", "Revenue (E: first full year)", 1000),
-    "life_pv_revenue": ("I", "PV revenue (E: first full year)", 1000),
+    "life_pv_revenue": ("I", "PV revenue: direct export and energy sent to the BESS (E: first full year)", 1000),
     "life_goo": ("I", "Guarantee of origin revenue", 1000),
     "life_revenue": ("I", "Revenue (E: first full year)", 1000),
     "life_ebitda": ("I", "EBITDA (E: first full year)", 1000),
@@ -410,10 +448,10 @@ WHY = {  # target key -> why the new structure differs in the reconciliation set
                      "from 31-Oct-26 to 31-Dec-26, the pre-RtB costs to quarter ends; the profit ties",
     "rtb_moic_incl_dep": "gross receipts ÷ gross outlays as v3; deposits counted when paid and refunded (v3: peak "
                          "balance), guarantee fees and the return on the quarterly grid",
-    "rtb_net_profit": "ties within 0.02 k€: the quarterly return and guarantee fees net out",
+    "rtb_net_profit": "FEP now pays 9 % CIT on the 12 % return it receives (fix round 1, D7); v3 had no tax at FEP",
     "rtb_capital": "guarantee fees run to the end of the exit quarter (31-Dec-26; v3: the sale month) on "
                    "quarter-end balances; deposits equal (1,776)",
-    "rtb_proceeds": "mirror of capital and profit",
+    "rtb_proceeds": "mirror of capital and profit (proceeds before FEP tax)",
     "developer_profit": "v3 deducts the PSH land apport (150) from the price but never credits it to PSH "
                         "(Calculation F225); the new model pays it back to PSH",
     "htm_xirr": "no working capital, linear construction spread (v3: buyer-model monthly curve), deposits and "
@@ -529,8 +567,36 @@ def workbook_bridge():
             lo.set("Scenario_Name", "Base")
             lo.run_macro("Scenarios", "RunSolvers")
             base = snap(lo)
+            base_b = {k: lo.get(f"Calc_2!{c}{idx[lab]}") for k, _, _, (c, lab) in OUTS}
+            base_b["implied_rtb"] = lo.get(f"Calc_2!E{idx[IMPLIED]}")
             checks1 = lo.get("Model_Checks")
-    return set2, res, base, checks2, checks1
+    return set2, res, base, checks2, checks1, base_b
+
+
+IMPLIED = "Implied RtB price at the target IRR, floored at 0 (E), closed form (F)"
+BLK = "2027 solar DC 1.0cy 4h"
+FIX1 = [  # case B, cumulative from the build before fix round 1 (shadow switches)
+    ("Build before fix round 1 (shadow)", dict(LEGACY)),
+    ("M1: export-only grid, BESS charged from PV only", dict(grid_import=0)),
+    ("M2: two PV prices (direct export, transfer to the BESS)",
+     dict(pv_curve=("direct_price", BLK), pv_tr_curve=("transfer_price", BLK))),
+    ("Clipping 0 % for the DC-coupled case", dict(clip=0.0)),
+    ("D6: DSA and SPV price out of the SPV tax base", dict(dep_sh=False)),
+    ("Unlevered tax in project, buyer and implied price", dict(unlev_tax=True)),
+    ("D7: FEP taxed on the 12 % return", dict(int_tax=True)),
+]
+FIX1_OUTS = [("htm_irr", "FEP IRR – hold", "%"), ("htm_irr_pre", "FEP IRR – hold, pre-tax", "%"),
+             ("proj_irr", "Project IRR", "%"), ("buyer_irr", "Buyer IRR at 90", "%"),
+             ("implied_raw", "Implied RtB price before the 0 floor (k€/MWp)", "k"),
+             ("rtb_profit", "FEP profit – RtB (k€)", "k"), ("first_rev", "Revenue, first full year (k€)", "k")]
+
+
+def fix1_bridge():
+    over, out = {}, []
+    for label, sw in FIX1:
+        over.update(sw)
+        out.append((label, run(params_b(**over))))
+    return out
 
 
 def old_bridge():
@@ -542,7 +608,7 @@ def old_bridge():
     return out
 
 
-def report(set2, res, base, checks2, checks1):
+def report(set2, res, base, checks2, checks1, base_b):
     tg, rows3 = V3.targets(), V3.run()
     tol = lambda t, x, unit: abs(x - t) <= (0.001 if unit == "%" else 0.001 * max(1, abs(t)))  # noqa: E731
     units = {r["key"]: r["unit"] for r in csv.DictReader(open(DATA / "old_engine" / "old_targets.csv"))}
@@ -587,7 +653,7 @@ def report(set2, res, base, checks2, checks1):
           "(both rules give 60 %, user 22-Oct-2026).", "",
           "## 3. New structure: reconciliation set → base set (workbook, cumulative)", "",
           "Values in € k (profit, NPV, lifetime totals). Each step removes the set-2 override of the inputs named "
-          "(the set then inherits the base value) and re-runs Solver.bas and GoalSeek.bas.", "",
+          "(the set then inherits the base value) and re-runs Solver.bas.", "",
           "| Step | SPEC | " + " | ".join(lbl for _, lbl, _, _ in OUTS) + " |", "|---|---|" + "---:|" * len(OUTS)]
     prev = None
     spec = {lbl: s for lbl, _, s in STEPS}
@@ -606,14 +672,32 @@ def report(set2, res, base, checks2, checks1):
     for k, lbl, u, _ in OUTS:
         if k in sh2:
             L.append(f"| {lbl} | {fmt(sh2[k], u)} | {fmt(res[0][1][k], u)} | {sh2[k] - res[0][1][k]:.2e} |")
-    L += ["", "## 5. Structural changes (§13 items without a switch)", "",
+    L += ["", "## 5. Fix round 1 (22-Oct-2026): case B bridge, build before → new base (shadow, cumulative)", "",
+          "Each step switches one change on in the independent shadow; the first line equals the workbook before fix "
+          "round 1 (hold 10.72 %, implied RtB 165.4 k€/MWp, buyer IRR 8.83 %), the last line is checked against the "
+          "new workbook (Calc_2, base set). The DSRA fix (COD sale only), D1 and D2 do not move these columns.", "",
+          "| Step | " + " | ".join(lbl for _, lbl, _ in FIX1_OUTS) + " |", "|---|" + "---:|" * len(FIX1_OUTS)]
+    prev = None
+    for label, vals in fix1_bridge():
+        if prev is None:
+            L.append(f"| {label} | " + " | ".join(fmt(vals[k], u) for k, _, u in FIX1_OUTS) + " |")
+        else:
+            L.append(f"| + {label} | " + " | ".join(delta(prev[k], vals[k], u) for k, _, u in FIX1_OUTS) + " |")
+        prev = vals
+    L.append("| **Shadow, new base** | " + " | ".join(fmt(prev[k], u) for k, _, u in FIX1_OUTS) + " |")
+    wbk = {"htm_irr": base_b["htm_irr"], "proj_irr": base_b["proj_irr"], "buyer_irr": base_b["buyer_irr"],
+           "rtb_profit": base_b["rtb_profit"]}
+    L.append("| **Workbook, Calc_2 base** | " + " | ".join(fmt(wbk.get(k), u) for k, _, u in FIX1_OUTS) + " |")
+    L += ["", f"Implied RtB price in the workbook (floored at 0): {base_b['implied_rtb']:.1f} k€/MWp.",
+          "", "## 6. Structural changes (§13 items without a switch)", "",
           "- §13.1: Aurora_Curve!C8 = 'no ' breaks the v3 HTM chain; the [R] targets come from the patched copy.",
           "- §13.4: the project IRR includes all project cash (v3 HTM_Model!D79 left out deposits, guarantees and "
           "pre-RtB costs).",
           "- §13.9: v3 has no debt; set 2 runs at 0 % gearing, the base at 55 % (Bana terms, SPEC §15.1).",
           "- §13.10: HIPA and the innovation contribution are off in set 2; tax on the sale gain per deal form "
-          "(share deal, exempt). The tax base also carries IDC, pre-RtB costs, the DSA and the SPV price "
-          "(v3: construction capex only).",
+          "(share deal, exempt; asset deal taxed); FEP pays CIT on the 12 % return as interest income. The SPV tax "
+          "base also carries IDC and pre-RtB costs (v3: construction capex only); the DSA and the SPV price are "
+          "shareholder-level and stay out. Unlevered views use an unlevered tax (no interest or fees).",
           "- §13.11: one FX (400) for the HUF deposits and land payments.",
           "- §13.12: one quarterly timeline from 01-Oct-2025 (v3: monthly RtB route, quarterly HTM); flows at "
           "period ends; the exit quarter belongs to the seller; the 12 % return on a payment starts in the next "
@@ -623,7 +707,7 @@ def report(set2, res, base, checks2, checks1):
           "- Not in §13, by design of the new structure: no working capital (v3: 30 days receivable and payable), "
           "construction capex spread linearly over NTP → COD (v3: buyer-model monthly curve), case A COD = "
           "31-Mar-2028 (v3 01-Apr-2028 = operations from the same day), degradation on a 365-day year.",
-          "", "## 6. v3 bugs not reproduced (SPEC §13)", "",
+          "", "## 7. v3 bugs not reproduced (SPEC §13)", "",
           "Summary!D28 → RTB_Model!D75 instead of D78; Sensitivities!E39:E42 use D73/D74; Calculation!G225 omits "
           "G221; Dyn_Inp!G24/H26:Y26 row offsets; Control!D26 overrides the construction-start default; stale notes. "
           "Also found: the developer's proceeds (Calculation F225) omit the 150 land apport deducted at F155.", ""]

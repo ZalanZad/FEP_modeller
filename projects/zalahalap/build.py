@@ -12,7 +12,6 @@ import csv
 import datetime as dt
 from pathlib import Path
 
-from openpyxl.styles import Alignment
 from openpyxl.utils import get_column_letter as L
 
 from fepm.xl.builder import Model
@@ -26,13 +25,18 @@ NAME = "Zalahalap_Model"
 D = dt.date
 START, PERIODS = D(2025, 10, 1), 155                       # 01-Oct-2025 → 30-Jun-2064
 YEARS = list(range(2025, 2065))
-SETS = ["Base", "Reconciliation (v3 rules)", "PV price −10%", "PV price +10%", "PV yield −10%", "BESS revenue −20%",
-        "Capex +10%", "Opex +10%", "Buyer IRR +1 pp", "RtB and COD price −10%", "Gearing −10 pp", "Debt rate +1 pp",
-        "COD +12 months", "BESS 2 h", "No BESS", "PV and BESS prices −20%", "C: E.ON PPA + option B",
-        "C: MVM 45 + MET floor"]
-BLOCK = "2027 solar DC 1.0cy 4h"                            # default Aurora battery block (SPEC §15 item 5)
-BLOCK_2H = "2027 solar DC 1.0cy 2h"
-CAPTURE = "Aurora implied capture – "                        # PV curve names: CAPTURE + block
+SETS = ["Base", "Reconciliation (v3 rules)", "PV price −10%", "PV yield −10%", "BESS revenue −20%", "Capex +10%",
+        "Buyer IRR +1 pp", "RtB and COD price −10%", "RtB price = implied", "Gearing −10 pp", "COD +12 months",
+        "BESS 2 h", "No BESS", "BESS capex 200 k€/MWh", "No BESS repower", "PV and BESS prices −20%",
+        "C: E.ON PPA + option B", "C: MVM 45 + MET floor"]
+S = {n: k for k, n in enumerate(SETS, 1)}                   # set number by name
+SHORT = {"2027 solar DC 1.0cy 4h": "DC 4h", "2027 solar DC 1.0cy 2h": "DC 2h", "2027 solar DC 1.5cy 2h": "DC 2h 1.5cy",
+         "2027 standalone 1.0cy 2h": "Standalone 2h", "2030 solar DC 1.0cy 4h": "DC 4h 2030",
+         "2030 solar DC 1.5cy 2h": "DC 2h 1.5cy 2030"}       # Aurora block (Degraded batteries) -> short curve code
+BLOCK_FULL = "2027 solar DC 1.0cy 4h"                       # default Aurora battery block (SPEC §15 item 5)
+BLOCK, BLOCK_2H = SHORT[BLOCK_FULL], SHORT["2027 solar DC 1.0cy 2h"]
+DIRECT, TRANSFER, CAPTURE = " direct", " transfer", " blended"   # PV curve names: block code + suffix
+V3_PV, V3_BESS = "v3 capture", "v3 BESS"
 PH = "placeholder – pending user (SPEC §16 Q{})"
 EW_NOTE = "provisional – early works to be revisited (user 22-Oct-26)"
 EXIT = 'SUMIF({start.all},"<="&{exit_ev.E},{self.all})'    # amount to the end of the exit period
@@ -61,7 +65,7 @@ def inputs(m):
     a("NTP", "Notice to proceed (cases B, C)", "date", D(2027, 6, 30), source=PH.format(5))
     a("COD", "Commercial operation, PV and BESS (cases B, C)", "date", D(2028, 3, 31),
       source="Teaser p6; " + PH.format(5))
-    a("COD_Delay", "COD delay (construction longer)", "months", 0, {13: 12}, source="SPEC §10 set 13", fmt="int")
+    a("COD_Delay", "COD delay (construction longer)", "months", 0, {S["COD +12 months"]: 12}, source="SPEC §10", fmt="int")
     a("Life", "Operating life", "years", 35, source="ZHLP v3 Control D30", fmt="int")
     a("PreRtB_First", "Pre-RtB development costs: first month", "date", D(2026, 10, 31),
       source="ZHLP v3 Control D116")
@@ -71,40 +75,49 @@ def inputs(m):
     a("MWp", "PV capacity", "MWp", 63, source="Teaser p1", fmt="money1")
     a("Grid_MVA", "Grid export capacity", "MVA", 49.9, source="Teaser p1", fmt="money1")
     a("Yield", "Specific yield", "MWh/MWp", 1265, source="Teaser p1 (v3: 1,250)", fmt="money")
-    a("Yield_Adj", "Yield change (P90 proxy)", "%", 0, {5: "=-Sens_Step"}, source="SPEC §10 set 5")
+    a("Yield_Adj", "Yield change (P90 proxy)", "%", 0, {S["PV yield −10%"]: "=-Sens_Step"}, source="SPEC §10")
     a("PV_Avail", "PV availability", "%", 0.995, source="ZHLP v3 Control D56")
     a("Degradation", "PV degradation per year", "%", 0.003, source="ZHLP v3 Control D57", fmt="0.00%")
-    a("Clip_Loss", "Clipping at the grid limit, share of DC energy", "%", 0.02, source=PH.format(13))
+    a("Clip_Loss", "Clipping, case A (v3 + fix 5), share of DC energy", "%", 0.02, source=PH.format(13))
+    a("Clip_Loss_DC", "Clipping, cases B, C (DC-coupled BESS)", "%", 0,
+      source="Aurora s+29 = 0; " + PH.format(13))
+    a("Grid_Import_MW", "Grid import allowed for BESS charging", "MW", 0,
+      source="placeholder – pending user: does the grid allow import?", fmt="money1")
 
     i.section("BESS")
-    a("BESS_On", "BESS built (1 = yes)", "flag", 1, {15: 0}, source="Teaser p1; SPEC §10 set 15")
+    a("BESS_On", "BESS built (1 = yes)", "flag", 1, {S["No BESS"]: 0}, source="Teaser p1; SPEC §10")
     a("BESS_MW", "BESS power", "MW", 50, source="Teaser p1; ZHLP v3 Control D91", fmt="money1")
-    a("BESS_Hours", "BESS duration", "h", 4, {14: 2}, source="Teaser; " + PH.format(6), fmt="money1")
-    a("BESS_Block", "Aurora battery block (Degraded batteries)", "text", BLOCK, {14: BLOCK_2H},
+    a("BESS_Hours", "BESS duration", "h", 4, {S["BESS 2 h"]: 2}, source="Teaser; " + PH.format(6), fmt="money1")
+    a("BESS_Block", "Aurora battery block (Degraded batteries)", "text", BLOCK, {S["BESS 2 h"]: BLOCK_2H},
       source="Aurora Q2-26; " + PH.format(6))
     a("BESS_Avail", "BESS availability, project", "%", 0.98, source=PH.format(6))
     a("Aurora_Avail", "BESS availability inside Aurora's dispatch", "%", 0.98, source="Aurora Q2-26 Inputs C18")
     a("BESS_RTE", "Round-trip efficiency (energy check only)", "%", 0.86, source="Aurora Q2-26 Inputs C17")
-    a("BESS_Haircut", "Haircut on merchant BESS revenue", "%", 0, {6: "=Sens_Step_Large", 16: "=Sens_Step_Large"},
-      source="SPEC §6.2; sets 6, 16")
+    a("BESS_Haircut", "Haircut on merchant BESS revenue", "%", 0, {S["BESS revenue −20%"]: "=Sens_Step_Large", S["PV and BESS prices −20%"]: "=Sens_Step_Large"},
+      source="SPEC §6.2, §10")
     a("BESS_Grid_Charge", "Grid charge on charging, offers that deduct it", "EUR k/MW", 0, source=PH.format(12))
-    a("BESS_Capex", "BESS capex", "EUR k/MWh", 110, source="v3 Control D94; " + PH.format(6))
+    a("BESS_Capex", "BESS capex", "EUR k/MWh", 110, {S["BESS capex 200 k€/MWh"]: 200},
+      source="v3 Control D94; " + PH.format(6))
     a("Augment_Cost", "BESS augmentation cost", "EUR k/MWh", 110, source="v3 Control D100; " + PH.format(6))
     a("Augment_Year", "Augmentation year (0 = Aurora block repower year)", "year", 0, source="SPEC §6.2", fmt="int")
+    a("Repower", "BESS repowered (0 = retired at the repower year)", "flag", 1, {S["No BESS repower"]: 0},
+      source="Aurora repower s+1; " + PH.format(6))
     a("Augment_Year_v3", "Augmentation year, v3 rule (fix 7 off)", "year", 2048, source="ZHLP v3 Control D101",
       fmt="int")
     a("BESS_Opex", "BESS fixed opex", "EUR k/MW", 30.8, source="ZHLP v3 Control D96", fmt="money1")
 
     i.section("Prices and offers")
-    a("PV_Curve", "PV price curve (Curves, real 2025)", "text", CAPTURE + BLOCK, {14: CAPTURE + BLOCK_2H},
-      source="SPEC §0.2, §6.2 (user: Aurora file only)")
-    a("PV_Price_Adj", "PV merchant price change", "%", 0, {3: "=-Sens_Step", 4: "=Sens_Step", 16: "=-Sens_Step_Large"},
-      source="SPEC §10 sets 3, 4, 16")
+    a("PV_Curve", "PV price, direct export (Curves, real 2025)", "text", BLOCK + DIRECT,
+      {S["BESS 2 h"]: BLOCK_2H + DIRECT}, source="SPEC §0.2, §6.2; fix round 1 M2")
+    a("PV_Transfer_Curve", "PV price, energy sent to the BESS", "text", BLOCK + TRANSFER,
+      {S["BESS 2 h"]: BLOCK_2H + TRANSFER}, source="Aurora s+36/s+32; fix round 1 M2")
+    a("PV_Price_Adj", "PV merchant price change", "%", 0, {S["PV price −10%"]: "=-Sens_Step", S["PV and BESS prices −20%"]: "=-Sens_Step_Large"},
+      source="SPEC §10")
     a("GoO", "Guarantee of origin price, real 2025", "EUR/MWh", 1.75, source="v3 Control D58; " + PH.format(12),
       fmt="money2")
-    a("Offer_PV", "PV offer in case C (C1, C2a, C2b, C3)", "text", "C2a", {17: "C1", 18: "C3"},
+    a("Offer_PV", "PV offer in case C (C1, C2a, C2b, C3)", "text", "C2a", {S["C: E.ON PPA + option B"]: "C1", S["C: MVM 45 + MET floor"]: "C3"},
       source="SPEC §6.3; " + PH.format(12))
-    a("Offer_BESS", "BESS offer in case C (C1A, C1B, C2c, C2d, none)", "text", "C2c", {17: "C1B", 18: "C2d"},
+    a("Offer_BESS", "BESS offer in case C (C1A, C1B, C2c, C2d, none)", "text", "C2c", {S["C: E.ON PPA + option B"]: "C1B", S["C: MVM 45 + MET floor"]: "C2d"},
       source="SPEC §6.3; " + PH.format(12))
 
     i.section("Capex")
@@ -112,7 +125,7 @@ def inputs(m):
     a("Cable_Capex", "MV cable to the grid connection point", "EUR k", 3700, source="v3 Control D104; " + PH.format(13))
     a("Substation", "HV substation", "EUR k", 9500, source="v3 Control D105; " + PH.format(13))
     a("Land_Capex", "Land to COD (not depreciated)", "EUR k", 620, source="ZHLP v3 Control D106")
-    a("Capex_Adj", "Capex change", "%", 0, {7: "=Sens_Step"}, source="SPEC §10 set 7")
+    a("Capex_Adj", "Capex change", "%", 0, {S["Capex +10%"]: "=Sens_Step"}, source="SPEC §10")
     a("PreRtB_Devex", "Pre-RtB development costs", "EUR k", 3182, source="ZHLP v3 Control D115")
     a("PreRtB_Reimbursed", "Buyer reimburses pre-RtB costs (1 = yes)", "flag", 1, source="ZHLP v3 Control D118")
 
@@ -130,9 +143,9 @@ def inputs(m):
     a("Balancing", "Balancing cost", "EUR/MWh", 5, source="ZHLP v3 Control D60", fmt="money1")
     a("Lease", "Land lease from COD", "EUR k", 96, source="ZHLP v3 Control D61")
     a("RTM", "Route-to-market fee on PV revenue", "%", 0, source="ZHLP v3 Control D77")
-    a("Opex_Adj", "Opex change", "%", 0, {8: "=Sens_Step"}, source="SPEC §10 set 8")
-    a("HIPA", "Local business tax (HIPA), on revenue", "%", 0.02, {2: 0}, source="SPEC §15 item 9 (Bana)")
-    a("Innovation", "Innovation contribution, on revenue", "%", 0.003, {2: 0}, source="Act LXXVI of 2014, 15. §",
+    a("Opex_Adj", "Opex change", "%", 0, source="SPEC §10 (no set)")
+    a("HIPA", "Local business tax (HIPA), on revenue", "%", 0.02, {2: 0}, source="Bana; " + PH.format(10))
+    a("Innovation", "Innovation contribution, on revenue", "%", 0.003, {2: 0}, source="Act LXXVI/2014; " + PH.format(10),
       fmt="0.00%")
 
     i.section("Deposits and guarantees")
@@ -142,10 +155,10 @@ def inputs(m):
     a("BG_Margin", "Bank guarantee margin", "%", 0.0175, source="ZHLP v3 Stat_inp E110", fmt="0.00%")
 
     i.section("JV, RtB exit and COD sale")
-    a("RtB_Price", "RtB price (0 = implied at the buyer target IRR)", "EUR k/MWp", 90,
+    a("RtB_Price", "RtB price (0 = implied at the buyer target IRR)", "EUR k/MWp", 90, {S["RtB price = implied"]: 0},
       source="v3 Stat_inp E24; " + PH.format(3))
     a("COD_Price", "COD price (0 = implied at the buyer target IRR)", "EUR k/MWp", 0, source=PH.format(8))
-    a("Price_Step", "RtB and COD price change", "%", 0, {10: "=-Sens_Step"}, source="SPEC §10 set 10")
+    a("Price_Step", "RtB and COD price change", "%", 0, {S["RtB and COD price −10%"]: "=-Sens_Step"}, source="SPEC §10")
     a("Share_Rule", "Share rule (1 = step, 0 = v3 slide)", "flag", 1, {2: 0}, source="SPEC §0.1; set 2 = v3")
     a("FEP_Share_Low", "Futureal share at or below the threshold", "%", 0.6, source="User 22-Oct-26 (SPEC §0.1)")
     a("FEP_Share_High", "Futureal share above the threshold", "%", 0.5, source="User 22-Oct-26 (SPEC §0.1)")
@@ -164,6 +177,8 @@ def inputs(m):
     a("Sale_Costs_RtB", "Sale costs at the RtB exit", "EUR k", 0, source=PH.format(7))
     a("Sale_Costs_COD", "Sale costs at COD", "EUR k", 0, source=PH.format(7))
     a("PSH_Stays", "HTM: PSH keeps its share (0 = FEP buys it out)", "flag", 0, source=PH.format(4))
+    a("COD_Share_Basis", "COD sale share (0 = RtB-price rule, 1 = fixed)", "flag", 0, source=PH.format(4))
+    a("COD_Share", "Futureal share at COD if fixed", "%", 0.5, source=PH.format(4))
 
     i.section("Deliberate fixes vs v3 (SPEC §13; 0 = v3 method)")
     for key, label, src in [("Fix_Reimb", "Fix 2: pre-RtB costs reimbursed as spent", "v3 RTB_Model H69"),
@@ -176,20 +191,20 @@ def inputs(m):
 
     i.section("Valuation")
     a("Discount_Rate", "FEP discount rate (NPV)", "%", 0.08, source="ZHLP v3 Control D9")
-    a("Buyer_IRR_RtB", "Buyer target IRR at RtB (unlevered, post-tax)", "%", 0.08, {9: "=H{r}+Sens_PP"},
+    a("Buyer_IRR_RtB", "Buyer target IRR at RtB (unlevered, post-tax)", "%", 0.08, {S["Buyer IRR +1 pp"]: "=H{r}+Sens_PP"},
       source="v3 Control D9; " + PH.format(8))
-    a("Buyer_IRR_COD", "Buyer target IRR at COD (unlevered, post-tax)", "%", 0.08, {9: "=H{r}+Sens_PP"},
+    a("Buyer_IRR_COD", "Buyer target IRR at COD (unlevered, post-tax)", "%", 0.08, {S["Buyer IRR +1 pp"]: "=H{r}+Sens_PP"},
       source="v3 Control D9; " + PH.format(8))
-    a("Sale_Form", "Deal form (0 = share deal, 1 = asset deal)", "flag", 0, source=PH.format(7))
+    a("Sale_Form", "Deal form (1 = asset deal: FEP gain taxed)", "flag", 0, source=PH.format(7))
     a("Sale_Gain_Taxed", "FEP gain on the sale taxed (0 = exempt)", "flag", 0, source=PH.format(7))
 
     i.section("Senior debt (Bana indications, not ZHLP terms)")
-    a("Gearing", "Debt share of construction cost (cap)", "%", 0.55, {2: 0, 11: "=H{r}-Sens_Step"}, source=PH.format(9))
+    a("Gearing", "Debt share of construction cost (cap)", "%", 0.55, {2: 0, S["Gearing −10 pp"]: "=H{r}-Sens_Step"}, source=PH.format(9))
     a("Debt_Per_MW", "Debt per MWp (0 = gearing only)", "EUR k/MWp", 0, source=PH.format(9))
     a("DSCR_Contracted", "Sizing DSCR on contracted revenue", "x", 1.20, source=PH.format(9), fmt="mult")
     a("DSCR_Merchant", "Sizing DSCR on merchant and BESS revenue", "x", 1.35, source=PH.format(9), fmt="mult")
     a("Debt_Tenor", "Annuity tenor from COD", "years", 15, source=PH.format(9), fmt="int")
-    a("Debt_Rate", "All-in fixed interest rate", "%", 0.05, {12: "=H{r}+Sens_PP"}, source=PH.format(9))
+    a("Debt_Rate", "All-in fixed interest rate", "%", 0.05, source=PH.format(9))
     a("Upfront_Fee", "Upfront fee on the facility", "%", 0.0175, source=PH.format(9), fmt="0.00%")
     a("Commitment_Fee", "Commitment fee on undrawn debt", "%", 0.009, source=PH.format(9), fmt="0.00%")
     a("DSRA_Months", "DSRA: months of debt service, funded at COD", "months", 6, source=PH.format(9), fmt="int")
@@ -203,13 +218,16 @@ def inputs(m):
     a("Dep_BESS_Years", "Tax depreciation: BESS and augmentation", "years", 10, {2: 30}, source=PH.format(10),
       fmt="int")
     a("Loss_Cap", "Tax losses usable, share of the tax base", "%", 0.5, source="ZHLP v3 Control D102")
-    a("Loss_Years", "Tax losses lapse after NTP +", "years", 5, {2: 40}, source="Tao. 17. § (Bana); set 2: none",
-      fmt="int")
+    a("Loss_Years", "Tax losses lapse after NTP + (one date)", "years", 5, {2: 40},
+      source="Tao. 17. §; " + PH.format(10), fmt="int")
 
 
 def _fix_set_formulas(m):
-    """`{r}` in a set override is the input's own row (resolved after the row is written)."""
+    """`{r}` in a set override is the input's own row (resolved after the row is written); constants get a note."""
     ws = m.inputs.ws
+    for row in ws.iter_rows(min_row=1, max_row=40):
+        if row[1].value == "Months In Year" and not row[3].value:
+            row[3].value = "Calendar"
     for row in ws.iter_rows(min_row=1, max_row=ws.max_row):
         for c in row:
             if isinstance(c.value, str) and "{r}" in c.value:
@@ -292,6 +310,10 @@ def curves(m):
          "NOT re-optimise when inputs change.")
     note("BESS MW scales them linearly; hours and cycles switch blocks. RTE, degradation, grid cap, PV:BESS ratio "
          "and charging rules act only through the haircut, availability and augmentation inputs.")
+    note("Grid charging: the connection is export-only (teaser; v3 Control D90). With In_Grid_Import_MW = 0 the "
+         "stack is scaled to charging from PV only (factor below); aFRR-down and grid-charge revenue are lost.")
+    note("The hourly export and charging limits live inside Aurora's dispatch (1 MW PV : 1 MW storage : 1 MW grid); "
+         "Excel only checks the annual energy balance.")
     note("Aurora data: data/aurora_extract.py → data/aurora_curves.csv (source rows cited per curve). Case A curves: "
          "data/old_engine/old_curves.csv (ZHLP v3 Aurora_Curve).")
 
@@ -303,9 +325,14 @@ def curves(m):
     rows = [
         ("Case_Names", "Case", "text", ["A", "B", "C"], "text"),
         ("Case_Labels", "Case name", "text", ["v3 reconstruction", "Aurora merchant", "Offer + merchant tail"], "text"),
-        ("Case_PV_Curve", "PV price curve", "text", [v3 + "capture", "=In_PV_Curve", "=In_PV_Curve"], "text"),
+        ("Case_PV_Curve", "PV price curve, direct export", "text", [V3_PV, "=In_PV_Curve", "=In_PV_Curve"],
+         "text"),
+        ("Case_PV_Transfer", "PV price curve, energy sent to the BESS", "text",
+         [V3_PV, "=In_PV_Transfer_Curve", "=In_PV_Transfer_Curve"], "text"),
+        ("Case_Clip", "Clipping, share of DC energy", "%", ["=In_Clip_Loss*In_Fix_Clip", "=In_Clip_Loss_DC",
+                                                           "=In_Clip_Loss_DC"], "0.0%"),
         ("Case_BESS_Curve", "BESS revenue curve", "text",
-         [f'=IF(In_Fix_BESS=1,In_BESS_Block,"{v3}BESS net")', "=In_BESS_Block", "=In_BESS_Block"], "text"),
+         [f'=IF(In_Fix_BESS=1,In_BESS_Block,"{V3_BESS}")', "=In_BESS_Block", "=In_BESS_Block"], "text"),
         ("Case_Offer", "Offtake offer applies (1 = yes)", "flag", [0, 0, 1], "flag"),
         ("Case_MWp", "PV capacity (MWp)", "MWp", [61, "=In_MWp", "=In_MWp"], "money1"),
         ("Case_MVA", "Grid export capacity (MVA)", "MVA", [50, "=In_Grid_MVA", "=In_Grid_MVA"], "money1"),
@@ -324,49 +351,63 @@ def curves(m):
             ws.cell(r, c).alignment = RIGHT
 
     # ---- curves picked by name -------------------------------------------------------------------------
-    price = {v3 + "capture": old("pv_capture_selected_real2025")}
-    price[v3 + "capture Low"] = [x * 0.85 for x in price[v3 + "capture"]]
-    price[v3 + "capture High"] = [x * 1.15 for x in price[v3 + "capture"]]
-    for b in blocks:
-        if ("implied_capture", b) in au:
-            price[CAPTURE + b] = _extend(au[("implied_capture", b)][0])
-    for b in blocks:
-        if ("da_to_grid", b) in au:
-            price["Aurora DA ÷ to-grid – " + b] = _extend(au[("da_to_grid", b)][0])
-    price["Aurora baseload (information)"] = _extend(au[("baseload", "Central")][0])
-    cv.add_block("Price", "PV price curves, real 2025 (picked by name; v3 Low/High = Central ∓ 15 %)", "EUR/MWh",
-                 YEARS, price, source="v3 Aurora_Curve L; Aurora Degraded batteries s+37/(s+31+s+32)",
+    price = {V3_PV: old("pv_capture_selected_real2025")}
+    price[V3_PV + " Low"] = [x * 0.85 for x in price[V3_PV]]
+    price[V3_PV + " High"] = [x * 1.15 for x in price[V3_PV]]
+    for suffix, key in ((DIRECT, "direct_price"), (TRANSFER, "transfer_price"), (CAPTURE, "implied_capture"),
+                        (" DA÷grid", "da_to_grid")):
+        for b in blocks:
+            if (key, b) in au:
+                price[SHORT[b] + suffix] = _extend(au[(key, b)][0])
+    price["Baseload (info)"] = _extend(au[("baseload", "Central")][0])
+    cv.add_block("Price", "PV prices, real 2025: <block> direct = (s+34+s+35)/s+31, transfer = s+36/s+32, blended = "
+                 "s+37/(s+31+s+32), DA÷grid = s+34/s+31 (SPEC literal); v3 Low/High = ∓ 15 %", "EUR/MWh",
+                 YEARS, price, source="v3 Aurora_Curve L; Aurora s+34:s+37 over s+31, s+32 (aurora_curves.csv)",
                  fmt="money2")
     r = line("Aurora euro inflation index (2025 = 1; +2 % a year after 2060)", "index",
              _extend(au[("euro_index", "Central")][0], first=1.0, grow=0.02), "Euro_Index", "factor")
     ws.cell(r, 5, "Aurora Common Assumptions row 14")
-    stack = {v3 + "BESS net": old("bess_net_real2025_eur_kw")}
+    stack = {V3_BESS: old("bess_net_real2025_eur_kw")}
     for b in blocks:
-        stack[b] = _extend(au[("storage_total", b)][0])
+        stack[SHORT[b]] = _extend(au[("storage_total", b)][0])
     cv.add_block("Stack", "BESS storage total cashflow, real 2025 (Aurora block row s+27; v3: Aurora_Curve AB)",
                  "EUR k/MW", YEARS, stack, source="Fixed Aurora dispatch: no re-optimisation", fmt="money2")
     vols = [("Discharge", "BESS discharge volume (s+11; v3: U)", "discharge", "bess_discharge_mwh_per_mw", 1),
             ("ChargeRES", "BESS charge from PV (s+13, negative; v3: Z)", "charge_res",
              "bess_charge_from_pv_mwh_per_mw", -1),
             ("ChargeGrid", "BESS charge from the grid (s+12, negative)", "charge_grid", None, 1)]
+    first_row = {}
     for name, label, key, oldkey, sign in vols:
-        data = {v3 + "BESS net": [sign * x for x in old(oldkey)] if oldkey else [0.0] * len(YEARS)}
+        data = {V3_BESS: [sign * x for x in old(oldkey)] if oldkey else [0.0] * len(YEARS)}
         for b in blocks:
-            data[b] = _extend(au[(key, b)][0])
+            data[SHORT[b]] = _extend(au[(key, b)][0])
+        first_row[name] = cv.r + 3                      # add_block: blank, bar, years, then the curves
         cv.add_block(name, label, "MWh/MW", YEARS, data, source="Aurora Q2-26 Degraded batteries", fmt="money")
+    names = [V3_BESS] + [SHORT[b] for b in blocks]
+    share = {n: [None] * len(YEARS) for n in names}
+    r0 = cv.r + 3
+    cv.add_block("ResShare", "BESS stack kept with PV-only charging = charge from PV × RTE ÷ discharge (v3: already "
+                 "scaled, 1)", "factor", YEARS, share, source="Aurora s+13, s+11; Inputs BESS RTE", fmt="factor")
+    for k, n in enumerate(names):
+        for y in range(len(YEARS)):
+            col = L(10 + y)
+            dis, res = f"{col}{first_row['Discharge'] + k}", f"{col}{first_row['ChargeRES'] + k}"
+            f = 1 if k == 0 else f"=IF({dis}=0,1,MIN(1,-{res}*In_BESS_RTE/{dis}))"
+            apply(ws.cell(r0 + k, 10 + y, f), "input" if k == 0 else "calc", "factor")
 
     bar("Aurora battery blocks: repower year (first year with repower count ≥ 1, block row s+1)",
         "Aurora Degraded batteries")
-    header({3: "Block", 5: "Repower"})
+    header({3: "Block (curve code)", 5: "Repower", 6: "Aurora block name"})
     first = cv.r
-    for b in [v3 + "BESS net"] + blocks:
-        if b.startswith(v3):
+    for b in [V3_BESS] + blocks:
+        if b == V3_BESS:
             year = 2048
         else:
             rc = au[("repower_count", b)][0]
             year = next((2026 + k for k, x in enumerate(rc) if x >= 1), 0)
-        apply(ws.cell(cv.r, 3, b), "input")
+        apply(ws.cell(cv.r, 3, SHORT.get(b, b)), "input")
         apply(ws.cell(cv.r, 5, year), "input", "int")
+        ws.cell(cv.r, 6, "v3 Aurora_Curve AB (0.591 scaling)" if b == V3_BESS else f"Degraded batteries: {b}")
         cv.r += 1
     m.define("Block_Names", f"Curves!$C${first}:$C${cv.r - 1}")
     m.define("Block_Repower", f"Curves!$E${first}:$E${cv.r - 1}")
@@ -374,7 +415,7 @@ def curves(m):
     bar(f"Information only: components of the storage total, block {BLOCK} (never added to the total)",
         "Aurora Degraded batteries s+14…s+26")
     for k in range(14, 27):
-        vals, src = au[(f"component_{k}", BLOCK)]
+        vals, src = au[(f"component_{k}", BLOCK_FULL)]
         line(f"s+{k} ({src})", "EUR k/MW", _extend(vals), None, "money2")
 
     # ---- offers (SPEC §6.3) -----------------------------------------------------------------------------
@@ -412,11 +453,14 @@ def curves(m):
          "90 MWh, scaled to the built hours). MVM: no BESS instrument.")
     bar("E.ON option A: bands on the stack (EUR k/MW-yr) and E.ON fee per band; outside these years option B applies",
         "E.ON offer p5")
-    header({3: "Item", 5: "Year", 6: "Floor", 10: "Band 1", 11: "Band 2", 12: "Band 3", 13: "Band 4", 14: "Band 5"})
+    header({3: "Item", 5: "Year", 6: "Floor", 7: "Row", 10: "Band 1", 11: "Band 2", 12: "Band 3", 13: "Band 4", 14: "Band 5"})
     r1 = line("Lower bound, 2027", "EUR k/MW", [0, 47, 52, 80, 109], None, "money1", e=(None, 2027, "int"))
     r2 = line("Lower bound, 2028", "EUR k/MW", [0, 38, 43, 67, 91], None, "money1", e=(None, 2028, "int"))
     for r in (r1, r2):
         apply(ws.cell(r, 6, f"=K{r}"), "calc", "money1")
+    for k, r in enumerate((r1, r2), 1):
+        apply(ws.cell(r, 7, k), "input", "int")
+    m.define("EB_Row", f"Curves!$G${r1}:$G${r2}")
     m.define("EB_Years", f"Curves!$E${r1}:$E${r2}")
     m.define("EB_Floor", f"Curves!$F${r1}:$F${r2}")
     m.define("EB_LB", f"Curves!$J${r1}:$N${r2}")
@@ -523,6 +567,10 @@ def calc(m):
           f="INDEX(Case_Exit,1,{case.F})", total="none")
     c.row("codd", "NTP (E) and COD (F)", "date", e="INDEX(Case_NTP,1,{case.F})",
           f="EOMONTH(INDEX(Case_COD,1,{case.F}),In_COD_Delay)", total="none")
+    c.row("clp", "Clipping, share of DC energy (case table)", "%", e="INDEX(Case_Clip,1,{case.F})", total="none",
+          ef_fmt="pct")
+    c.row("bess_mw", "BESS built (E: MW, F: MWh)", "MW", e="In_BESS_MW*In_BESS_On", f="{self.E}*In_BESS_Hours",
+          total="none", ef_fmt="money1")
     c.event("acq_ev", "Acquisition and JV start", "In_Acq")
     c.event("exit_ev", "RtB exit (sale closing)", "{rtbd.F}")
     c.event("ntp_ev", "NTP", "{codd.E}")
@@ -557,15 +605,29 @@ def calc(m):
 
     c.section("Prices (real 2025 curves × Aurora euro index)")
     c.row("infl", "Aurora euro index", "factor", "=INDEX(Euro_Index,MATCH({year},Price_Years,0))", total="none")
-    c.curve("pv_real", "PV price, real 2025 (E: curve)", "EUR/MWh", "Price", "INDEX(Case_PV_Curve,1,{case.F})",
-            fmt="money2")
-    c.row("pv_mkt", "PV merchant price, nominal (price set applied)", "EUR/MWh",
+    c.curve("pv_real", "PV price, direct export, real 2025 (E: curve)", "EUR/MWh", "Price",
+            "INDEX(Case_PV_Curve,1,{case.F})", fmt="money2")
+    c.curve("pv_tr_real", "PV price, energy sent to the BESS, real 2025 (E: curve)", "EUR/MWh", "Price",
+            "INDEX(Case_PV_Transfer,1,{case.F})", fmt="money2")
+    c.row("pv_mkt", "PV merchant price, direct export, nominal (price set applied)", "EUR/MWh",
           "={pv_real}*{infl}*(1+In_PV_Price_Adj)", total="none", fmt="money2")
+    c.row("pv_tr", "PV transfer price to the BESS, nominal (price set applied)", "EUR/MWh",
+          "={pv_tr_real}*{infl}*(1+In_PV_Price_Adj)", total="none", fmt="money2")
     c.row("goo", "Guarantee of origin price, nominal", "EUR/MWh", "=In_GoO*{infl}", total="none", fmt="money2")
     c.curve("stk_real", "BESS storage total cashflow, real 2025 (E: curve)", "EUR k/MW", "Stack",
             "INDEX(Case_BESS_Curve,1,{case.F})", fmt="money2")
-    c.row("stack", "BESS merchant revenue per MW-year, nominal (haircut, availability)", "EUR k/MW",
-          "={stk_real}*{infl}*(1-In_BESS_Haircut)*In_BESS_Avail/In_Aurora_Avail", total="none", fmt="money2")
+    c.curve("res_sh", "Stack kept with PV-only charging (E: curve)", "factor", "ResShare", "{stk_real.E}",
+            fmt="factor")
+    c.row("gcov", "Grid charging allowed: import ÷ BESS MW (E)", "%",
+          e="MIN(1,In_Grid_Import_MW/MAX(1,{bess_mw.E}))", total="none", ef_fmt="pct")
+    c.row("stack", "BESS merchant revenue per MW-year, nominal (haircut, availability, charging)", "EUR k/MW",
+          "={stk_real}*{infl}*(1-In_BESS_Haircut)*In_BESS_Avail/In_Aurora_Avail*({res_sh}+(1-{res_sh})*{gcov.E})",
+          total="none", fmt="money2")
+    c.row("aug_y", "BESS repower year (E: used, F: repower year of the curve)", "year",
+          e="IF(In_Fix_Augment=0,In_Augment_Year_v3,IF(In_Augment_Year>0,In_Augment_Year,{self.F}))",
+          f="INDEX(Block_Repower,MATCH({stk_real.E},Block_Names,0))", total="none", ef_fmt="int")
+    c.row("b_live", "BESS in service (0 from the repower year if not repowered)", "flag",
+          "=1-(1-In_Repower)*({year}>={aug_y.E})", total="none", fmt="flag")
 
     c.section("Offtake offers (case C; merchant tail after the tenor)")
     c.row("offer", "Offer applies on this sheet (case table)", "flag", e="INDEX(Case_Offer,1,{case.F})",
@@ -582,12 +644,16 @@ def calc(m):
           f="EDATE({self.E},INDEX(OPV_Tenor,{op.E})*Months_In_Year)-1", total="none", ef_fmt="date")
     c.row("pv_fee", "PV offer handling fee", "EUR/MWh", "=MIN({op_px.E},MAX({op_fee.E}*{pv_mkt},{op_fee.F}))",
           total="none", fmt="money2")
-    c.row("pv_price", "PV price received (offer in force, else merchant)", "EUR/MWh",
+    c.row("pv_price", "PV price received on direct export (offer in force, else merchant)", "EUR/MWh",
           "={pv_mkt}+{op_win}*(IF({op.F}=1,{op_px.F},{pv_mkt}-{pv_fee})-{pv_mkt})", total="none", fmt="money2")
-    c.row("ob", "BESS offer: column (E), fixed fee per MW-year at the built hours (F)", "EUR k/MW",
-          e="MATCH(In_Offer_BESS,OB_Names,0)", f="INDEX(OB_Fixed,{self.E})*In_BESS_Hours/INDEX(OB_Hours,{self.E})",
-          total="none", ef_fmt="money1")
+    c.row("ob", "BESS offer: column (E), fixed fee per MW-year, not scaled above the offer (F)", "EUR k/MW",
+          e="MATCH(In_Offer_BESS,OB_Names,0)",
+          f="INDEX(OB_Fixed,{self.E})*MIN(1,In_BESS_Hours/INDEX(OB_Hours,{self.E}))", total="none",
+          ef_fmt="money1")
     fmt("ob", "E", "int")
+    c.row("ob_cfg", "BESS offer duration ≠ built duration (E: 1 = yes)", "flag",
+          e="{offer.E}*(INDEX(OB_Tenor,{ob.E})>0)*N(INDEX(OB_Hours,{ob.E})<>In_BESS_Hours)", total="none",
+          ef_fmt="flag")
     c.row("ob_p", "BESS offer: owner share (E), grid charge deducted (F)", "EUR k/MW", e="INDEX(OB_Share,{ob.E})",
           f="INDEX(OB_Grid,{ob.E})*In_BESS_Grid_Charge", total="none", ef_fmt="money1")
     fmt("ob_p", "E", "pct")
@@ -595,7 +661,7 @@ def calc(m):
           e="IF(INDEX(OB_Start,{ob.E})>0,INDEX(OB_Start,{ob.E}),{codd.F}+1)",
           f="EDATE({self.E},INDEX(OB_Tenor,{ob.E})*Months_In_Year)-1", total="none", ef_fmt="date")
     c.row("b_band", "E.ON band table row this year (0 = none; E: bands apply)", "#",
-          "={self.E}*IFERROR(MATCH({year},EB_Years,0),0)", e="INDEX(OB_Bands,{ob.E})", total="none", fmt="int",
+          "={self.E}*SUMIF(EB_Years,{year},EB_Row)", e="INDEX(OB_Bands,{ob.E})", total="none", fmt="int",
           ef_fmt="flag")
     c.row("b_row", "Band table row looked up", "#", "=MAX(1,{b_band})", total="none", fmt="int")
     c.row("b_fee", "E.ON fee on the stack, by band", "EUR k/MW",
@@ -610,39 +676,40 @@ def calc(m):
     c.row("bess_px", "BESS revenue per MW-year received", "EUR k/MW", "={stack}+{ob_win}*({b_own}-{stack})",
           total="none", fmt="money2")
 
-    c.section("Capacity and energy")
-    c.row("bess_mw", "BESS built (E: MW, F: MWh)", "MW", e="In_BESS_MW*In_BESS_On", f="{self.E}*In_BESS_Hours",
-          total="none", ef_fmt="money1")
+    c.section("Capacity and energy (annual balance; hourly limits inside Aurora's dispatch)")
     c.row("gen", "PV generation after availability and degradation (E: first full year)", "MWh",
           "={mwp.E}*{yld.F}*In_PV_Avail*(1-In_Degradation)^{elapsed}*{ops}*{yf}",
           e="SUMIF({year.all},YEAR({codd.F})+1,{self.all})")
-    c.row("clip", "Clipped at the grid limit (fix 5)", "MWh", "=-{gen}*In_Clip_Loss*In_Fix_Clip")
+    c.row("clip", "Clipped (case table: v3 + fix 5 in A, DC-coupled 0 in B, C)", "MWh", "=-{gen}*{clp.E}")
     c.curve("v_res", "Aurora block: charge from PV per MW (E: curve)", "MWh", "ChargeRES", "{stk_real.E}", fmt="money")
     c.curve("v_grid", "Aurora block: charge from the grid per MW", "MWh", "ChargeGrid", "{stk_real.E}", fmt="money")
     c.curve("v_dis", "Aurora block: discharge per MW", "MWh", "Discharge", "{stk_real.E}", fmt="money")
-    c.row("to_bess", "PV energy routed to the BESS", "MWh", "=MIN({gen}+{clip},-{v_res}*{bess_mw.E}*{ops}*{yf})")
+    c.row("to_bess", "PV energy sent to the BESS", "MWh",
+          "=MIN({gen}+{clip},-{v_res}*{bess_mw.E}*{ops}*{yf}*{b_live})")
     c.row("pv_exp", "PV energy exported directly", "MWh", "={gen}+{clip}-{to_bess}")
-    c.row("dis", "BESS discharge to the grid", "MWh", "={v_dis}*{bess_mw.E}*{ops}*{yf}")
-    c.row("chg", "BESS charge from the grid", "MWh", "=-{v_grid}*{bess_mw.E}*{ops}*{yf}")
+    c.row("dis", "BESS discharge (scaled to the charging allowed)", "MWh",
+          "={v_dis}*{bess_mw.E}*{ops}*{yf}*{b_live}*({res_sh}+(1-{res_sh})*{gcov.E})")
+    c.row("chg", "BESS charge from the grid (within the import allowed)", "MWh",
+          "=-{v_grid}*{bess_mw.E}*{ops}*{yf}*{b_live}*{gcov.E}")
     c.row("export", "Energy exported (E: first full year)", "MWh", "={pv_exp}+{dis}",
           e="SUMIF({year.all},YEAR({codd.F})+1,{self.all})")
-    c.row("grid_h", "Grid export limit (MVA × hours)", "MWh", "={mwp.F}*Hours_In_Day*{days}*{ops}")
 
     c.section("Revenue, opex and EBITDA")
-    c.row("pv_rev", "PV revenue (E: first full year)", "EUR k", "=({gen}+{clip})*{pv_price}/Thousand",
-          e="SUMIF({year.all},YEAR({codd.F})+1,{self.all})")
+    c.row("pv_rev", "PV revenue: direct export and energy sent to the BESS (E: first full year)", "EUR k",
+          "=({pv_exp}*{pv_price}+{to_bess}*{pv_tr})/Thousand", e="SUMIF({year.all},YEAR({codd.F})+1,{self.all})")
     c.row("goo_rev", "Guarantee of origin revenue", "EUR k", "=({gen}+{clip})*{goo}/Thousand")
-    c.row("bess_rev", "BESS revenue (E: first full year)", "EUR k", "={bess_px}*{bess_mw.E}*{ops}*{yf}",
+    c.row("bess_rev", "BESS revenue (E: first full year)", "EUR k", "={bess_px}*{bess_mw.E}*{ops}*{yf}*{b_live}",
           e="SUMIF({year.all},YEAR({codd.F})+1,{self.all})")
     c.row("rev", "Revenue (E: first full year)", "EUR k", "={pv_rev}+{goo_rev}+{bess_rev}",
           e="SUMIF({year.all},YEAR({codd.F})+1,{self.all})", bold=True)
     c.row("contr", "Of which contracted (fixed-price PV offer, BESS fixed fee)", "EUR k",
-          "={op_win}*{op.F}*{pv_rev}+{ob_win}*{ob.F}*{bess_mw.E}*{ops}*{yf}")
+          "={op_win}*{op.F}*{pv_exp}*{pv_price}/Thousand+{ob_win}*{ob.F}*{bess_mw.E}*{ops}*{yf}*{b_live}")
     c.row("opex_om", "O&M and MV cable O&M", "EUR k",
           "=-(In_OM+In_Cable_OM)*{mwp.E}*{infl}*(1+In_Opex_Adj)*{ops}*{yf}")
     c.row("opex_bal", "Balancing", "EUR k", "=-In_Balancing*({gen}+{clip})/Thousand*{infl}*(1+In_Opex_Adj)")
     c.row("opex_lease", "Land lease", "EUR k", "=-In_Lease*{infl}*(1+In_Opex_Adj)*{ops}*{yf}")
-    c.row("opex_bess", "BESS fixed opex", "EUR k", "=-In_BESS_Opex*{bess_mw.E}*{infl}*(1+In_Opex_Adj)*{ops}*{yf}")
+    c.row("opex_bess", "BESS fixed opex", "EUR k",
+          "=-In_BESS_Opex*{bess_mw.E}*{infl}*(1+In_Opex_Adj)*{ops}*{yf}*{b_live}")
     c.row("opex_rtm", "Route-to-market and offer fees", "EUR k", "=-In_RTM*{pv_rev}-INDEX(OPV_Cost,{op.E})*{op_win}*{yf}")
     c.row("levies", "HIPA and innovation contribution", "EUR k", "=-{rev}*(In_HIPA+In_Innovation)")
     c.row("ebitda", "EBITDA (E: first full year)", "EUR k", "={rev}+SUM({opex_om}:{levies})",
@@ -677,11 +744,8 @@ def calc(m):
           "=-({self.E}+{ew_dev.I}+{ew_ntp.I})*{constr}",
           e="(In_PV_Capex*{mwp.E}+In_Cable_Capex+In_Substation)*(1+In_Capex_Adj)+In_Land_Capex+{self.F}",
           f="In_BESS_Capex*{bess_mw.F}*(1+In_Capex_Adj)")
-    c.row("aug_y", "BESS augmentation year (E: used, F: repower year of the curve)", "year",
-          e="IF(In_Fix_Augment=0,In_Augment_Year_v3,IF(In_Augment_Year>0,In_Augment_Year,{self.F}))",
-          f="INDEX(Block_Repower,MATCH({stk_real.E},Block_Names,0))", total="none", ef_fmt="int")
     c.row("aug", "BESS augmentation (Q1 of the year; indexed with fix 7)", "EUR k",
-          "=-In_Augment_Cost*{bess_mw.F}*IF(In_Fix_Augment=1,{infl},1)*({year}={aug_y.E})*{q1}")
+          "=-In_Augment_Cost*In_Repower*{bess_mw.F}*IF(In_Fix_Augment=1,{infl},1)*({year}={aug_y.E})*{q1}")
     c.row("cost", "Construction cost (E: compounded to COD at the debt rate)", "EUR k", "={capex}+{ew_ntp}",
           e="SUMPRODUCT({self.all}/{idx.all})*{idx.E}", bold=True)
 
@@ -720,39 +784,54 @@ def calc(m):
     c.row("dsra", "DSRA funded at COD, released at the end (E: balance)", "EUR k", "={self.E}*({tenor_end}-{cod_ev})",
           e='-SUMIFS({d_service.all},{end.all},">"&{codd.F},{end.all},"<="&EDATE({codd.F},In_DSRA_Months))')
     c.row("dscr", "DSCR on scheduled debt service (E: minimum)", "x", '=IF({d_service}<-Tolerance,{cfads}/-{d_service},"")',
-          e="MIN({self.all})", total="none", fmt="mult", ef_fmt="mult")
+          e='IF(COUNT({self.all})=0,"n/a",MIN({self.all}))', total="none", fmt="mult", ef_fmt="mult")
 
-    c.section("Tax")
-    c.row("tax_dep", "Tax depreciation: PV, grid, development (E: base)", "EUR k", "=-{self.E}*{dep}",
-          e="{capex.E}-{capex.F}-In_Land_Capex+{d_idc.I}-{pre_dev.I}-{dsa.I}-{spv.I}")
+    c.section("Tax (levered: actual SPV tax; unlevered: no interest or fees, own loss carry-forward)")
+    c.row("tax_dep", "Tax depreciation: PV, grid, pre-RtB development (E: base)", "EUR k", "=-{self.E}*{dep}",
+          e="{capex.E}-{capex.F}-In_Land_Capex-{pre_dev.I}")
+    c.row("tax_dep_i", "Tax depreciation: capitalised interest (E: base)", "EUR k", "=-{self.E}*{dep}",
+          e="{d_idc.I}")
     c.row("tax_dep_b", "Tax depreciation: BESS (E: base)", "EUR k", "=-{self.E}*{dep_b}", e="{capex.F}")
     c.row("tax_dep_a", "Tax depreciation: augmentation (E: start, F: end)", "EUR k", "={aug.I}*" + SPREAD[1:],
           e='SUMIF({aug.all},"<0",{end.all})+1', f="EDATE({self.E}-1,In_Dep_BESS_Years*Months_In_Year)",
           ef_fmt="date")
     c.row("taxable", "Tax base before losses", "EUR k",
-          "={ebitda}+{tax_dep}+{tax_dep_b}+{tax_dep_a}+{d_int}+{d_up}+{d_cf}+{bg_hold}")
+          "={ebitda}+{tax_dep}+{tax_dep_i}+{tax_dep_b}+{tax_dep_a}+{d_int}+{d_up}+{d_cf}+{bg_hold}")
     c.row("lcf_open", "Tax losses: opening", "EUR k", "={lcf_close@prev}", total="none")
     c.row("lcf_add", "Losses added", "EUR k", "=MAX(0,-{taxable})")
     c.row("lcf_use", "Losses used (capped)", "EUR k", "=-MIN({lcf_open},In_Loss_Cap*MAX(0,{taxable}))")
-    c.row("lcf_lapse", "Losses lapsed (E: date, NTP + carry-forward period)", "EUR k",
+    c.row("lcf_lapse", "Losses lapsed on one date, NTP + carry-forward (E; simplification)", "EUR k",
           "=-({lcf_open}+{lcf_add}+{lcf_use})*N(AND({start}<={self.E},{end}>={self.E}))",
           e="EDATE({codd.E},In_Loss_Years*Months_In_Year)")
     fmt("lcf_lapse", "E", "date")
     c.row("lcf_close", "Tax losses: closing", "EUR k", "=SUM({lcf_open}:{lcf_lapse})", total="seed")
     c.copy("Tax", "Corporate income tax and Robin Hood tax", "EUR k",
            "=-In_CIT*(MAX(0,{taxable})+{lcf_use})-In_RH_On*In_RH_Rate*MAX(0,{taxable})")
+    c.subheader("Unlevered tax (project and buyer unlevered views, implied prices)")
+    c.row("taxable_u", "Tax base before losses, unlevered", "EUR k",
+          "={ebitda}+{tax_dep}+{tax_dep_b}+{tax_dep_a}+{bg_hold}")
+    c.row("lcu_open", "Tax losses, unlevered: opening", "EUR k", "={lcu_close@prev}", total="none")
+    c.row("lcu_add", "Losses added", "EUR k", "=MAX(0,-{taxable_u})")
+    c.row("lcu_use", "Losses used (capped)", "EUR k", "=-MIN({lcu_open},In_Loss_Cap*MAX(0,{taxable_u}))")
+    c.row("lcu_lapse", "Losses lapsed (same date)", "EUR k",
+          "=-({lcu_open}+{lcu_add}+{lcu_use})*N(AND({start}<={lcf_lapse.E},{end}>={lcf_lapse.E}))")
+    c.row("lcu_close", "Tax losses, unlevered: closing", "EUR k", "=SUM({lcu_open}:{lcu_lapse})", total="seed")
+    c.row("tax_u", "Corporate income tax and Robin Hood tax, unlevered", "EUR k",
+          "=-In_CIT*(MAX(0,{taxable_u})+{lcu_use})-In_RH_On*In_RH_Rate*MAX(0,{taxable_u})", bold=True)
 
     c.section("Project and equity cash flows (100 %)")
     c.row("dev_cf", "Development, deposits and guarantees", "EUR k",
           "={spv}+{trans}+{dsa}+{ew_dev}+{pre_dev}+{dep_cash}+{dep_back}+{dep_cod}+{bg_hold}")
     c.row("proj_pre", "Project cash flow before financing and tax", "EUR k",
           "={dev_cf}+{capex}+{ew_ntp}+{aug}+{ebitda}")
-    c.row("proj_cf", "Project cash flow before financing, after tax", "EUR k", "={proj_pre}+{tax_copy}", bold=True)
-    c.xirr("proj_irr", "Project IRR, unlevered, after the SPV's actual tax", "proj_cf")
+    c.row("proj_cf", "Project cash flow before financing, after unlevered tax", "EUR k", "={proj_pre}+{tax_u}",
+          bold=True)
+    c.xirr("proj_irr", "Project IRR, unlevered, after tax", "proj_cf")
     c.xirr("proj_irr_pre", "Project IRR, unlevered, before tax", "proj_pre")
     c.row("debt_cf", "Debt flows to equity (draws, fees, service, DSRA)", "EUR k",
           "={d_draw}+{d_up}+{d_cf}+{d_ds}+{dsra}")
-    c.row("eq_cf", "Equity cash flow, levered, after tax", "EUR k", "={proj_cf}+{debt_cf}", bold=True)
+    c.row("eq_cf", "Equity cash flow, levered, after actual tax", "EUR k", "={proj_pre}+{tax_copy}+{debt_cf}",
+          bold=True)
     c.subheader("Funding to COD (E: uses and sources)")
     c.row("f_dev", "Development, deposits and guarantees (net)", "EUR k", e='-SUMIF({end.all},"<="&{codd.F},{dev_cf.all})')
     c.row("f_capex", "Construction capex and early works at NTP", "EUR k", e="-({capex.I}+{ew_ntp.I})")
@@ -763,8 +842,10 @@ def calc(m):
     c.row("f_gear", "Debt share of total uses (E), check: equity + equity flows to COD (F)", "%",
           e="{d_close.E}/{f_uses.E}", f='{f_equity.F}+SUMIF({end.all},"<="&{cod_ev.E},{eq_cf.all})', ef_fmt="pct")
     fmt("f_gear", "F", "money")
+    c.row("dev_capex", "Development costs (E: SPV, transaction, DSA, early works, pre-RtB)", "EUR k",
+          e="-({spv.I}+{trans.I}+{dsa.I}+{ew_dev.I}+{pre_dev.I})", total="none")
 
-    c.section("Buyer view and implied prices (share deal: SPV tax base unchanged)")
+    c.section("Buyer view and implied prices (share deal: SPV tax base unchanged; unlevered tax)")
     c.subheader("Buyer at the RtB exit")
     c.row("reimb_x", "Buyer reimburses at the exit: early works, cash deposits", "EUR k",
           "={exit_ev}*(In_EW_Reimbursed*-{ew_dev.E}+{dep_back.E})")
@@ -780,46 +861,42 @@ def calc(m):
         r = c.rows[key].r
         return (f"XNPV({rate},INDEX({{{key}.all}},{{{col_key}.E}}):${last}${r},"
                 f"INDEX({{end.all}},{{{col_key}.E}}):${last}$4)")
-    c.row("imp_r", "Implied RtB price at the target IRR (E: share deal, closed form; F: asset deal, goal seek)",
-          "EUR k/MW", e=npv_from("In_Buyer_IRR_RtB", "bu_rtb", "col_x") + "/{mwp.E}", f="INDEX(Asset_RtB_Inputs,$A$1)", total="none", ef_fmt="money1")
-    c.row("px_rtb", "RtB price used (E: k€/MWp, F: consideration)", "EUR k",
-          e="IF(In_RtB_Price>0,In_RtB_Price,IF(In_Sale_Form=1,{imp_r.F},{imp_r.E}))*(1+In_Price_Step)",
-          f="{self.E}*{mwp.E}", total="none", bold=True)
+    c.row("imp_r", "Implied RtB price at the target IRR, floored at 0 (E), closed form (F)", "EUR k/MWp",
+          e="MAX(0,{self.F})", f=npv_from("In_Buyer_IRR_RtB", "bu_rtb", "col_x") + "/{mwp.E}", total="none",
+          ef_fmt="money1", bold=True)
+    c.row("allin_r", "Buyer reimbursements per MWp (E), all-in implied RtB price (F)", "EUR k/MWp",
+          e="({reimb_x.I}+{pre_reimb.I})/{mwp.E}", f="{imp_r.E}+{self.E}", total="none", ef_fmt="money1")
+    c.row("px_rtb", "RtB price used (E: EUR k/MWp, F: consideration EUR k)", "EUR k",
+          e="IF(In_RtB_Price>0,In_RtB_Price,{imp_r.E})*(1+In_Price_Step)", f="{self.E}*{mwp.E}", total="none",
+          bold=True)
     fmt("px_rtb", "E", "money1")
     c.row("buy_r", "Buyer cash flow at the RtB price, unlevered, after tax", "EUR k",
           "={bu_rtb}-{px_rtb.F}*{exit_ev}")
     c.xirr("buy_r_irr", "Buyer IRR at RtB, unlevered, after tax", "buy_r", start="col_x")
     c.row("buy_r_pre", "Buyer cash flow at the RtB price, unlevered, before tax", "EUR k",
-          "={buy_r}-{post_x}*{tax_copy}")
+          "={buy_r}-{post_x}*{tax_u}")
     c.xirr("buy_r_irr_pre", "Buyer IRR at RtB, unlevered, before tax", "buy_r_pre", start="col_x")
-    c.row("buy_r_l", "Buyer cash flow at the RtB price, levered, after tax", "EUR k", "={buy_r}+{post_x}*{debt_cf}")
+    c.row("buy_r_l", "Buyer cash flow at the RtB price, levered, actual tax (E: equity to COD)", "EUR k",
+          "={buy_r}+{post_x}*({debt_cf}+{tax_copy}-{tax_u})", e='-SUMIF({end.all},"<="&{cod_ev.E},{self.all})')
     c.xirr("buy_r_irr_l", "Buyer IRR at RtB, levered, after tax", "buy_r_l", start="col_x")
-    c.row("as_r_dep", "Asset deal: buyer's depreciation of the solved price", "EUR k",
-          "=-{imp_r.F}*{mwp.E}*{dep}")
-    c.row("as_r_cf", "Asset deal: buyer flows at the solved price, tax saving capped at the SPV's tax", "EUR k",
-          "={bu_rtb}-{imp_r.F}*{mwp.E}*{exit_ev}+MIN(-{tax_copy},-In_CIT*{as_r_dep})")
-    c.xirr("as_r_irr", "Asset deal: buyer IRR at the solved RtB price (goal seek → target)", "as_r_cf",
-           start="col_x")
     c.subheader("Buyer at COD")
     c.row("bu_cod", "Buyer flows after COD before the price (unlevered, after tax)", "EUR k",
-          "={post_c}*({ebitda}+{tax_copy}+{aug})")
-    c.row("imp_c", "Implied COD price at the target IRR (E: share deal, closed form; F: asset deal, goal seek)",
-          "EUR k/MW", e=npv_from("In_Buyer_IRR_COD", "bu_cod", "col_c") + "/{mwp.E}", f="INDEX(Asset_COD_Inputs,$A$1)", total="none", ef_fmt="money")
-    c.row("px_cod", "COD price used (E: k€/MWp, F: enterprise value)", "EUR k",
-          e="IF(In_COD_Price>0,In_COD_Price,IF(In_Sale_Form=1,{imp_c.F},{imp_c.E}))*(1+In_Price_Step)",
-          f="{self.E}*{mwp.E}", total="none", bold=True)
+          "={post_c}*({ebitda}+{tax_u}+{aug})")
+    c.row("imp_c", "Implied COD price at the target IRR, floored at 0 (E), closed form (F)", "EUR k/MWp",
+          e="MAX(0,{self.F})", f=npv_from("In_Buyer_IRR_COD", "bu_cod", "col_c") + "/{mwp.E}", total="none",
+          ef_fmt="money", bold=True)
+    c.row("px_cod", "COD price used (E: EUR k/MWp, F: enterprise value EUR k)", "EUR k",
+          e="IF(In_COD_Price>0,In_COD_Price,{imp_c.E})*(1+In_Price_Step)", f="{self.E}*{mwp.E}", total="none",
+          bold=True)
     c.row("buy_c", "Buyer cash flow at the COD price, unlevered, after tax", "EUR k", "={bu_cod}-{px_cod.F}*{cod_ev}")
     c.xirr("buy_c_irr", "Buyer IRR at COD, unlevered, after tax", "buy_c", start="col_c")
     c.row("buy_c_pre", "Buyer cash flow at the COD price, unlevered, before tax", "EUR k",
-          "={buy_c}-{post_c}*{tax_copy}")
+          "={buy_c}-{post_c}*{tax_u}")
     c.xirr("buy_c_irr_pre", "Buyer IRR at COD, unlevered, before tax", "buy_c_pre", start="col_c")
-    c.row("buy_c_l", "Buyer cash flow at COD, levered: pays price less debt, funds the DSRA", "EUR k",
-          "={buy_c}+{d_ds}+{dsra}+{d_close.E}*{cod_ev}")
+    c.row("buy_c_l", "Buyer at COD, levered: price less debt plus the DSRA balance (E: equity)", "EUR k",
+          "={buy_c}+{d_ds}+{dsra}+{d_close.E}*{cod_ev}+{post_c}*({tax_copy}-{tax_u})",
+          e='-SUMIF({end.all},"<="&{cod_ev.E},{self.all})')
     c.xirr("buy_c_irr_l", "Buyer IRR at COD, levered, after tax", "buy_c_l", start="col_c")
-    c.row("as_c_dep", "Asset deal: buyer's depreciation of the solved price", "EUR k", "=-{imp_c.F}*{mwp.E}*{dep}")
-    c.row("as_c_cf", "Asset deal: buyer flows at the solved price, tax saving capped at the SPV's tax", "EUR k",
-          "={bu_cod}-{imp_c.F}*{mwp.E}*{cod_ev}+MIN(-{tax_copy},-In_CIT*{as_c_dep})")
-    c.xirr("as_c_irr", "Asset deal: buyer IRR at the solved COD price (goal seek → target)", "as_c_cf", start="col_c")
 
     c.section("FEP return on loans and costs (12 %; E: to the exit, F: to COD)")
     c.row("cl_f", "Return per period (E: v3 monthly compounding; fix 8: act/365 simple)", "factor",
@@ -870,8 +947,9 @@ def calc(m):
     c.row("rtb_in", "FEP receipts – RtB route", "EUR k",
           "={dep_back}*(1-{post_x})+{reimb_x}+{pre_reimb}+{w_fep.F}*{exit_ev}")
     c.row("rtb_pre", "FEP cash flow before tax on the gain", "EUR k", "={rtb_out}+{rtb_in}")
-    c.row("rtb_tax", "Tax on the RtB gain (E: amount)", "EUR k", "={self.E}*{exit_ev}",
-          e="-In_CIT*In_Sale_Gain_Taxed*MAX(0,{rtb_pre.I})")
+    c.row("rtb_tax", "FEP tax: 12 % return as interest, gain if taxed or asset deal (E)", "EUR k",
+          "={self.E}*{exit_ev}",
+          e="-In_CIT*({w_ret.F}+MAX(In_Sale_Form,In_Sale_Gain_Taxed)*MAX(0,{rtb_pre.I}-{w_ret.F}))")
     c.row("rtb_cf", "FEP cash flow – sale at RtB", "EUR k", "={rtb_pre}+{rtb_tax}", bold=True)
     c.xirr("rtb_irr", "FEP IRR – sale at RtB, after tax", "rtb_cf")
     c.xirr("rtb_irr_pre", "FEP IRR – sale at RtB, before tax", "rtb_pre")
@@ -880,13 +958,15 @@ def calc(m):
     c.xnpv("rtb_npv", "FEP NPV – sale at RtB", "In_Discount_Rate", "rtb_cf")
     c.row("psh_r", "PSH cash flow – sale at RtB", "EUR k",
           "=-In_PSH_Land*{acq_ev}-In_PSH_Devex*{mwp.E}*{dsa_w}-{dsa}-In_EW_To_PSH*{ew_dev}+{w_psh_r.F}*{exit_ev}")
-    c.xirr("psh_r_irr", "PSH IRR – sale at RtB", "psh_r", iferror=True)
+    c.xirr("psh_r_irr", "Memo: PSH IRR – sale at RtB (on a 150 k€ in-kind apport)", "psh_r", iferror=True)
     c.moic("psh_r_moic", "PSH MOIC – sale at RtB", "psh_r")
 
-    c.section("Sale at COD (same JV split of the net proceeds)")
+    c.section("Sale at COD (JV split of the net proceeds)")
+    c.row("shr_c", "Share at COD (E: Futureal, F: PSH; basis per In_COD_Share_Basis)", "%",
+          e="IF(In_COD_Share_Basis=1,In_COD_Share,{shr.E})", f="1-{self.E}", total="none", ef_fmt="pct")
     c.row("cod_contrib", "FEP contributions to COD (equity, levered)", "EUR k", "={eq_cf}*(1-{post_c})-{dep_cod}")
-    c.row("v_avail", "Cash available: debt repaid (E), price less debt (F)", "EUR k", e="{d_close.E}",
-          f="MAX(0,{px_cod.F}-{self.E})", total="none")
+    c.row("v_avail", "Cash available: debt repaid (E), price − debt + DSRA balance (F)", "EUR k",
+          e="{d_close.E}", f="MAX(0,{px_cod.F}-{self.E}+{dsra.E})", total="none")
     waterfall(c, "v", [("cost", "Sale costs", "In_Sale_Costs_COD"),
                        ("fund", "FEP funding returned", "-{cod_contrib.I}"),
                        ("ret", "FEP 12 % return to COD", "{cl_ret.F}"),
@@ -894,28 +974,31 @@ def calc(m):
     c.row("v_chk", "Check: paid + distributable − available (E), steps paid above due (F)", "EUR k",
           e="SUM({v_cost.F}:{v_psh.F})+{v_dist.F}-{v_avail.F}",
           f="SUMPRODUCT(--({v_cost.F}:{v_psh.F}>{v_cost.E}:{v_psh.E}+Tolerance))", total="none")
-    c.row("v_fep", "FEP proceeds at COD (E: tax on the gain)", "EUR k", f="{v_fund.F}+{v_ret.F}+{shr.E}*{v_dist.F}",
-          e="-In_CIT*In_Sale_Gain_Taxed*MAX(0,{self.F}+{cod_contrib.I})", total="none", bold=True)
-    c.row("v_psh_r", "PSH receipts at COD", "EUR k", f="{v_psh.F}+{shr.F}*{v_dist.F}", total="none")
-    c.row("cod_pre", "FEP cash flow – sale at COD, before tax on the gain", "EUR k",
+    c.row("v_fep", "FEP proceeds at COD", "EUR k", f="{v_fund.F}+{v_ret.F}+{shr_c.E}*{v_dist.F}", total="none",
+          bold=True)
+    c.row("v_psh_r", "PSH receipts at COD", "EUR k", f="{v_psh.F}+{shr_c.F}*{v_dist.F}", total="none")
+    c.row("cod_pre", "FEP cash flow – sale at COD, before FEP tax", "EUR k",
           "={cod_contrib}+{v_fep.F}*{cod_ev}+{dep_cod}")
-    c.row("cod_cf", "FEP cash flow – sale at COD", "EUR k", "={cod_pre}+{v_fep.E}*{cod_ev}", bold=True)
-    c.xirr("cod_irr", "FEP IRR – sale at COD, levered, after tax", "cod_cf")
-    c.xirr("cod_irr_pre", "FEP IRR – sale at COD, levered, before tax", "cod_pre")
+    c.row("cod_tax", "FEP tax: 12 % return as interest, gain if taxed or asset deal (E)", "EUR k",
+          "={self.E}*{cod_ev}",
+          e="-In_CIT*({v_ret.F}+MAX(In_Sale_Form,In_Sale_Gain_Taxed)*MAX(0,{cod_pre.I}-{v_ret.F}))")
+    c.row("cod_cf", "FEP cash flow – sale at COD", "EUR k", "={cod_pre}+{cod_tax}", bold=True)
     c.moic("cod_moic", "FEP MOIC – sale at COD", "cod_cf")
+    c.xirr("cod_irr", "FEP IRR – sale at COD, levered, after tax (n/a below −99 %)", "cod_cf", iferror=True)
+    c.xirr("cod_irr_pre", "FEP IRR – sale at COD, before tax (n/a below −99 %)", "cod_pre", iferror=True)
     c.xnpv("cod_npv", "FEP NPV – sale at COD", "In_Discount_Rate", "cod_cf")
     c.row("jv_c", "JV (100 %) cash flow to the COD sale, unlevered, after tax", "EUR k",
           "={proj_cf}*(1-{post_c})+({px_cod.F}-In_Sale_Costs_COD)*{cod_ev}")
-    c.xirr("jv_c_irr", "JV IRR – sale at COD, unlevered, after tax", "jv_c")
+    c.xirr("jv_c_irr", "JV IRR – sale at COD, unlevered, after tax", "jv_c", iferror=True)
     c.row("jv_c_pre", "JV (100 %) cash flow to the COD sale, unlevered, before tax", "EUR k",
-          "={jv_c}-{tax_copy}*(1-{post_c})")
-    c.xirr("jv_c_irr_pre", "JV IRR – sale at COD, unlevered, before tax", "jv_c_pre")
+          "={jv_c}-{tax_u}*(1-{post_c})")
+    c.xirr("jv_c_irr_pre", "JV IRR – sale at COD, unlevered, before tax", "jv_c_pre", iferror=True)
     c.row("psh_c", "PSH cash flow – sale at COD", "EUR k",
           "=-In_PSH_Land*{acq_ev}-In_PSH_Devex*{mwp.E}*{dsa_w}-{dsa}-In_EW_To_PSH*{ew_dev}+{v_psh_r.F}*{cod_ev}")
-    c.xirr("psh_c_irr", "PSH IRR – sale at COD", "psh_c", iferror=True)
+    c.xirr("psh_c_irr", "Memo: PSH IRR – sale at COD (on a 150 k€ in-kind apport)", "psh_c", iferror=True)
 
-    c.section("Hold to maturity (FEP buys PSH out at the exit)")
-    c.row("htm_k", "FEP share of equity flows after the exit (E), PSH buy-out at the exit (F)", "%",
+    c.section("Hold to maturity (FEP buys PSH out at the exit at PSH's RtB entitlement)")
+    c.row("htm_k", "FEP share of equity flows after the exit (E), PSH buy-out = RtB entitlement (F)", "%",
           e="1-In_PSH_Stays*{shr.F}", f="(1-In_PSH_Stays)*{w_psh_r.F}", total="none", ef_fmt="pct")
     fmt("htm_k", "F", "money")
     c.row("htm_w", "FEP share of the equity flows", "%", "=1-{post_x}*(1-{htm_k.E})", total="none", fmt="pct")
@@ -929,7 +1012,7 @@ def calc(m):
           total="none")
     c.row("psh_h", "PSH cash flow – hold to maturity", "EUR k",
           "={psh_r}-{w_psh_r.F}*{exit_ev}+{htm_k.F}*{exit_ev}+(1-{htm_w})*{eq_cf}")
-    c.xirr("psh_h_irr", "PSH IRR – hold to maturity", "psh_h", iferror=True)
+    c.xirr("psh_h_irr", "Memo: PSH IRR – hold to maturity (on a 150 k€ in-kind apport)", "psh_h", iferror=True)
 
 
 def waterfall(c, p, steps):
@@ -945,20 +1028,6 @@ def waterfall(c, p, steps):
           total="none", bold=True)
 
 
-# =========================================================================================== macros: goal seek
-def goal_seeks(m):
-    """Asset deal (SPEC §9, task 2.5): the price feeds the buyer's depreciation, so GoalSeek.bas solves it per sheet."""
-    i = m.inputs
-    i.section("Solved by GoalSeek.bas (asset deal implied prices)")
-    for topic, key, target, seed, label in [("Asset_RtB", "as_r_irr", "In_Buyer_IRR_RtB", 100, "RtB"),
-                                            ("Asset_COD", "as_c_irr", "In_Buyer_IRR_COD", 1000, "COD")]:
-        first = i.r
-        for n, sheet in enumerate(m.calc_sheets, 1):
-            m.goal_seek(f"{topic}_{n}", f"Asset-deal implied {label} price, {sheet}", "EUR k/MWp", seed,
-                        m.calc.ref(key, "E", sheet), target, source="Solved by GoalSeek.bas", fmt="money1")
-        m.define(f"{topic}_Inputs", f"Inputs!$F${first}:$F${i.r - 1}")
-
-
 # =========================================================================================== checks
 def checks(m):
     k = m.checks
@@ -971,20 +1040,22 @@ def checks(m):
     k.add_check("Debt repaid by the end of the tenor", "=N(({end}>={tenor.F})*ABS({d_close})>Tolerance)")
     k.add_check("DSCR not below the weighted target", "=N(({tenor}=1)*({cfads}*{w_dscr}+{d_service})<-Tolerance)")
     k.add_check("Sources = uses to COD", "=N(ABS({f_gear.F})>Tolerance)", per_period=False)
-    k.add_check("PV energy: generation = direct export + BESS charging + clipped",
-                "=N(ABS({gen}-{pv_exp}-{to_bess}+{clip})>Tolerance)+N({pv_exp}<-Tolerance)")
-    k.add_check("BESS discharge ≤ charge × RTE", "=N({dis}>({to_bess}+{chg})*In_BESS_RTE+Tolerance)")
-    k.add_check("Export ≤ grid capacity × hours", "=N({export}>{grid_h}+Tolerance)")
+    k.add_check("Grid charging ≤ import allowed × hours", "=N({chg}>In_Grid_Import_MW*Hours_In_Day*{days}+Tolerance)")
+    k.add_check("PV direct export + PV to the BESS ≤ PV generation",
+                "=N({pv_exp}+{to_bess}>{gen}+{clip}+Tolerance)+N({pv_exp}<-Tolerance)")
+    k.add_check("Total export ≤ PV direct export + BESS discharge", "=N({export}>{pv_exp}+{dis}+Tolerance)")
     k.add_check("RtB waterfall: paid + distributable = available, no step above its due",
                 "=N(ABS({w_chk.E})>Tolerance)+N({w_chk.F}>0)", per_period=False)
     k.add_check("RtB: FEP + PSH + sale costs = consideration",
                 "=N(ABS({w_fep.F}+{w_psh_r.F}+{w_cost.F}-{px_rtb.F})>Tolerance)", per_period=False)
     k.add_check("COD waterfall: paid + distributable = available, no step above its due",
                 "=N(ABS({v_chk.E})>Tolerance)+N({v_chk.F}>0)", per_period=False)
-    k.add_check("COD: FEP + PSH + sale costs = price less debt",
+    k.add_check("COD: FEP + PSH + sale costs = price − debt + DSRA",
                 "=N(ABS({v_fep.F}+{v_psh_r.F}+{v_cost.F}-{v_avail.F})>Tolerance)", per_period=False)
-    k.add_check("XIRR returned a number: FEP routes",
-                "=N(ISERROR({rtb_irr.E}))+N(ISERROR({cod_irr.E}))+N(ISERROR({htm_irr.E}))", per_period=False)
+    k.add_check("XIRR returned a number: FEP RtB and hold routes",
+                "=N(ISERROR({rtb_irr.E}))+N(ISERROR({htm_irr.E}))", per_period=False)
+    k.add_check("XIRR returned a number on the COD route when it makes money",
+                "=N(ISTEXT({cod_irr.E}))*N({cod_moic.E}>=1)", per_period=False)
     k.add_check("XIRR returned a number: project and buyers",
                 "=N(ISERROR({proj_irr.E}))+N(ISERROR({buy_r_irr.E}))+N(ISERROR({buy_c_irr.E}))", per_period=False)
     for key, label, t, _ in RECON:
@@ -994,65 +1065,92 @@ def checks(m):
 
 
 # =========================================================================================== dashboard
-GLANCE = [  # subheader or (label, unit, template, scale, out, bold)
+GLANCE = [  # subheader, or (label ≤ 44 characters, unit, template, scale, out name, bold)
     "Sale at RtB",
-    ("RtB price used", "EUR k/MW", "{px_rtb.E}", None, "RtB_Price", False),
+    ("Development costs (100 %)", "EUR m", "{dev_capex.E}", "Thousand", None, False),
+    ("Construction capex (paid by the buyer)", "EUR m", "{f_capex.E}", "Thousand", None, False),
+    ("RtB price used", "EUR k/MWp", "{px_rtb.E}", None, "RtB_Price", False),
+    ("Implied RtB price at the buyer target IRR", "EUR k/MWp", "{imp_r.E}", None, "Implied_RtB", True),
+    ("Implied price below zero (floored, 1 = yes)", "flag", "N({imp_r.F}<0)", None, None, False),
+    ("All-in implied price incl. reimbursements", "EUR k/MWp", "{allin_r.F}", None, "AllIn_RtB", False),
+    ("Buyer all-in price at our price", "EUR k/MWp", "{px_rtb.E}+{allin_r.E}", None, None, False),
+    ("Buyer IRR at our price, unlevered, after tax", "%", "{buy_r_irr.E}", None, "Buyer_RtB_IRR", False),
+    ("Buyer IRR at our price, before tax", "%", "{buy_r_irr_pre.E}", None, None, False),
+    ("Buyer IRR at our price, levered", "%", "{buy_r_irr_l.E}", None, None, False),
+    ("Buyer equity (price, reimbursements, to COD)", "EUR m", "{buy_r_l.E}", "Thousand", None, False),
+    ("FEP equity contributed", "EUR m", "-{rtb_out.I}", "Thousand", None, False),
+    ("FEP proceeds", "EUR m", "{rtb_in.I}", "Thousand", None, False),
     ("FEP profit", "EUR m", "{rtb_cf.I}", "Thousand", "RtB_Profit", False),
-    ("FEP IRR, after tax (unlevered: no debt before NTP)", "%", "{rtb_irr.E}", None, "RtB_IRR", True),
-    ("FEP IRR, before tax", "%", "{rtb_irr_pre.E}", None, "RtB_IRR_Pre", False),
+    ("FEP IRR, after tax (no debt before NTP)", "%", "{rtb_irr.E}", None, "RtB_IRR", True),
+    ("FEP IRR, before tax", "%", "{rtb_irr_pre.E}", None, None, False),
     ("FEP MOIC", "x", "{rtb_moic.E}", None, "RtB_MOIC", False),
     ("FEP NPV", "EUR m", "{rtb_npv.E}", "Thousand", "RtB_NPV", False),
-    ("PSH IRR", "%", "{psh_r_irr.E}", None, None, False),
-    ("Buyer IRR at our price, unlevered, after tax", "%", "{buy_r_irr.E}", None, "Buyer_RtB_IRR", False),
-    ("Buyer IRR at our price, unlevered, before tax", "%", "{buy_r_irr_pre.E}", None, "Buyer_RtB_IRR_Pre", False),
-    ("Buyer IRR at our price, levered, after tax", "%", "{buy_r_irr_l.E}", None, "Buyer_RtB_IRR_L", False),
-    ("Implied RtB price at the buyer target IRR (share deal)", "EUR k/MW", "{imp_r.E}", None, "Implied_RtB", True),
-    ("Implied RtB price at the buyer target IRR (asset deal)", "EUR k/MW", "{imp_r.F}", None, "Implied_RtB_Asset",
-     False),
+    ("PSH profit", "EUR m", "{psh_r.I}", "Thousand", "PSH_RtB_Profit", False),
+    ("PSH share of the exit proceeds", "%", "{w_psh_r.F}/({w_fep.F}+{w_psh_r.F})", None, None, False),
+    ("Memo: PSH IRR (150 k€ in-kind apport)", "%", "{psh_r_irr.E}", None, None, False),
     "Sale at COD",
-    ("COD price used (enterprise value per MWp)", "EUR k/MW", "{px_cod.E}", None, "COD_Price", False),
+    ("Development costs (100 %)", "EUR m", "{dev_capex.E}", "Thousand", None, False),
+    ("Construction capex (100 %)", "EUR m", "{f_capex.E}", "Thousand", None, False),
+    ("COD price used (enterprise value per MWp)", "EUR k/MWp", "{px_cod.E}", None, "COD_Price", False),
+    ("Implied COD price at the buyer target IRR", "EUR k/MWp", "{imp_c.E}", None, "Implied_COD", True),
+    ("Implied price below zero (floored, 1 = yes)", "flag", "N({imp_c.F}<0)", None, None, False),
+    ("Buyer IRR at our price, unlevered, after tax", "%", "{buy_c_irr.E}", None, "Buyer_COD_IRR", False),
+    ("Buyer IRR at our price, before tax", "%", "{buy_c_irr_pre.E}", None, None, False),
+    ("Buyer IRR at our price, levered", "%", "{buy_c_irr_l.E}", None, None, False),
+    ("Buyer equity (price − debt + DSRA)", "EUR m", "{buy_c_l.E}", "Thousand", None, False),
+    ("FEP equity contributed", "EUR m", "-{cod_contrib.I}", "Thousand", None, False),
+    ("FEP proceeds (incl. deposits back)", "EUR m", "{v_fep.F}+{dep_cod.I}", "Thousand", None, False),
     ("FEP profit", "EUR m", "{cod_cf.I}", "Thousand", "COD_Profit", False),
-    ("FEP IRR, levered, after tax", "%", "{cod_irr.E}", None, "COD_IRR", True),
-    ("FEP IRR, levered, before tax", "%", "{cod_irr_pre.E}", None, "COD_IRR_Pre", False),
+    ("FEP IRR, levered, after tax (n/a < −99 %)", "%", "{cod_irr.E}", None, "COD_IRR", True),
+    ("FEP IRR, levered, before tax", "%", "{cod_irr_pre.E}", None, None, False),
     ("FEP MOIC", "x", "{cod_moic.E}", None, "COD_MOIC", False),
     ("FEP NPV", "EUR m", "{cod_npv.E}", "Thousand", "COD_NPV", False),
-    ("JV IRR, unlevered, after tax", "%", "{jv_c_irr.E}", None, "COD_JV_IRR", False),
-    ("JV IRR, unlevered, before tax", "%", "{jv_c_irr_pre.E}", None, "COD_JV_IRR_Pre", False),
-    ("PSH IRR", "%", "{psh_c_irr.E}", None, None, False),
-    ("Buyer IRR at our price, unlevered, after tax", "%", "{buy_c_irr.E}", None, "Buyer_COD_IRR", False),
-    ("Buyer IRR at our price, unlevered, before tax", "%", "{buy_c_irr_pre.E}", None, "Buyer_COD_IRR_Pre", False),
-    ("Buyer IRR at our price, levered, after tax", "%", "{buy_c_irr_l.E}", None, "Buyer_COD_IRR_L", False),
-    ("Implied COD price at the buyer target IRR (share deal)", "EUR k/MW", "{imp_c.E}", None, "Implied_COD", True),
-    ("Implied COD price at the buyer target IRR (asset deal)", "EUR k/MW", "{imp_c.F}", None, "Implied_COD_Asset",
-     False),
+    ("JV IRR (100 %), unlevered, after tax", "%", "{jv_c_irr.E}", None, None, False),
+    ("JV IRR (100 %), unlevered, before tax", "%", "{jv_c_irr_pre.E}", None, None, False),
+    ("PSH profit", "EUR m", "{psh_c.I}", "Thousand", "PSH_COD_Profit", False),
+    ("PSH share of the COD proceeds", "%", "{v_psh_r.F}/({v_fep.F}+{v_psh_r.F})", None, None, False),
+    ("Memo: PSH IRR (150 k€ in-kind apport)", "%", "{psh_c_irr.E}", None, None, False),
     "Hold to maturity",
+    ("Development costs (100 %)", "EUR m", "{dev_capex.E}", "Thousand", None, False),
+    ("Construction capex (100 %)", "EUR m", "{f_capex.E}", "Thousand", None, False),
+    ("FEP equity contributed (all outflows)", "EUR m", "{htm_cap.E}", "Thousand", None, False),
+    ("FEP distributions (all inflows)", "EUR m", 'SUMIF({htm_cf.all},">0")', "Thousand", None, False),
     ("FEP profit", "EUR m", "{htm_cf.I}", "Thousand", "HTM_Profit", False),
     ("FEP IRR, levered, after tax", "%", "{htm_irr.E}", None, "HTM_IRR", True),
-    ("FEP IRR, levered, before tax", "%", "{htm_irr_pre.E}", None, "HTM_IRR_Pre", False),
+    ("FEP IRR, levered, before tax", "%", "{htm_irr_pre.E}", None, None, False),
     ("FEP MOIC", "x", "{htm_moic.E}", None, "HTM_MOIC", False),
     ("FEP NPV", "EUR m", "{htm_npv.E}", "Thousand", "HTM_NPV", False),
-    ("Project IRR, unlevered, after the SPV's actual tax", "%", "{proj_irr.E}", None, "Project_IRR", False),
-    ("Project IRR, unlevered, before tax", "%", "{proj_irr_pre.E}", None, "Project_IRR_Pre", False),
-    ("PSH IRR", "%", "{psh_h_irr.E}", None, None, False),
+    ("Project IRR, unlevered, after tax", "%", "{proj_irr.E}", None, "Project_IRR", False),
+    ("Project IRR, unlevered, before tax", "%", "{proj_irr_pre.E}", None, None, False),
+    ("PSH profit (bought out at its RtB share)", "EUR m", "{psh_h.I}", "Thousand", None, False),
+    ("Memo: PSH IRR (150 k€ in-kind apport)", "%", "{psh_h_irr.E}", None, None, False),
 ]
+FMTS = {"%": "pct", "x": "mult", "flag": "flag", "EUR m": "money2", "EUR k/MWp": "money1", "text": "text"}
 
 
 def dashboard(m):
-    d, S = m.dashboard, m.calc_sheets
+    d = m.dashboard
     m2 = "money2"
 
-    d.section("Levers (revenue case per sheet; everything else from Inputs, set by the key-assumption set)")
-    d.input("Case", "Revenue case: A v3 reconstruction, B Aurora merchant, C offer", "text", ["A", "B", "C"],
-            options="Case_Names")
-    d.link("Case name", "text", "INDEX(Case_Labels,1,{case.F})", fmt="text")
-    d.link("PV price curve", "text", "{pv_real.E}", fmt="text")
-    d.link("BESS revenue curve (Aurora: fixed dispatch, no re-optimisation)", "text", "{stk_real.E}", fmt="text")
-    d.link("PV offer / BESS offer (case C only)", "text", 'IF({offer.E}=1,In_Offer_PV&" / "&In_Offer_BESS,"–")',
-           fmt="text")
-    d.link("BESS built", "MW", "{bess_mw.E}", fmt="money1")
-    d.link("BESS energy", "MWh", "{bess_mw.F}", fmt="money")
-    d.link("Buyer target IRR at RtB (unlevered, after tax)", "%", "In_Buyer_IRR_RtB", fmt="pct")
-    d.link("Futureal share of the distributable amount", "%", "{shr.E}", out="FEP_Share", fmt="pct")
+    def link(label, unit, t, scale=None, out=None, bold=False, fmt=None):
+        assert len(label) <= 44, label
+        return d.link(label, unit, t, scale=scale, out=out, fmt=fmt or FMTS.get(unit, "money1"), bold=bold)
+
+    d.section("Levers (case per sheet; other inputs on Inputs, by set)")
+    d.input("Case", "Revenue case (A, B or C)", "text", ["A", "B", "C"], options="Case_Names")
+    link("Case name", "text", "INDEX(Case_Labels,1,{case.F})")
+    link("PV price curve, direct export", "text", "{pv_real.E}")
+    link("PV price curve, energy sent to the BESS", "text", "{pv_tr_real.E}")
+    link("BESS revenue curve (Aurora block)", "text", "{stk_real.E}")
+    link("Offers in case C: PV / BESS", "text", 'IF({offer.E}=1,In_Offer_PV&" / "&In_Offer_BESS,"–")')
+    link("BESS offer duration ≠ built (1 = yes)", "flag", "{ob_cfg.E}")
+    link("BESS built", "MW", "{bess_mw.E}", fmt="money1")
+    link("BESS energy", "MWh", "{bess_mw.F}", fmt="money")
+    link("Grid import allowed for charging", "MW", "In_Grid_Import_MW", fmt="money1")
+    link("Stack kept with PV-only charging, COD year", "%", 'AVERAGEIF({year.all},YEAR({codd.F})+1,{res_sh.all})')
+    link("Buyer target IRR (unlevered, after tax)", "%", "In_Buyer_IRR_RtB")
+    link("Futureal share at the RtB exit", "%", "{shr.E}", out="FEP_Share")
+    link("Futureal share at a COD sale", "%", "{shr_c.E}")
 
     d.section("Returns at a glance")
     for g in GLANCE:
@@ -1060,42 +1158,50 @@ def dashboard(m):
             d.subheader(g)
             continue
         label, unit, t, scale, out, bold = g
-        f = "pct" if unit == "%" else ("mult" if unit == "x" else (m2 if scale else "money1"))
-        d.link(label, unit, t, scale=scale, out=out, fmt=f, bold=bold)
+        link(label, unit, t, scale=scale, out=out, bold=bold)
+
+    d.section("Revenue cases compared (live: A | B | C)")
+    link("PV generation, first full year", "GWh", "{gen.E}", scale="Thousand", out="Gen_Year1", fmt="money1")
+    link("PV price received, lifetime average", "EUR/MWh", "{pv_rev.I}*Thousand/({gen.I}+{clip.I})", fmt="money2")
+    link("PV revenue, first full year", "EUR m", "{pv_rev.E}", scale="Thousand")
+    link("BESS revenue, first full year", "EUR m", "{bess_rev.E}", scale="Thousand")
+    link("Revenue, first full year", "EUR m", "{rev.E}", scale="Thousand", out="Revenue_Year1")
+    link("EBITDA, first full year", "EUR m", "{ebitda.E}", scale="Thousand", out="EBITDA_Year1")
+    link("Lifetime revenue", "EUR m", "{rev.I}", scale="Thousand", out="Revenue_Life")
+    link("Lifetime EBITDA", "EUR m", "{ebitda.I}", scale="Thousand", out="EBITDA_Life")
+    link("Project IRR, unlevered, after tax", "%", "{proj_irr.E}")
+    link("FEP IRR – hold to maturity", "%", "{htm_irr.E}")
+    link("Implied RtB price", "EUR k/MWp", "{imp_r.E}")
 
     d.section("Capacity and energy")
-    d.link("PV capacity", "MWp", "{mwp.E}", out="MWp", fmt="money1")
-    d.link("Grid export capacity", "MVA", "{mwp.F}", fmt="money1")
-    d.link("PV generation, first full year", "GWh", "{gen.E}", scale="Thousand", out="Gen_Year1", fmt="money1")
-    d.link("PV clipped, lifetime", "GWh", "-{clip.I}", scale="Thousand", fmt="money1")
-    d.link("Energy exported, first full year", "GWh", "{export.E}", scale="Thousand", fmt="money1")
-    d.link("BESS discharge, lifetime", "GWh", "{dis.I}", scale="Thousand", fmt="money1")
-    d.link("BESS full cycles per year (lifetime average)", "#", "{dis.I}/MAX(1,{bess_mw.F})/In_Life", fmt="money1")
-    d.link("Revenue, first full year", "EUR m", "{rev.E}", scale="Thousand", out="Revenue_Year1", fmt=m2)
-    d.link("of which BESS", "EUR m", "{bess_rev.E}", scale="Thousand", fmt=m2)
-    d.link("EBITDA, first full year", "EUR m", "{ebitda.E}", scale="Thousand", out="EBITDA_Year1", fmt=m2)
-    d.link("Lifetime revenue", "EUR m", "{rev.I}", scale="Thousand", out="Revenue_Life", fmt=m2)
-    d.link("Lifetime EBITDA", "EUR m", "{ebitda.I}", scale="Thousand", out="EBITDA_Life", fmt=m2)
+    link("PV capacity", "MWp", "{mwp.E}", out="MWp", fmt="money1")
+    link("Grid export capacity", "MVA", "{mwp.F}", fmt="money1")
+    link("PV clipped, lifetime", "GWh", "-{clip.I}", scale="Thousand", fmt="money1")
+    link("PV sent to the BESS, lifetime", "GWh", "{to_bess.I}", scale="Thousand", fmt="money1")
+    link("Energy exported, first full year", "GWh", "{export.E}", scale="Thousand", fmt="money1")
+    link("BESS discharge, lifetime", "GWh", "{dis.I}", scale="Thousand", fmt="money1")
+    link("BESS full cycles a year (lifetime average)", "#", "{dis.I}/MAX(1,{bess_mw.F})/In_Life", fmt="money1")
 
     d.section("Funding to COD (100 %)")
-    for t, label, out, bold in [("{f_dev.E}", "Development, deposits and guarantees (net)", "Uses_Development", False),
-                                ("{f_capex.E}", "Construction capex and early works at NTP", "Uses_Capex", False),
+    for t, label, out, bold in [("{f_dev.E}", "Development, deposits and guarantees", "Uses_Development", False),
+                                ("{f_capex.E}", "Construction capex, early works at NTP", "Uses_Capex", False),
                                 ("{f_fin.E}", "Capitalised interest and debt fees", "Uses_Financing", False),
                                 ("{f_uses.E}", "Total uses", "Uses_Total", True),
-                                ("{d_close.E}", "Senior debt at COD (incl. capitalised interest)", "Debt_COD", False),
+                                ("{d_close.E}", "Senior debt at COD (incl. IDC)", "Debt_COD", False),
                                 ("{f_equity.E}", "Equity to COD", "Equity_COD", True),
                                 ("{f_equity.F}", "Peak equity, hold (incl. DSRA)", "Equity_Peak", False)]:
-        d.link(label, "EUR m", t, scale="Thousand", out=out, fmt=m2, bold=bold)
-    d.link("Debt share of total uses", "%", "{f_gear.E}", out="Gearing_Uses", fmt="pct")
+        link(label, "EUR m", t, scale="Thousand", out=out, bold=bold)
+    link("Debt share of total uses", "%", "{f_gear.E}", out="Gearing_Uses")
 
     d.section("Debt and tax")
-    d.link("Debt capacity at the weighted target DSCR (PV at COD)", "EUR m", "{ds_cap.E}", scale="Thousand", fmt=m2)
-    d.link("Debt share of construction cost, sized", "%", "{k.E}", out="Debt_Share", fmt="pct")
-    d.link("Share of the DSCR capacity used", "%", "{k.F}", fmt="pct")
-    d.link("DSRA funded at COD", "EUR m", "{dsra.E}", scale="Thousand", fmt=m2)
-    d.link("Minimum DSCR", "x", "{dscr.E}", out="Min_DSCR", fmt="mult")
-    d.link("Lifetime corporate income tax", "EUR m", "SUM({tax_copy.all})", scale="Thousand", out="Tax_Life", fmt=m2)
-    d.link("Tax losses lapsed", "EUR m", "-{lcf_lapse.I}", scale="Thousand", fmt=m2)
+    link("Debt capacity at the target DSCR (at COD)", "EUR m", "{ds_cap.E}", scale="Thousand")
+    link("Debt share of construction cost, sized", "%", "{k.E}", out="Debt_Share")
+    link("Share of the DSCR capacity used", "%", "{k.F}")
+    link("DSRA funded at COD", "EUR m", "{dsra.E}", scale="Thousand")
+    link("Minimum DSCR (n/a without debt)", "x", "{dscr.E}")
+    link("Lifetime tax, actual (levered)", "EUR m", "SUM({tax_copy.all})", scale="Thousand", out="Tax_Life")
+    link("Lifetime tax, unlevered", "EUR m", "{tax_u.I}", scale="Thousand")
+    link("Tax losses lapsed", "EUR m", "-{lcf_lapse.I}", scale="Thousand")
 
     d.section("JV waterfall at the RtB exit (paid)")
     for t, label, bold in [("{w_avail.E}", "Consideration (price × MWp)", True),
@@ -1104,45 +1210,48 @@ def dashboard(m):
                            ("-{w_dsa.F}", "Less DSA loan principal", False),
                            ("-{w_ret.F}", "Less FEP 12 % return", False),
                            ("-{w_bg.F}", "Less guarantee fees paid by FEP", False),
-                           ("-{w_psh.F}", "Less PSH land apport and return (v3 rule)", False),
+                           ("-{w_psh.F}", "Less PSH land and return (v3 rule)", False),
                            ("{w_dist.F}", "Distributable", True),
                            ("{w_fep.F}", "FEP receipts at the exit", True),
                            ("{w_psh_r.F}", "PSH receipts at the exit", True),
                            ("{reimb_x.I}+{pre_reimb.I}", "Memo: buyer reimbursements to FEP", False)]:
-        d.link(label, "EUR m", t, scale="Thousand", fmt=m2, bold=bold)
+        link(label, "EUR m", t, scale="Thousand", bold=bold)
     d.section("JV waterfall at COD (paid)")
     for t, label, bold in [("{px_cod.F}", "Price (enterprise value)", True),
                            ("-{v_avail.E}", "Less debt repaid", False),
+                           ("{dsra.E}", "Plus DSRA balance passed to the buyer", False),
                            ("-{v_cost.F}", "Less sale costs", False),
                            ("-{v_fund.F}", "Less FEP funding returned", False),
                            ("-{v_ret.F}", "Less FEP 12 % return to COD", False),
-                           ("-{v_psh.F}", "Less PSH land apport and return (v3 rule)", False),
+                           ("-{v_psh.F}", "Less PSH land and return (v3 rule)", False),
                            ("{v_dist.F}", "Distributable", True),
                            ("{v_fep.F}", "FEP proceeds at COD", True),
                            ("{v_psh_r.F}", "PSH receipts at COD", True)]:
-        d.link(label, "EUR m", t, scale="Thousand", fmt=m2, bold=bold)
-    d.link("Checks failed in this set (0 = OK)", "#", "Model_Checks", out="Checks", fmt="int")
+        link(label, "EUR m", t, scale="Thousand", bold=bold)
+    link("Checks failed in this set (0 = OK)", "#", "Model_Checks", out="Checks", fmt="int")
 
-    d.scenario_results(outs=["RtB_Profit", "RtB_IRR", "RtB_MOIC", "Implied_RtB", "COD_IRR", "COD_MOIC", "Implied_COD",
-                             "HTM_IRR", "HTM_MOIC", "HTM_NPV", "Project_IRR", "Buyer_RtB_IRR", "Debt_COD",
-                             "Min_DSCR", "Revenue_Life", "Checks"])
+    d.scenario_results(outs=["RtB_Profit", "RtB_IRR", "RtB_MOIC", "Implied_RtB", "AllIn_RtB", "COD_Profit", "COD_MOIC",
+                             "Implied_COD", "HTM_IRR", "HTM_MOIC", "HTM_NPV", "Project_IRR", "Buyer_RtB_IRR",
+                             "Debt_COD", "Revenue_Life", "Checks"])
 
     d.panel_section("Key-assumption set")
     d.selector()
     d.panel_section("Key assumptions (live)")
     for label, unit, ref, f in [
-            ("RtB price (0 = implied)", "EUR k/MW", "In_RtB_Price", "money1"),
-            ("COD price (0 = implied)", "EUR k/MW", "In_COD_Price", "money1"),
+            ("RtB price (0 = implied)", "EUR k/MWp", "In_RtB_Price", "money1"),
+            ("COD price (0 = implied)", "EUR k/MWp", "In_COD_Price", "money1"),
             ("Buyer target IRR, RtB", "%", "In_Buyer_IRR_RtB", "pct"),
             ("Buyer target IRR, COD", "%", "In_Buyer_IRR_COD", "pct"),
-            ("Deal form (0 share, 1 asset)", "flag", "In_Sale_Form", "flag"),
+            ("Asset deal (1 = FEP gain taxed)", "flag", "In_Sale_Form", "flag"),
             ("PV merchant price change", "%", "In_PV_Price_Adj", "pct"),
             ("Yield, cases B and C", "MWh/MWp", "In_Yield", "money"),
             ("BESS power", "MW", "In_BESS_MW", "money1"), ("BESS duration", "h", "In_BESS_Hours", "money1"),
-            ("BESS built", "flag", "In_BESS_On", "flag"), ("BESS haircut", "%", "In_BESS_Haircut", "pct"),
+            ("BESS built", "flag", "In_BESS_On", "flag"), ("BESS repowered", "flag", "In_Repower", "flag"),
+            ("BESS capex", "EUR k/MWh", "In_BESS_Capex", "money"), ("BESS haircut", "%", "In_BESS_Haircut", "pct"),
+            ("Grid import for charging", "MW", "In_Grid_Import_MW", "money1"),
             ("PV offer (case C)", "text", "In_Offer_PV", "text"), ("BESS offer (case C)", "text", "In_Offer_BESS", "text"),
             ("Gearing cap", "%", "In_Gearing", "pct"), ("Debt rate", "%", "In_Debt_Rate", "pct"),
-            ("DSCR contracted / merchant", "x", "In_DSCR_Merchant", "mult"), ("CIT", "%", "In_CIT", "pct"),
+            ("DSCR merchant", "x", "In_DSCR_Merchant", "mult"), ("CIT", "%", "In_CIT", "pct"),
             ("Discount rate", "%", "In_Discount_Rate", "pct"), ("FX", "HUF/EUR", "In_FX", "money"),
             ("COD, cases B and C", "date", "In_COD", "date"), ("RtB exit, cases B and C", "date", "In_RtB_Exit", "date"),
             ("Share rule (1 step, 0 v3)", "flag", "In_Share_Rule", "flag"),
@@ -1152,9 +1261,10 @@ def dashboard(m):
     for t in ["Aurora's BESS revenue is a fixed annual series per MW",
               "for one duration, cycle cap, RTE 0.86, availability",
               "0.98, DC co-location 1:1:1 and entry year. MW",
-              "scales it; hours/cycles switch blocks; RTE, grid",
-              "cap or charging rules act only via the haircut,",
-              "availability and augmentation inputs."]:
+              "scales it; hours/cycles switch blocks; grid import,",
+              "RTE or charging rules act only via the PV-only factor,",
+              "haircut, availability and augmentation inputs.",
+              "Curve codes: see Curves (repower table, Aurora names)."]:
         d.ws.cell(d.pr, d.P, t)
         d.pr += 1
 
@@ -1168,7 +1278,6 @@ def model():
     inputs(m)
     curves(m)
     calc(m)
-    goal_seeks(m)
     checks(m)
     dashboard(m)
     return m
@@ -1181,11 +1290,6 @@ def build_model(out: Path) -> Path:
     for (key, col), f in PATCH.items():          # second format for rows whose E and F hold different units
         for ws in m.calc.sheets:
             ws[f"{col}{m.calc.rows[key].r}"].number_format = FMT.get(f, f)
-    dash = m.wb["Dashboard"]                     # long text results (case and curve names) shrink to the column
-    for row in dash.iter_rows(min_col=5, max_col=7):
-        for c in row:
-            if c.number_format == "@":
-                c.alignment = Alignment(horizontal="right", shrink_to_fit=True)
     m.wb.save(xlsx)
     xlsm = package(xlsx, out / f"{NAME}.xlsm", run=["Scenarios.RunAllScenarios"], include=["Scenarios"])
     xlsx.unlink()
