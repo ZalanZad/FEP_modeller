@@ -26,3 +26,35 @@ def test_solver_closes_circularity(tmp_path):
     paste = wb["Calc"].cell(m.calc.rows["fee_paste"].r, 10).value
     assert abs(paste - 100 * 0.2 / (1 - 0.2)) < 1e-6          # fee = 25
     assert name_value(wb, "Fee_Delta") < 1e-6
+
+
+def test_no_topics_packages_without_solver_modules(tmp_path):
+    """A model without COPY/PASTE or goal seek has no Macro control block, no Solver/GoalSeek modules, and
+    RunAllScenarios (late-bound RunSolvers) still stores every scenario."""
+    m = Model("Plain", periods=4, start=dt.date(2026, 1, 1), scenarios=["Base", "High"])
+    base = m.inputs.add_input("Base", "Base amount", "EUR k", 100, {2: 200}, source="test")
+    m.calc.section("Value")
+    m.calc.row("v", "Value", "EUR k", f"={base}*{{yf}}")
+    m.summary.add_output("V", "Value", "EUR k", m.calc.ref("v"))
+    xlsx = m.save(tmp_path / "plain.xlsx")
+    assert "Solver_Topics" not in m.names and "GoalSeek_Topics" not in m.names
+    xlsm = package(xlsx, tmp_path / "plain.xlsm")
+    assert {"Solver", "GoalSeek"}.isdisjoint(embedded_modules(xlsm)) and "Scenarios" in embedded_modules(xlsm)
+    rc = recalc(xlsm, tmp_path / "plain_recalc.xlsx")
+    assert lint_values(rc) == []
+    wb = values(rc)
+    stored = [wb["Summary"].cell(6, c).value for c in (7, 8)]
+    assert abs(stored[1] / stored[0] - 2) < 1e-9
+
+
+def test_include_embeds_only_the_named_modules(tmp_path):
+    """`include` keeps project macros of other models out; Solver/GoalSeek still follow Solver_Topics."""
+    m = Model("Circ", periods=4, start=dt.date(2026, 1, 1))
+    base = m.inputs.add_input("Base", "Base amount", "EUR k", 100, source="test")
+    c = m.calc
+    c.section("Fee")
+    c.paste("Fee", "Fee", "EUR k")
+    c.row("gross", "Gross amount", "EUR k", f"={base}+{{fee_paste}}")
+    c.copy("Fee", "Fee", "EUR k", "={gross}*In_Base/In_Base/5")
+    xlsm = package(m.save(tmp_path / "inc.xlsx"), tmp_path / "inc.xlsm", include=["Scenarios"])
+    assert set(embedded_modules(xlsm)) == {"Scenarios", "Solver", "GoalSeek"}

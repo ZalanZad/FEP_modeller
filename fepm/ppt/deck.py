@@ -8,11 +8,15 @@ name); `Deck.save()` writes `deck_bindings.csv` (slide, shape, text, cell, value
     s = d.content("Summary", "Bid 62.4 EUR/MWh", f"IRR {d.bind('Summary', 'E11', fmt_pct)}")
     s.table(["Output", "Unit", "Base"], [["IRR", "%", d.bind("Out_Project_IRR", fmt=fmt_pct)]])
     d.save("out/deck.pptx")
+
+Text that mixes words and several bound values: `d.f("IRR {a} / {b}", a=d.bind(...), b=d.bind(...))` returns a
+`Text` that records exactly its bound parts (no substring matching), in titles, text boxes, cards and table cells.
 """
 from __future__ import annotations
 
 import copy
 import csv
+import re
 import datetime as dt
 from pathlib import Path
 
@@ -103,6 +107,7 @@ def _set_cover_text(slide, project, topic, date):
             r._r.getparent().remove(r._r)  # noqa: SLF001
         for br in p._p.findall(qn("a:br")):  # noqa: SLF001
             p._p.remove(br)  # noqa: SLF001
+    return box
 
 
 # ---- deck -------------------------------------------------------------------------------------
@@ -112,6 +117,18 @@ class Bound(str):
 
 class BoundNum(float):
     """Raw number bound to a workbook cell (chart values)."""
+
+
+class Text(str):
+    """Text composed of words and Bound values (`Deck.f`); `parts` are the Bound values it contains."""
+    parts: list
+
+
+def _parts(text):
+    """Bound parts of a Bound / Text, or None for plain text (recorded by substring matching)."""
+    if isinstance(text, Bound):
+        return [text]
+    return getattr(text, "parts", None)
 
 
 def _rgb(hexstr):
@@ -126,7 +143,7 @@ def _font(run_or_font, size, bold=False, color=TEXT):
 
 class Deck:
     def __init__(self, workbook, *, template=TEMPLATE, source="model", date: dt.date | None = None,
-                 sections=()):
+                 sections=(), date_cell=None):
         self.workbook = Path(workbook)
         self.wb = openpyxl.load_workbook(self.workbook, data_only=True)
         self.prs = Presentation(template)
@@ -136,6 +153,10 @@ class Deck:
         self.bindings: list[tuple] = []          # slide, shape, text, cell, value
         self._bound: dict[str, set] = {}         # text -> {(cell, value)}
         self._has_cover = False
+        self._date = None
+        if date_cell:                                # source date read from the workbook, e.g. ("Dashboard", "E6")
+            self._date = self.bind(*date_cell, fmt=lambda v: f"{v.day} {v:%b %Y}")
+            self.date = self._date.value.date() if hasattr(self._date.value, "date") else self._date.value
 
     # ---- bindings -------------------------------------------------------------------------
     def _resolve(self, sheet_or_name, cell):
@@ -145,12 +166,18 @@ class Deck:
         else:
             sheet = sheet_or_name
         cell = cell.replace("$", "")
+        if ":" in cell:                              # a range shown as one figure: every cell must be equal
+            values = {c.value for row in self.wb[sheet][cell] for c in row}
+            if len(values) != 1:
+                raise ValueError(f"{sheet}!{cell} is not one value: {sorted(values, key=str)}")
+            return f"{sheet}!{cell}", values.pop()
         return f"{sheet}!{cell}", self.wb[sheet][cell].value
 
     def bind(self, sheet_or_name, cell=None, fmt=None):
         """Value of `Sheet!cell` (or a workbook name) from the recalculated workbook.
 
-        With `fmt` returns formatted text (Bound), without it a number for charts (BoundNum)."""
+        With `fmt` returns formatted text (Bound), without it a number for charts (BoundNum).
+        A range (`"K17:L17"`) is allowed when all its cells hold the same value."""
         ref, value = self._resolve(sheet_or_name, cell)
         if fmt is None:
             b = BoundNum(value if isinstance(value, (int, float)) else 0.0)
@@ -160,27 +187,90 @@ class Deck:
         b.ref, b.value = ref, value
         return b
 
+    def bind_sum(self, refs, fmt):
+        """Sum of several cells shown as one figure (e.g. both bids). Each cell is bound and recorded in the
+        manifest with the displayed text and note "sum"; the total itself is never typed.
+
+        `refs`: workbook names or `Sheet!Cell` strings, or Bound values (e.g. from `stored`)."""
+        comps = []
+        for r in refs:
+            if hasattr(r, "ref"):
+                comps.append((r.ref, r.value))
+            else:
+                comps.append(self._resolve(*r.split("!")) if "!" in r else self._resolve(r, None))
+        b = Bound(fmt(sum(v for _, v in comps)))
+        b.ref, b.value, b.components = "+".join(r for r, _ in comps), None, comps
+        for ref, value in comps:
+            self._bound.setdefault(str(b), set()).add((ref, value))
+        return b
+
+    def _entries(self, slide_no, shape, b):
+        """Manifest rows of one Bound: one row per cell (sum components carry note "sum")."""
+        if getattr(b, "components", None):
+            return [(slide_no, shape, str(b), ref, value, "sum") for ref, value in b.components]
+        return [(slide_no, shape, str(b), b.ref, b.value, "")]
+
     def stored(self, output_key, scenario: int, fmt=None):
-        """Stored scenario result (1-based scenario) of Summary output `Out_<output_key>`."""
-        sheet, cell = next(self.wb.defined_names[f"Out_{output_key}"].destinations)
-        _, first = next(self.wb.defined_names["Stored_Results"].destinations)
-        col = openpyxl.utils.column_index_from_string(first.split("$")[1]) + scenario - 1
-        row = int(cell.split("$")[-1])
+        """Stored scenario result (1-based scenario) of output `Out_<output_key>`: on its Summary row, or on the
+        Dashboard in the `<output_key>_Stored` row (e.g. `stored("HTM_IRR_2", 3)`)."""
+        names = self.wb.defined_names
+        if f"{output_key}_Stored" in names:                      # Dashboard: own stored row
+            sheet, rng = next(names[f"{output_key}_Stored"].destinations)
+            _, first, row = rng.split(":")[0].split("$")
+        else:                                                    # Summary: stored columns on the output row
+            sheet, cell = next(names[f"Out_{output_key}"].destinations)
+            first = next(names["Stored_Results"].destinations)[1].split("$")[1]
+            row = cell.split("$")[-1]
+        col = openpyxl.utils.column_index_from_string(first) + scenario - 1
         return self.bind(sheet, f"{openpyxl.utils.get_column_letter(col)}{row}", fmt)
 
+    @staticmethod
+    def f(template, **values) -> Text:
+        """`template.format(**values)` that keeps the Bound values it contains (see `Text`)."""
+        out = Text(template.format(**values))
+        out.parts = [p for v in values.values() for p in (_parts(v) or [])]
+        return out
+
     def _record_text(self, slide_no, shape, text):
-        for t, refs in self._bound.items():
-            if t and t in text:
+        parts = _parts(text)
+        if parts is not None:
+            for b in parts:
+                self.bindings.extend(self._entries(slide_no, shape, b))
+            return
+        for t, refs in self._bound.items():      # whole figures only: "6" does not match inside "2026"
+            if t and re.search(r"(?<![\d.,])" + re.escape(t) + r"(?![\d.,])", text):
                 for ref, value in sorted(refs, key=str):
-                    self.bindings.append((slide_no, shape, t, ref, value))
+                    self.bindings.append((slide_no, shape, t, ref, value, ""))
 
     # ---- slides ---------------------------------------------------------------------------
-    def cover(self, project, topic, date_text):
-        _set_cover_text(self.prs.slides[0], project, topic, date_text)
+    def cover(self, project, topic, date_text, subtitle=None):
+        """Cover text; `subtitle` (lines split on "\n") goes between the topic and the date, in the date style."""
+        box = _set_cover_text(self.prs.slides[0], project, topic, date_text)
+        if subtitle:
+            date_p = [p for p in box.text_frame.paragraphs if p.runs][2]._p  # noqa: SLF001
+            sub = copy.deepcopy(date_p)
+            sub.find(qn("a:pPr")).find(qn("a:lnSpc")).find(qn("a:spcPts")).set("val", "3600")
+            r = sub.findall(qn("a:r"))[0]
+            r.find(qn("a:rPr")).set("sz", "2800")
+            r.find(qn("a:t")).text = subtitle.split("\n")[0]
+            for line in subtitle.split("\n")[1:]:
+                etree.SubElement(sub, qn("a:br"))
+                r2 = copy.deepcopy(r)
+                r2.find(qn("a:t")).text = line
+                sub.append(r2)
+            end = sub.find(qn("a:endParaRPr"))
+            if end is not None:
+                sub.remove(end)
+                sub.append(end)
+            date_p.addprevious(sub)
+        for piece in (project, topic, subtitle, date_text):
+            if piece:
+                self._record_text(1, "Cover", piece)
         self._has_cover = True
 
-    def content(self, section, title, subtitle=None) -> "Slide":
-        return Slide(self, section, title, subtitle)
+    def content(self, section, title, subtitle=None, *, title_lines=1) -> "Slide":
+        """Content slide. `title_lines=2` wraps a long action title over two lines (subtitle moves down)."""
+        return Slide(self, section, title, subtitle, title_lines)
 
     def save(self, path) -> Path:
         path = Path(path)
@@ -196,7 +286,7 @@ class Deck:
             raise ValueError(f"bound values never placed on a slide: {orphans}")
         with open(path.parent / "deck_bindings.csv", "w", newline="") as fh:
             w = csv.writer(fh)
-            w.writerow(["slide", "shape", "text", "cell", "value"])
+            w.writerow(["slide", "shape", "text", "cell", "value", "note"])
             w.writerows(self.bindings)
         return path
 
@@ -204,7 +294,7 @@ class Deck:
 class Slide:
     LEFT, WIDTH = 4.92, 15.0
 
-    def __init__(self, deck: Deck, section, title, subtitle):
+    def __init__(self, deck: Deck, section, title, subtitle, title_lines=1):
         self.d = deck
         self.s = deck.prs.slides.add_slide(deck.layout)
         for ph in list(self.s.placeholders):
@@ -212,12 +302,17 @@ class Slide:
                 ph._element.getparent().remove(ph._element)  # noqa: SLF001 - unused body placeholder
         t = self.s.shapes.title
         t.width = Inches(13.8)
+        sub_top, sub_h = 1.20, 0.45
+        if title_lines > 1:                          # long action title: wrap inside the space left of the logo
+            t.left, t.top, t.width, t.height = Inches(self.LEFT), Inches(0.2), Inches(13.9), Inches(1.2)
+            t.text_frame._bodyPr.set("wrap", "square")  # noqa: SLF001 - the layout title does not wrap
+            sub_top, sub_h = 1.50, 0.75
         t.text = title
         self._record("Title", title)
         self._page_number()
         self._navigator(section)
         if subtitle:
-            self.text("Subtitle", subtitle, self.LEFT, 1.20, self.WIDTH, 0.45, size=18, bold=True)
+            self.text("Subtitle", subtitle, self.LEFT, sub_top, self.WIDTH, sub_h, size=18, bold=True)
 
     @property
     def number(self):
@@ -269,10 +364,12 @@ class Slide:
         return box
 
     def table(self, header, rows, *, key_rows=(), sections=(), left=LEFT, top=1.75, width=WIDTH, height=None,
-              col_widths=None, name="Table"):
+              col_widths=None, name="Table", align=None, unit_col=1):
         """FEP table: green header, grey label + unit columns, key rows bold on light green.
 
-        `rows` hold strings (Bound values carry their cell); `sections` are row indices rendered as sub-headers."""
+        `rows` hold strings (Bound / Text values carry their cells); `sections` are row indices rendered as
+        sub-headers. `align` is one letter per column ("L"/"R"; default: label and unit left, numbers right);
+        `unit_col=None` for a table without a unit column (only the label column is grey)."""
         n_rows, n_cols = len(rows) + 1, len(header)
         height = height or 0.59 + 0.34 * len(rows)
         shape = self.s.shapes.add_table(n_rows, n_cols, Inches(left), Inches(top), Inches(width), Inches(height))
@@ -296,15 +393,17 @@ class Slide:
                 cell.vertical_anchor = MSO_ANCHOR.MIDDLE
                 cell.text = str(v)
                 p = cell.text_frame.paragraphs[0]
-                p.alignment = PP_ALIGN.LEFT if j < 2 else PP_ALIGN.RIGHT
+                left_aligned = align[j] == "L" if align else j < 2
+                p.alignment = PP_ALIGN.LEFT if left_aligned else PP_ALIGN.RIGHT
+                grey_col = j == 0 or j == unit_col
                 key = body in key_rows
                 if i == 0:
                     fill, color, bold = GREEN, WHITE, True
                 elif body in sections:
                     fill, color, bold = KEY_FILL, DARK_GREEN, True
                 else:
-                    fill = LABEL_FILL if j < 2 else (KEY_FILL if key else None)
-                    color, bold = (GREY if j == 1 else TEXT), key
+                    fill = LABEL_FILL if grey_col else (KEY_FILL if key else None)
+                    color, bold = (GREY if j == unit_col else TEXT), key
                 if p.runs:
                     _font(p.runs[0], 13, bold, color)
                 if fill:
@@ -312,8 +411,8 @@ class Slide:
                     cell.fill.fore_color.rgb = _rgb(fill)
                 else:
                     cell.fill.background()
-                if isinstance(v, Bound):
-                    self.d.bindings.append((self.number, name, str(v), v.ref, v.value))
+                for b in _parts(v) or []:
+                    self.d.bindings.extend(self.d._entries(self.number, name, b))  # noqa: SLF001
         return shape
 
     def chart(self, kind, categories, series: dict, *, left=LEFT, top=6.0, width=WIDTH, height=4.0, title=None,
@@ -363,7 +462,7 @@ class Slide:
         for sname, vals in series.items():
             for cat, v in zip(categories, vals):
                 if hasattr(v, "ref"):
-                    self.d.bindings.append((self.number, name, f"{sname} / {cat}", v.ref, v.value))
+                    self.d.bindings.append((self.number, name, f"{sname} / {cat}", v.ref, v.value, ""))
         return gf
 
     def card(self, header, bullets, *, left=15.35, top=1.75, width=4.55, height=4.75, name="Card"):
@@ -381,25 +480,29 @@ class Slide:
         tf.margin_top = Inches(0.15)
         p = tf.paragraphs[0]
         p.alignment = PP_ALIGN.LEFT
-        _font(p.add_run(), 16, True, DARK_GREEN)
-        p.runs[0].text = header
-        text = header
-        for lead, body in bullets:
-            p = tf.add_paragraph()
+        if header:
+            _font(p.add_run(), 16, True, DARK_GREEN)
+            p.runs[0].text = header
+            self._record(name, header)
+        for k, (lead, body) in enumerate(bullets):
+            if header or k:
+                p = tf.add_paragraph()
+                p.space_before = Pt(8)
             p.alignment = PP_ALIGN.LEFT
-            p.space_before = Pt(8)
             for t, bold in ((lead, True), (body, False)):
                 r = p.add_run()
                 r.text = t
                 _font(r, 13, bold)
-            text += f"\n{lead}{body}"
-        self._record(name, text)
+                self._record(name, t)
         return box
 
     def footnote(self, text, top=10.55):
-        src = f"Source: {self.d.source}, {self.d.date.day} {self.d.date:%b %Y}."
-        return self.text("Footnote", f"{text}\n{src}" if text else src, self.LEFT, top, 14.4, 0.7, size=11,
-                         color=GREY)
+        date = self.d._date or f"{self.d.date.day} {self.d.date:%b %Y}"  # noqa: SLF001
+        src = Deck.f("Source: {s}, {d}.", s=self.d.source, d=date)
+        out = Deck.f("{t}\n{s}" if text else "{s}", t=text or "", s=src)
+        if text and _parts(text) is None:             # plain footnote text: record it by substring matching
+            self._record("Footnote", text)
+        return self.text("Footnote", out, self.LEFT, top, 14.4, 0.7, size=11, color=GREY)
 
 
 def _borders(cell, top=None, bottom=None, color=TEXT):

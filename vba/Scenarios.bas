@@ -6,9 +6,10 @@ Attribute VB_Name = "Scenarios"
 Option Explicit
 
 Public Sub RunAllScenarios()
-    Dim original As Variant, i As Long, r As Long, n As Long
+    Dim original As Variant, i As Long, r As Long, n As Long, errNo As Long, errMsg As String
     original = Range("Scenario_Name").Value
     n = Range("Scenario_Names").Columns.Count
+    On Error GoTo Failed
     For i = 1 To n
         Range("Scenario_Name").Value = Range("Scenario_Names").Cells(1, i).Value
         RunSolvers
@@ -18,11 +19,33 @@ Public Sub RunAllScenarios()
     Next i
     Range("Scenario_Name").Value = original
     RunSolvers
+    Exit Sub
+Failed:
+    errNo = Err.Number
+    errMsg = Err.Description
+    On Error Resume Next
+    Range("Scenario_Name").Value = original
+    Application.Calculate
+    Application.ScreenUpdating = True
+    On Error GoTo 0
+    Err.Raise errNo, "RunAllScenarios", errMsg & " (original scenario restored)"
 End Sub
 
 Public Sub RunSolvers()
+    ' Solver.bas and GoalSeek.bas are only embedded in models with topics (named cell Solver_Topics),
+    ' so they are called late-bound and only when that name exists.
     Application.Calculate
-    Solver.SolveAll
-    GoalSeek.SolveAll
+    If HasName("Solver_Topics") Then
+        Application.Run "Solver.SolveAll"
+        Application.Run "GoalSeek.SolveAll"
+    End If
     Application.Calculate
 End Sub
+
+Private Function HasName(ByVal n As String) As Boolean
+    Dim r As Range
+    On Error Resume Next
+    Set r = Range(n)
+    HasName = Not (r Is Nothing)
+    On Error GoTo 0
+End Function
