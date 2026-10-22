@@ -271,6 +271,9 @@ Verification, in this order:
    (EU | CN | EU refinanced). The engine's lender block stays: show on the Dashboard, in the returns table's
    build-and-operate group, "Maximum gearing at the lender minimum DSCR" (HTM G256, lender minimum Inputs E251 = 1.5x
    shown in key assumptions) so the reader sees where the most debt is; min DSCR per case is already there.
+   Amended: case 3 gearing is 64 % (the engine's maximum at the 1.5x lender minimum, HTM G256 = 64.1 %, rounded down;
+   65 % gave 1.48x). The stored = live check compares numbers only (column I = stored − live for the selected case,
+   0 where either is text), so a "none in range" or "n/a" output cannot break Master_Check.
 2. **Cash_Flow: EBIT and NOI.** Under "EBITDA (NOI)" two memo rows (grey italic, outside the foot): "Tax depreciation"
    (HTM 92) and "EBIT" (= EBITDA + depreciation). The foot and the check are unchanged.
 3. **Sensitivities with blue inputs on the Dashboard, formulas in the engine** (section 7). The four drivers that move the
