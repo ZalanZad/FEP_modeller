@@ -374,3 +374,48 @@ The user returned the workbook as `reference/Bora_model_RTB_COD_HTM_20261022.xls
 plus a "Sum" column G on the Cash_Flow per-MW rows 9–13). From now on **this file is the source**: `build.py` is kept as
 `build_v1.py` (history), and the new `build.py` loads this file, applies §16 only, re-embeds `Scenarios.bas` and runs
 RunAllScenarios. Nothing else in the file changes ("don't change anything else"). Output name: `out/Bora_model_RTB_COD_HTM.xlsm`.
+
+## 17. Eighth round (user, 26-Oct-2026): the OVIT overbuild strategy, the Wind HU points sheet
+
+**Source:** `reference/Bora_model_RTB_COD_HTM_AG_20261026.xlsm` (the user's edited copy of our 21c96d1 output: scenario table
+changed, a "Construction capex excl. turbine" scenario row wired into Inputs row 171, "Yield on cost" rows, CIT 15 %,
+levers set to an experiment). It replaces §16.1's file as THE source; every user edit stays (CIT 15 % included – flag it in
+the report, Hungary's CIT is 9 %; the user may have meant CIT + something). Output `out/Bora_model_RTB_COD_HTM.xlsm`.
+Reference documents: `reference/OVIT_optimal_overbuild_version_A.docx` (EU turbine 1.2 M€/MW marginal) and `_B.docx`
+(CN 0.8 M€/MW), 23-Oct-2026, economics only (no ÖSZ points).
+
+1. **Strategy levers (Dashboard section 1), from the documents with the user's cap:** the documents' economic optimum is
+   18 turbines built / 19 bid (+30 % / +37 %) for the EU turbine and 22 / 23 (+58 % / +66 %) for the CN turbine, each with a
+   30 MW / 120 MWh battery, bidding one turbine more than built on the 10 % tolerance. The user caps the overbuild at the
+   level that earns the maximum ÖSZ-3 points. Per the points table (docs/domain/tender_2026_rules.md) 40–50 % scores
+   90 inner points and **> 50 % scores 100**, so the cap is **51 %** (as the fepm bid model used), not 50.0 %. Set:
+   `Dash_Overbuild` = 51 %, `Dash_Build_Shortfall` = 10 % (built = 45.9 %, 145.9 MW on 100 MVA), `Dash_BESS_Share` = 30 %
+   (30 MW / 120 MWh, the documents' battery), BESS hours 4, municipal 50, community 3, PB 1.0x, partial 1, brownfield 0,
+   shared 1 (ÖSZ-9 follow the case). Record in the key assumptions: "Overbuild per OVIT optimal-overbuild memo (23-Oct-2026),
+   capped at the maximum-points band".
+2. **Clipping from the documents replaces the 5 % rule.** Table 7 of the memo gives the park's clipped share of gross
+   energy by installed ÷ cap ratio (36 % P50 park): 1.01 → 0 %, 1.08 → 1.0, 1.15 → 3.2, 1.22 → 5.6, 1.30 → 8.0, 1.37 → 10.3,
+   1.44 → 12.6, 1.51 → 14.8, 1.58 → 16.9, 1.66 → 19.0, 1.73 → 20.9, 1.80 → 22.8. Put this curve on Inputs block U as a
+   two-column table (ratio, clipped %; blue, source "OVIT memo Table 7, drawn year") and compute `In_Bottleneck_Factor`
+   = 1 − clipped % at the built ratio by linear interpolation (helper cells: lower index via MATCH, lower/upper pair,
+   slope; ≤ 2 nested functions each). `Dash_Bottleneck_Loss` (5 % of overbuilt MW) is retired (row removed). Note in the
+   key assumptions that the curve is for a 36 % P50 park (the memo) and is conservative at 2,500 h.
+3. **New sheet `Bid_Points`** after the Dashboard: the user's `reference/Wind_HU_points_deposits_devex_20261026.xlsx`
+   sheet "Bid_Deposits_Devex" copied in (layout, formulas, formats), then:
+   - BORA 1 and BORA 2 columns = the model's bid (both bids identical): rows 8–19 link to the Dashboard levers / case
+     (E8 = Dash_MVA … E19 = Dash_EU_Transformer); rates and fees (rows 48–60) link to Inputs where the model holds them
+     (FX, benchmarks, participation fee, bid/PB rates, TSO security, connection fees, guarantee fee, signing + DD, devex
+     contingency); key dates (rows 37–45) link to Inputs E27/E95/E96/E97/E99/E154/E155 and the PB release date; the devex
+     line items (rows 86–117) link to the `Devex_FEP` / `BORA_Devex` sheets where identical (else stay as the sheet's blue
+     inputs). Iváncsa and Dunaújváros stay as the sheet's own blue inputs (not in the model).
+   - Points band tables (rows 160–231) checked against docs/domain/tender_2026_rules.md and corrected if they differ
+     (inclusive bounds, ÖSZ-4 40–50 → 90, > 50 → 100, ÖSZ-6 ≥ 200 → 100); weights per Annex 3.
+   - The sheet's `Thousand` name: define it in the workbook (= 1000 on Inputs block U) or point at the sheet's own
+     constant Q4. No `#NAME?`.
+   - A check row on the Dashboard: Bid_Points total for BORA 1 = Dashboard total points (0 = OK), into Master_Check.
+4. **Nothing else changes.** Keep the user's scenario table (Base turbine 500 etc.), the construction-capex scenario row,
+   the yield-on-cost rows, CIT 15 %, the case names. Cases 1–3 must reproduce the AG file's own recalculated values when
+   the §17.1–17.2 levers are set back to the AG values (overbuild 11 %, BESS 0, municipal 0, community 0, 5 % rule) – that
+   is the new regression (`regression.py` → `ag_tieout.py`, 7 headline metrics at 1e-6).
+5. Then: `model-auditor` (lint in scope, Master_Check 0, independent recomputation of points, PB, clipping interpolation,
+   capex, generation, the three cases, Bid_Points = model) and a `model-reviewer` pass on the dump; fixes; delivery.
