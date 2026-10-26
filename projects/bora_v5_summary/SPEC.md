@@ -430,6 +430,8 @@ formulas there are broken; stored results re-run). It is THE source; the output 
 1. **The user's case, made proper (same numbers, no typed-over formulas):**
    - Turbine: scenario-table Base turbine = 800 and Inputs G162 back to the link `=Dashboard!$H$8` (Low/High as the user
      left them, 500 / 800).
+     **Change by the coordinator (26-Oct-26), for the user to confirm:** Low turbine 500 → 950 k€/MW (500 is not a
+     pessimistic value); Base 800 and High 800 stay as the user left them.
    - Clipping: new blue lever on the Dashboard section 1 `Dash_Clip_Override` "Clipped share of gross energy (blank = OVIT
      memo curve)" = 4 %; `In_Bottleneck_Factor` = 1 − IF(override="", interpolated share, override). Key-assumption note:
      "Clipping 4 % (user, 26-Oct-26): the memo curve (9.9 % at this ratio) is for a 36 % CF park".

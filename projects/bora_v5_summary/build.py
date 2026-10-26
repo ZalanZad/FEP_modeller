@@ -43,7 +43,8 @@ NAME = "Bora_model_RTB_COD_HTM"
 # §18.1 the user's case: EU turbine 800 k€/MW in the Base scenario, clipping 4 % instead of the memo curve.
 BASE_TURBINE = 800
 CLIP_OVERRIDE = 0.04
-CLIP_NOTE = "Clipping 4 % (user, 26-Oct-26): the memo curve (9.9 % at this ratio) is for a 36 % CF park"
+CLIP_NOTE = "Clipping override (user, 26-Oct-26); blank = OVIT memo curve for a 36 % CF park"
+LOW_TURBINE = 950                                                  # coordinator: 500 is not a pessimistic Low
 
 # §18.2 / §17.3 Bid_Points: Wind HU row numbers (the copy is rebuilt from the user's sheet of 26-Oct-2026).
 # Column E = Bora, per bid; column F = total over In_Bids bids (amount rows only).
@@ -53,13 +54,13 @@ BID_LEVERS = {8: "=Dash_MVA/In_Bids", 9: "=Dash_Overbuild", 10: "=Dash_BESS_Shar
               16: "=Dash_Brownfield", 17: "=Dash_Shared", 18: "=Dash_EU_Turbine", 19: "=Dash_EU_Transformer"}
 BID_RATES = {48: "=Inputs!$E$11", 49: "=Inputs!$E$75*Million", 50: "=Inputs!$E$89*Million",
              51: "=Inputs!$E$81*Million", 52: "=Inputs!$E$76", 53: "=Inputs!$E$77", 54: "=Inputs!$E$83*Million",
-             55: "=Inputs!$E$85*Million", 56: "=Inputs!$E$84*Million*E$8", 57: "=Inputs!$E$113",
+             55: "=Inputs!$E$85*Million", 56: "=Deposits!$M$12/In_Bids", 57: "=Inputs!$E$113",
              58: "=(Inputs!$E$24+Inputs!$E$25)/In_Bids"}
 BID_DATES = {37: "=Inputs!$E$27", 38: "=Inputs!$E$95", 39: "=Deposits!$K$10", 40: "=Inputs!$E$97",
              41: "=Devex_FEP!$F$38", 42: "=Inputs!$E$99", 43: "=Inputs!$E$154", 44: "=Inputs!$E$155"}
-EUR_K = {75: "=E$58", 76: "=E$51/E$48/Thousand", 77: "=E$52*(E$20*E$49+E$22*E$50)/E$48/Thousand",
-         78: "=E$53*E$15*(E$20*E$49+E$22*E$50)/E$48/Thousand", 79: "=E$54*E$8/E$48/Thousand",
-         80: "=E$56/E$48/Thousand", 81: "=(E$55-E$54)*E$8/E$48/Thousand"}
+EUR_K = {75: "=E$58", 76: "=Deposits!$M$7/In_Bids", 77: "=Deposits!$M$8/In_Bids",   # Deposits k€, per bid
+         78: "=(Deposits!$M$8+Deposits!$M$10)/In_Bids", 79: "=Deposits!$M$11/In_Bids", 80: "=E$56",
+         81: "=Deposits!$M$18/In_Bids"}
 # Devex lines: Wind HU row → Devex_FEP row (the model's k€ per line, scaled by In_Scale), per bid = ÷ In_Bids.
 DEVEX = {**{r: r - 81 for r in range(86, 117)}, 117: 37, 118: 38}
 DEVEX_OTHER = 36                                                   # no Wind HU line: inserted as row 117
@@ -322,7 +323,8 @@ def bid_points(wb):
     _clear(ws, range(1, 157), "GHIJNO")
     _clear(ws, [r for r in range(1, 61) if r not in (7, 8, 20, 21, 22)], "F")
     ws["C3"].value = "Bora"
-    ws["C4"].value = '="Bid strategy – "&TEXT($E$9,"0 %")&" overbuild"'
+    ws["C4"].value = "Bora – bid, deposits and devex to COD"
+    ws["D12"].value, ws["D56"].value = "EUR k/MVA", "EUR k"
     for r in HEADER_ROWS:
         ws[f"E{r}"].value, ws[f"F{r}"].value = PER_BID, (TOTAL if r != 47 else None)
     ws["C34"].value = ws["C122"].value = "Points total, live case"
@@ -347,7 +349,10 @@ def bid_points(wb):
     ws["F222"].value = 1                                              # ÖSZ-6: x ≥ 2.0 scores 100 (GYIK Q34)
 
     for r, f in EUR_K.items():                                         # securities and fees in k€
-        ws[f"E{r}"].value = f
+        if "Deposits" in f:
+            _link(ws[f"E{r}"], f)
+        else:
+            ws[f"E{r}"].value = f
     for r, d in DEVEX.items():                                         # devex per line = the model's k€ ÷ bids
         _link(ws[f"E{r}"], f"=Devex_FEP!$E${d}/In_Bids")
         if r != 118:
@@ -404,8 +409,11 @@ def other(wb, ws):
 
 # =========================================================================================== §18.1 the user's case
 def turbine(wb):
-    """Base turbine 800 in the scenario table; Inputs G162 links to it again (the user typed 800 over the link)."""
-    name_cell(wb, "Dash_Key_Inputs").value = BASE_TURBINE
+    """Base turbine 800 in the scenario table; Inputs G162 links to it again (the user typed 800 over the link).
+    Low turbine 950 (coordinator, for the user to confirm: 500 is not a pessimistic value)."""
+    first = name_cell(wb, "Dash_Key_Inputs")
+    first.value = BASE_TURBINE
+    first.offset(column=1).value = LOW_TURBINE
     inp = wb["Inputs"]
     inp[f"G{label_row(inp, 'Turbine supply incl. transport')}"].value = "=Dashboard!$H$8"
 
@@ -451,6 +459,22 @@ def euros(wb):
         r = label_row(d, label, start=top)
         d.cell(r, 4).value = unit
         like(d.cell(r, 5), d.cell(model, 5), f, fmt)
+
+
+def checks(wb):
+    """Dashboard section 8: Bid_Points quarterly cash = summary (inside Master_Check); check label shortened."""
+    d, bp = wb["Dashboard"], wb["Bid_Points"]
+    d.cell(label_row(d, "Bid_Points total for BORA 1"), 3).value = "Bid_Points total points"
+    chk = label_row(bp, "Check: quarters vs summary")
+    at = label_row(d, "Capacity: BESS MW")                              # before the last check row: inside the SUM
+    shift_rows(wb, "Dashboard", at, 1)
+    for col in range(3, 7):
+        like(d.cell(at, col), d.cell(at + 1, col))
+    d.cell(at, 3).value, d.cell(at, 4).value = "Bid_Points quarterly cash = summary to COD", "#"
+    d.cell(at, 5).value = f'=COUNTIF(Bid_Points!$E${chk}:$F${chk},"CHECK")'
+    d.cell(at, 6).value = f'=IF(E{at}=0,"OK","CHECK")'
+    master = name_cell(wb, "Master_Check")
+    assert re.search(rf"E\d+:E{at + 1}\)", master.value), master.value
 
 
 def change_log(wb):
@@ -506,6 +530,7 @@ def edit():
     bid_points(wb)
     bora_only(wb)
     euros(wb)
+    checks(wb)
     change_log(wb)
     return wb
 

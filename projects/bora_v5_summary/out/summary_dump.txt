@@ -3,7 +3,7 @@ Master check |  | OK |  |
 0. Key inputs by scenario |  |  |  | 
 Scenario (Base, Low, High) |  | Base |  | 
  |  | Base | Low | High | Live
-Turbine supply, EU | k€/MW | 800 | 500 | 800 | 800
+Turbine supply, EU | k€/MW | 800 | 950 | 800 | 800
 PPA price, first operating year | €/MWh | 90 | 90 | 100 | 90
 Net P50 hours | h/yr | 2500 | 2460 | 2600 | 2500
 O&M full-service contract | k€/MW/yr | 12 | 12 | 12 | 12
@@ -166,7 +166,8 @@ Stored results = live case (numbers only) | # | 0 | OK |
 ÖSZ-4 BESS ratio at least the minimum | # | 0 | OK | 
 Cash_Flow foots to the equity cash flow | # | 0 | OK | 
 Gearing grid ties to the live case at the live gearing | # | 0 | OK | 
-Bid_Points total for BORA 1 = Dashboard total points | # | 0 | OK | 
+Bid_Points total points | # | 0 | OK | 
+Bid_Points quarterly cash = summary to COD | # | 0 | OK | 
 Capacity: BESS MW ≤ wind MW, duration ≥ minimum | # | 0 | OK | 
 Master check (number of failing rows) | # | 0 | OK | 
 9. Key assumptions, live case |  |  |  | 
@@ -190,7 +191,7 @@ Refinancing: new loan rate | % | 0.045 |  |
 Refinancing: new loan tenor | years | 15 |  | 
 Refinancing: gearing added to the base gearing | % | 0.04 |  | 
 Overbuild per OVIT optimal-overbuild memo (23-Oct-2026), capped at the maximum-points band |  |  |  | 
-Clipping 4 % (user, 26-Oct-26): the memo curve (9.9 % at this ratio) is for a 36 % CF park |  |  |  | 
+Clipping override (user, 26-Oct-26); blank = OVIT memo curve for a 36 % CF park |  |  |  | 
 Wind built = bid − 10 %: tolerance per GYIK Q28/30/76, not in the Kiírás itself |  |  |  | 
 ***END*** |  |  |  | 
 Annuity | 0.06 | 0.08 | 0.1 | 
