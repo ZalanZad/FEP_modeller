@@ -389,7 +389,7 @@ Reference documents: `reference/OVIT_optimal_overbuild_version_A.docx` (EU turbi
    30 MW / 120 MWh battery, bidding one turbine more than built on the 10 % tolerance. The user caps the overbuild at the
    level that earns the maximum ÖSZ-3 points. Per the points table (docs/domain/tender_2026_rules.md) 40–50 % scores
    90 inner points and **> 50 % scores 100**, so the cap is **51 %** (as the fepm bid model used), not 50.0 %. Set:
-   `Dash_Overbuild` = 51 %, `Dash_Build_Shortfall` = 10 % (built = 45.9 %, 145.9 MW on 100 MVA), `Dash_BESS_Share` = 30 %
+   `Dash_Overbuild` = 51 %, `Dash_Build_Shortfall` = 10 % (built = 90 % of the committed 151 MW = 135.9 MW, 35.9 % over the 100 MVA; the 10 % is measured on the committed MW, GYIK Q44), `Dash_BESS_Share` = 30 %
    (30 MW / 120 MWh, the documents' battery), BESS hours 4, municipal 50, community 3, PB 1.0x, partial 1, brownfield 0,
    shared 1 (ÖSZ-9 follow the case). Record in the key assumptions: "Overbuild per OVIT optimal-overbuild memo (23-Oct-2026),
    capped at the maximum-points band".

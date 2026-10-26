@@ -267,11 +267,11 @@ Minimum DSCR after refinancing | x | n/a |  |  |  | … |
 Released to equity at the refinancing (new loan − old loan repaid − fee) | k€ | 0 |  |  |  | … | 
 == Bid_Points, summary to COD (BORA 1 | BORA 2 | BORA S | Iváncsa | Dunaújváros) ==
 Summary to COD |  | BORA 1 | BORA 2 |  | Iváncsa | Dunaújváros
-Points total, European turbine | points | 65.5 | 65.5 |  | 69.5 | 69.5
+Points total, live case | points | 65.5 | 65.5 |  | 69.5 | 69.5
 Signing fee and DD | EUR k | 200 | 200 |  | 150 | 150
 Deposits and fees in cash | EUR k | 20724.1 | 20724.1 |  | 3984.48 | 3984.48
-Devex, land and contingency | EUR k | 3119.62 | 3119.62 |  | 500 | 500
-Total cash to COD | EUR k | 24043.7 | 24043.7 |  | 4634.48 | 4634.48
+Devex, land and contingency | EUR k | 1568.92 | 1568.92 |  | 500 | 500
+Total cash to COD | EUR k | 22493 | 22493 |  | 4634.48 | 4634.48
 Guarantee fees to COD | EUR k | 1590.74 | 1590.74 |  | 835.777 | 835.777
 Peak guarantee | EUR k | 5842.88 | 5842.88 |  | 3069.86 | 3069.86
 Peak guarantee | HUF | 2132650000 | 2132650000 |  | 1120500000 | 1120500000

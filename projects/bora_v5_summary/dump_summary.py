@@ -26,7 +26,7 @@ def fmt(v):
 
 def dump(dash, cf, path, htm=None, bid=None):
     """Dashboard: label | unit | E … K. Cash_Flow: the same plus the first three and the last timeline values.
-    HTM block 17 (sale at COD): label | unit | G | timeline ends. Bid_Points summary (rows 121–131): label | unit |
+    HTM block 17 (sale at COD): label | unit | G | timeline ends. Bid_Points summary to COD: label | unit |
     BORA 1 | BORA 2 | BORA S | Iváncsa | Dunaújváros."""
     lines = ["== Dashboard =="]
     for r in range(3, dash.max_row + 1):
@@ -49,7 +49,8 @@ def dump(dash, cf, path, htm=None, bid=None):
                 lines.append(" | ".join(fmt(v) for v in cells))
     if bid is not None:
         lines.append("== Bid_Points, summary to COD (BORA 1 | BORA 2 | BORA S | Iváncsa | Dunaújváros) ==")
-        for r in range(121, 132):
+        top = next(r for r in range(1, bid.max_row + 1) if bid.cell(r, 3).value == "Summary to COD")
+        for r in range(top, top + 11):
             cells = [bid.cell(r, c).value for c in range(3, 10)]
             if any(v is not None for v in cells):
                 lines.append(" | ".join(fmt(v) for v in cells))

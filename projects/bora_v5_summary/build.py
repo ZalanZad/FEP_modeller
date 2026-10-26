@@ -23,6 +23,7 @@ from pathlib import Path
 import openpyxl
 from openpyxl.formatting.formatting import ConditionalFormattingList
 from openpyxl.formula.tokenizer import Token, Tokenizer
+from openpyxl.formula.translate import Translator
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter as L
 from openpyxl.worksheet.cell_range import MultiCellRange
@@ -63,11 +64,13 @@ BID_RATES = {48: "=Inputs!$E$11", 49: "=Inputs!$E$75*Million", 50: "=Inputs!$E$8
              58: "=Inputs!$E$24+Inputs!$E$25", 60: "=Inputs!$E$68"}
 BID_DATES = {37: "=Inputs!$E$27", 38: "=Inputs!$E$95", 39: "=Deposits!$K$10", 40: "=Inputs!$E$97",
              41: "=Devex_FEP!$F$38", 42: "=Inputs!$E$99", 43: "=Inputs!$E$154", 44: "=Inputs!$E$155"}
-# Devex lines: Wind HU row → (BORA_Devex row, native currency). Row 90 (land contracting) differs in amount: date only.
-DEVEX = {86: (14, "EUR"), 87: (15, "HUF"), 88: (16, "HUF"), 89: (17, "HUF"), 90: (20, None), 91: (21, "EUR"),
-         92: (22, "HUF"), 93: (23, "EUR"), **{r: (r - 70, "HUF") for r in range(94, 115)},
-         115: (45, "EUR"), 116: (46, "EUR"), 117: (48, "HUF")}
-DEVEX_FEP_DATES = {115: "=Devex_FEP!$F$34", 116: "=Devex_FEP!$F$35"}   # "Continuous" in BORA_Devex
+# Devex lines: Wind HU row → Devex_FEP row (the model's k€ per line, scaled by In_Scale). The Wind HU sheet has no
+# line for Devex_FEP row 36 (other costs): inserted as Bid_Points row 117. Contingency = Devex_FEP row 38.
+DEVEX = {**{r: r - 81 for r in range(86, 117)}, 117: 37}
+DEVEX_OTHER, DEVEX_CONT = 36, 38
+PB_RELEASE_NOTE = "model has no PB release date; Kiírás XII.13, estimate"
+CONSTANTS = {"R": ("Million", "#", "Unit conversion"), "S": ("Days in a year", "days", "Guarantee-fee day count"),
+             "T": ("Months in a quarter", "months", "Calendar")}
 CASH_LINES = (75, 76, 79, 80, 81, *range(86, 119))                   # the lines the quarterly cash rows add up
 
 GREEN = "FF00B050"
@@ -334,6 +337,15 @@ def bid_points(wb):
     define(wb, "Days_In_Year", "Bid_Points!$S$4")
     define(wb, "Qtr_Months", "Bid_Points!$T$4")
     ws["C4"].value = '="Bid strategy – "&TEXT($E$9,"0 %")&" overbuild"'
+    for col, (label, unit, source) in CONSTANTS.items():                # blue inputs with unit and source
+        like(ws[f"{col}4"], ws["H8"], ws[f"{col}4"].value, "#,##0")
+        like(ws[f"{col}3"], ws["C8"], label)
+        like(ws[f"{col}5"], ws["D8"], unit)
+        like(ws[f"{col}6"], ws["D8"], source)
+    for r in (34, 122):
+        ws[f"C{r}"].value = "Points total, live case"
+    ws["E63"].value, ws["F63"].value = "=$E$51*In_Bids", "=$F$51*In_Bids"
+    like(ws["F45"], ws["D45"], PB_RELEASE_NOTE)
 
     for col in "EF":                                                  # BORA 1 and BORA 2 = the model's bid
         for r, f in {**BID_LEVERS, **BID_RATES}.items():
@@ -341,14 +353,16 @@ def bid_points(wb):
     ws["C56"].value = "Direct connection fee per bid (model: per MVA of the shared point)"
     for r, f in BID_DATES.items():
         _link(ws[f"E{r}"], f)
-    for r, (b, cur) in DEVEX.items():
-        if cur == "HUF":
-            _link(ws[f"N{r}"], f"=BORA_Devex!$I${b}/Million")
-            ws[f"O{r}"].value = 0
-        elif cur == "EUR":
-            _link(ws[f"O{r}"], f"=BORA_Devex!$J${b}/Thousand")
-            ws[f"N{r}"].value = 0
-        _link(ws[f"L{r}"], DEVEX_FEP_DATES.get(r, f"=BORA_Devex!$E${b}"))
+    for r, d in DEVEX.items():                                       # devex per line = the model's (scaled) k€
+        for col in "EF":
+            _link(ws[f"{col}{r}"], f"=Devex_FEP!$E${d}")
+        _link(ws[f"L{r}"], f"=Devex_FEP!$F${d}")
+    for col in "EF":
+        _link(ws[f"{col}118"], f"=Devex_FEP!$E${DEVEX_CONT}")
+    for r in range(85, 119):                                          # HUF m / EUR k source split: unscaled, dropped
+        for col in "NO":
+            ws[f"{col}{r}"].value = None
+            ws[f"{col}{r}"]._style = copy(ws[f"K{r}"]._style)
     ws["F222"].value = 1                                              # ÖSZ-6: x ≥ 2.0 scores 100 (GYIK Q34)
 
     # Quarterly cash: one SUMPRODUCT per cell over the cash lines (flag column M) instead of the 40-term sums.
@@ -372,8 +386,27 @@ def bid_points(wb):
         ws[f"{col}{chk}"].value = f'=IF(ABS({col}{chk - 1}-{col}126)<Tolerance,"OK","CHECK")'
     mx = label_row(ws, "Maximum achievable points")
     ws[f"I{mx}"].value = "=(E159+E171+E185+E198+E211+E225+E226+E227+E229)*MAX(H160:H231)"
+    other(wb, ws)
     collapse_chains(wb, "Bid_Points")
     return ws
+
+
+def other(wb, ws):
+    """Devex_FEP row 36 (other costs) has no Wind HU line: a row is inserted above the RtB land purchase."""
+    at = 117
+    shift_rows(wb, "Bid_Points", at, 1)
+    for col in range(2, 14):
+        like(ws.cell(at, col), ws.cell(at + 1, col))
+    ws[f"C{at}"].value = "Other costs (HR, car etc.)"
+    ws[f"D{at}"].value = ws[f"D{at + 1}"].value
+    for col in "EF":
+        _link(ws[f"{col}{at}"], f"=Devex_FEP!$E${DEVEX_OTHER}")
+    for col in "HI":
+        below = Translator(ws[f"{col}{at + 1}"].value, f"{col}{at + 1}")
+        ws[f"{col}{at}"].value = below.translate_formula(f"{col}{at}")
+    ws[f"J{at}"].value = f"=SUM(E{at}:I{at})"
+    _link(ws[f"L{at}"], f"=Devex_FEP!$F${DEVEX_OTHER}")
+    ws[f"M{at}"].value = 1
 
 
 def dashboard_check(wb):
