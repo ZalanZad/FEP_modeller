@@ -419,3 +419,30 @@ Reference documents: `reference/OVIT_optimal_overbuild_version_A.docx` (EU turbi
    is the new regression (`regression.py` → `ag_tieout.py`, 7 headline metrics at 1e-6).
 5. Then: `model-auditor` (lint in scope, Master_Check 0, independent recomputation of points, PB, clipping interpolation,
    capex, generation, the three cases, Bid_Points = model) and a `model-reviewer` pass on the dump; fixes; delivery.
+
+## 18. Ninth round (user, 26-Oct-2026): "this case", Bora only, euros
+
+**Source:** `reference/Bora_model_RTB_COD_HTM_261026_1.xlsm` (the user's edit of 7491da9: scenario table O&M High 12, RtB
+premium Base 150, construction-capex ± 0 %; Inputs G162 typed 800 (EU turbine) over the Dashboard link; Inputs E322
+clipped share typed 4 % over the interpolation; Bid_Points columns H:I (Iváncsa, Dunaújváros) deleted by hand, so some
+formulas there are broken; stored results re-run). It is THE source; the output keeps the user's case.
+
+1. **The user's case, made proper (same numbers, no typed-over formulas):**
+   - Turbine: scenario-table Base turbine = 800 and Inputs G162 back to the link `=Dashboard!$H$8` (Low/High as the user
+     left them, 500 / 800).
+   - Clipping: new blue lever on the Dashboard section 1 `Dash_Clip_Override` "Clipped share of gross energy (blank = OVIT
+     memo curve)" = 4 %; `In_Bottleneck_Factor` = 1 − IF(override="", interpolated share, override). Key-assumption note:
+     "Clipping 4 % (user, 26-Oct-26): the memo curve (9.9 % at this ratio) is for a 36 % CF park".
+2. **Bora only.** Remove every reference to other projects: Bid_Points title and columns (only "Bora, per bid" and
+   "Total, In_Bids bids" columns remain; the BORA 2 / BORA S / Iváncsa / Dunaújváros columns go; rebuild the sheet from
+   the §17.3 copy rather than from the user's half-deleted version, applying the user's intent), the Inputs E9 "Project #"
+   switch and its note (fix E9 at 1 and relabel "Bora"), block M's header, Open_Items / Change_Log texts that name other
+   projects (leave the hidden sheets' history otherwise), any "project sheet" wording. Grep all sheets for "Iváncsa",
+   "Dunaújváros", "Bana", "Ócsa", "Comparison", "project #".
+3. **Euros first.** Every presentation figure in EUR: Dashboard section 6 in € m (k€ where small), no mHUF column (the HUF
+   tender amounts stay on `Deposits`, the engine); Bid_Points amounts in € k (securities, fees, cash to COD, quarterly
+   cash); the tender's HUF unit rates (benchmark 406 M HUF/MW, 200 M HUF/MWh, fees per MVA, participation fee) stay as
+   HUF inputs with a single FX line (Inputs E11). `Deposits` (engine, mHUF) unchanged except its k€ columns stay.
+4. **It must work:** no `#REF!`/`#NAME?`/`#VALUE!` anywhere, Master_Check 0 after RunAllScenarios under Base, lint no new
+   findings, tie-out: with the user's file recalculated in LibreOffice, cases 1–3 headline metrics reproduce it to 1e-6
+   (the user's case is the base of this round: `ag_tieout.py` → compare against this file).
