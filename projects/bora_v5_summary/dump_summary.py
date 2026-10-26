@@ -27,7 +27,7 @@ def fmt(v):
 def dump(dash, cf, path, htm=None, bid=None):
     """Dashboard: label | unit | E … K. Cash_Flow: the same plus the first three and the last timeline values.
     HTM block 17 (sale at COD): label | unit | G | timeline ends. Bid_Points summary to COD: label | unit |
-    BORA 1 | BORA 2 | BORA S | Iváncsa | Dunaújváros."""
+    per bid | total."""
     lines = ["== Dashboard =="]
     for r in range(3, dash.max_row + 1):
         cells = [dash.cell(r, c).value for c in range(3, 12)]
@@ -48,10 +48,11 @@ def dump(dash, cf, path, htm=None, bid=None):
             if any(v is not None for v in cells[:6]):
                 lines.append(" | ".join(fmt(v) for v in cells))
     if bid is not None:
-        lines.append("== Bid_Points, summary to COD (BORA 1 | BORA 2 | BORA S | Iváncsa | Dunaújváros) ==")
+        lines.append("== Bid_Points, summary to COD (Bora, per bid | total over the bids) ==")
         top = next(r for r in range(1, bid.max_row + 1) if bid.cell(r, 3).value == "Summary to COD")
-        for r in range(top, top + 11):
-            cells = [bid.cell(r, c).value for c in range(3, 10)]
+        end = next(r for r in range(top, bid.max_row + 1) if bid.cell(r, 3).value == "COD")
+        for r in range(top, end + 1):
+            cells = [bid.cell(r, c).value for c in range(3, 7)]
             if any(v is not None for v in cells):
                 lines.append(" | ".join(fmt(v) for v in cells))
     path.write_text("\n".join(lines) + "\n")
@@ -105,7 +106,7 @@ def hand_checks(wb):
     # Performance security: 2.5 % × (committed MW × 406 + MWh × 200) mHUF × multiple.
     pb = v(77) * (inst * v(75) + mwh * v(89)) * N("Dash_PB_Mult")
     perf = S("Performance security (gross; bid security credited)")
-    out += [("Performance security, mHUF", pb, perf), ("Performance security, € m at FX", pb / fx, perf / fx)]
+    out.append(("Performance security, € m at FX", pb / fx, perf))
 
     # Clipping: OVIT memo Table 7, linear between the points (last segment extended), not below 0.
     curve = {k: row_values(inp, r, 17, 12) for k, r in
@@ -113,8 +114,12 @@ def hand_checks(wb):
     x = built / mva
     i = min(max(sum(1 for p in curve["x"] if p <= x), 1), len(curve["x"]) - 1) - 1
     x0, x1, y0, y1 = curve["x"][i], curve["x"][i + 1], curve["y"][i], curve["y"][i + 1]
-    clip = max(0.0, y0 + (y1 - y0) / (x1 - x0) * (x - x0))
-    out.append(("Clipped share of gross energy", clip, S("Clipped share of gross energy (OVIT curve)")))
+    curve_share = max(0.0, y0 + (y1 - y0) / (x1 - x0) * (x - x0))
+    out.append(("Clipped share, memo curve (Inputs)", curve_share,
+                inp[f"E{label_row(inp, 'Clipped share at the built ratio')}"].value))
+    override = N("Dash_Clip_Override")
+    clip = curve_share if override is None else override
+    out.append(("Clipped share of gross energy applied", clip, S("Clipped share of gross energy applied")))
 
     # First full year generation: built MW × P50 h × (1 − haircut) × (1 − curtailment) × yield factor × (1 − clip).
     gen = built * v(181) * (1 - v(182)) * (1 - v(183)) * v(185) * (1 - clip) / 1000
@@ -139,8 +144,10 @@ def hand_checks(wb):
                       + N("Dash_Shared") * w["8"])
              + (80 * N("Dash_EU_Turbine") + 20 * N("Dash_EU_Transformer")) * w["9"])
     out.append(("Total points", round(total, 2), S("Total points", "F")))
-    out.append(("Bid_Points total, BORA 1 and BORA 2", wb["Bid_Points"]["E34"].value + wb["Bid_Points"]["F34"].value,
-                2 * S("Total points", "F")))
+    bid = wb["Bid_Points"]
+    out.append(("Bid_Points points, per bid", bid["E34"].value, S("Total points", "F")))
+    dev = next(r for r in range(1, bid.max_row + 1) if bid.cell(r, 3).value == "Devex, land and contingency")
+    out.append(("Bid_Points devex total = Devex_FEP E39", bid[f"F{dev}"].value, wb["Devex_FEP"]["E39"].value))
     return out
 
 

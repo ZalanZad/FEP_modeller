@@ -1,16 +1,17 @@
-"""Bora model RtB / COD / HTM – SPEC §17: the OVIT overbuild strategy, the clipping curve and the Wind HU points sheet.
+"""Bora model RtB / COD / HTM – SPEC §18: the user's case made proper, Bora only, euros first.
 
-Source (SPEC §17): reference/Bora_model_RTB_COD_HTM_AG_20261026.xlsm, the user's edited copy (scenario table,
-construction-capex scenario row, yield-on-cost rows, CIT 15 %). Every user edit stays; the §17 edits are:
-- §17.1 strategy levers on the Dashboard and two key-assumption notes;
-- §17.2 Inputs block U: the OVIT clipping curve (memo Table 7) and the interpolation helpers above
-  In_Bottleneck_Factor; Dash_Bottleneck_Loss (5 % of overbuilt MW) retired with its Dashboard row;
-- §17.3 new sheet Bid_Points (copy of the user's Wind HU sheet "Bid_Deposits_Devex"), BORA 1 / BORA 2 linked to the
-  model, ÖSZ-6 top band made inclusive, quarterly cash rows rewritten under the formula-length rule; a Dashboard check
-  row (Bid_Points total = Dashboard points) inside Master_Check;
+Source (SPEC §18): reference/Bora_model_RTB_COD_HTM_261026_1.xlsm, the user's edit of our §17 output (scenario-table
+tweaks, Inputs G162 typed 800 over the link, Inputs E322 typed 4 % over the interpolation, Bid_Points columns H:I deleted
+by hand, stored results re-run). Every other cell stays as it is; the §18 edits are:
+- §18.1 turbine: scenario-table Base turbine 800 and Inputs G162 back to the link; clipping: Dashboard lever
+  Dash_Clip_Override (4 %, blank = memo curve) read by In_Bottleneck_Factor, E322 back to the interpolation;
+- §18.2 Bora only: Bid_Points rebuilt from the §17.3 copy of the Wind HU sheet with a per-bid and a total column only;
+  Inputs E9 / block M wording, Open_Items and Change_Log texts without other projects;
+- §18.3 euros: Dashboard section 6 in € m (k€ where small); Bid_Points amounts in k€ (HUF only for the tender unit
+  rates, one FX line);
 - Change_Log: one line.
-Rows are found by names and labels (never by the old row numbers). Then vba/Scenarios.bas is re-embedded and
-RunAllScenarios stores the three cases. build_v1.py / build_v2.py are the history; ag_tieout.py is the regression.
+Rows are found by names and labels. Then vba/Scenarios.bas is re-embedded and RunAllScenarios stores the three cases.
+build_v1.py … build_v3.py are the history (build_v3.py = §17); ag_tieout.py ties the cases out to the source file.
 """
 import re
 import shutil
@@ -23,9 +24,8 @@ from pathlib import Path
 import openpyxl
 from openpyxl.formatting.formatting import ConditionalFormattingList
 from openpyxl.formula.tokenizer import Token, Tokenizer
-from openpyxl.formula.translate import Translator
-from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter as L
+from openpyxl.styles import Font, PatternFill
 from openpyxl.worksheet.cell_range import MultiCellRange
 from openpyxl.workbook.defined_name import DefinedName
 from openpyxl.worksheet.formula import ArrayFormula
@@ -35,43 +35,94 @@ from fepm.xl.macros import VBA_DIR, package
 
 HERE = Path(__file__).resolve().parent
 REF = HERE.parents[1] / "reference"
-SRC = REF / "Bora_model_RTB_COD_HTM_AG_20261026.xlsm"
+SRC = REF / "Bora_model_RTB_COD_HTM_261026_1.xlsm"
 WIND_HU = REF / "Wind_HU_points_deposits_devex_20261026.xlsx"
 WIND_HU_SHEET = "Bid_Deposits_Devex"
 NAME = "Bora_model_RTB_COD_HTM"
 
-# §17.1 levers (Dashboard names). Built = bid × (1 − shortfall) = 151 MW × 90 % = 135.9 MW on 100 MVA (Inputs E308).
-LEVERS = {"Dash_Overbuild": 0.51, "Dash_Build_Shortfall": 0.10, "Dash_BESS_Share": 0.30, "Dash_Municipal": 50,
-          "Dash_Community": 3, "Dash_PB_Mult": 1.0, "Dash_Partial": 1, "Dash_Brownfield": 0, "Dash_Shared": 1}
-# ag_tieout.py: the AG file's own levers and its 5 % rule (literal on purpose: regression build only).
-AG_LEVERS = {"Dash_Overbuild": 0.11, "Dash_BESS_Share": 0, "Dash_Municipal": 0, "Dash_Community": 0}
-AG_FACTOR = "=1-0.05*(In_Wind_Built-Dash_MVA)/In_Wind_Built"
+# §18.1 the user's case: EU turbine 800 k€/MW in the Base scenario, clipping 4 % instead of the memo curve.
+BASE_TURBINE = 800
+CLIP_OVERRIDE = 0.04
+CLIP_NOTE = "Clipping 4 % (user, 26-Oct-26): the memo curve (9.9 % at this ratio) is for a 36 % CF park"
 
-# §17.2 OVIT optimal-overbuild memo (23-Oct-2026), Table 7: installed ÷ cap ratio → clipped share of gross energy.
-CLIP = [(1.01, 0.0), (1.08, 0.010), (1.15, 0.032), (1.22, 0.056), (1.30, 0.080), (1.37, 0.103), (1.44, 0.126),
-        (1.51, 0.148), (1.58, 0.169), (1.66, 0.190), (1.73, 0.209), (1.80, 0.228)]
-CLIP_SRC = "OVIT memo Table 7, drawn year"
-NOTES = ["Overbuild per OVIT optimal-overbuild memo (23-Oct-2026), capped at the maximum-points band",
-         "Clipping per OVIT memo Table 7 (36 % P50 park); conservative at 2,500 h"]
-
-# §17.3 Bid_Points links (Wind HU row → formula; BORA 1 = column E, BORA 2 = column F, identical bids).
-BID_LEVERS = {8: "=Dash_MVA", 9: "=Dash_Overbuild", 10: "=Dash_BESS_Share", 11: "=Inputs!$E$21",
+# §18.2 / §17.3 Bid_Points: Wind HU row numbers (the copy is rebuilt from the user's sheet of 26-Oct-2026).
+# Column E = Bora, per bid; column F = total over In_Bids bids (amount rows only).
+PER_BID, TOTAL = "Bora, per bid", '="Total, "&In_Bids&" bid(s)"'
+BID_LEVERS = {8: "=Dash_MVA/In_Bids", 9: "=Dash_Overbuild", 10: "=Dash_BESS_Share", 11: "=Inputs!$E$21",
               12: "=Dash_Municipal", 13: "=Dash_Community", 14: "=Dash_Partial", 15: "=Dash_PB_Mult",
               16: "=Dash_Brownfield", 17: "=Dash_Shared", 18: "=Dash_EU_Turbine", 19: "=Dash_EU_Transformer"}
 BID_RATES = {48: "=Inputs!$E$11", 49: "=Inputs!$E$75*Million", 50: "=Inputs!$E$89*Million",
              51: "=Inputs!$E$81*Million", 52: "=Inputs!$E$76", 53: "=Inputs!$E$77", 54: "=Inputs!$E$83*Million",
-             55: "=Inputs!$E$85*Million", 56: "=Inputs!$E$84*Million*{c}$8", 57: "=Inputs!$E$113",
-             58: "=Inputs!$E$24+Inputs!$E$25", 60: "=Inputs!$E$68"}
+             55: "=Inputs!$E$85*Million", 56: "=Inputs!$E$84*Million*E$8", 57: "=Inputs!$E$113",
+             58: "=(Inputs!$E$24+Inputs!$E$25)/In_Bids"}
 BID_DATES = {37: "=Inputs!$E$27", 38: "=Inputs!$E$95", 39: "=Deposits!$K$10", 40: "=Inputs!$E$97",
              41: "=Devex_FEP!$F$38", 42: "=Inputs!$E$99", 43: "=Inputs!$E$154", 44: "=Inputs!$E$155"}
-# Devex lines: Wind HU row → Devex_FEP row (the model's k€ per line, scaled by In_Scale). The Wind HU sheet has no
-# line for Devex_FEP row 36 (other costs): inserted as Bid_Points row 117. Contingency = Devex_FEP row 38.
-DEVEX = {**{r: r - 81 for r in range(86, 117)}, 117: 37}
-DEVEX_OTHER, DEVEX_CONT = 36, 38
+EUR_K = {75: "=E$58", 76: "=E$51/E$48/Thousand", 77: "=E$52*(E$20*E$49+E$22*E$50)/E$48/Thousand",
+         78: "=E$53*E$15*(E$20*E$49+E$22*E$50)/E$48/Thousand", 79: "=E$54*E$8/E$48/Thousand",
+         80: "=E$56/E$48/Thousand", 81: "=(E$55-E$54)*E$8/E$48/Thousand"}
+# Devex lines: Wind HU row → Devex_FEP row (the model's k€ per line, scaled by In_Scale), per bid = ÷ In_Bids.
+DEVEX = {**{r: r - 81 for r in range(86, 117)}, 117: 37, 118: 38}
+DEVEX_OTHER = 36                                                   # no Wind HU line: inserted as row 117
+TOTAL_ROWS = (8, 20, 21, 22, *range(75, 85), *range(86, 120), *range(123, 129), *range(134, 155))
+HEADER_ROWS = (7, 47, 74, 85, 121, 133)
+CASH_LINES = (75, 76, 79, 80, 81, *range(86, 119))                 # the lines the quarterly cash rows add up
+DROP = {"rows": [(59, 2), (62, 12)], "summary": (129, 2)}           # devex for other sites, HUF block, HUF summary
 PB_RELEASE_NOTE = "model has no PB release date; Kiírás XII.13, estimate"
 CONSTANTS = {"R": ("Million", "#", "Unit conversion"), "S": ("Days in a year", "days", "Guarantee-fee day count"),
              "T": ("Months in a quarter", "months", "Calendar")}
-CASH_LINES = (75, 76, 79, 80, 81, *range(86, 119))                   # the lines the quarterly cash rows add up
+
+# §18.2 texts that named other projects (Change_Log history condensed to Bora; Open_Items E43 wording).
+TEXTS = {
+    ("Inputs", "C9"): "Bora", ("Inputs", "F9"): "Fixed at 1",
+    ("Inputs", "C279"): "M. Bora inputs – grid node fees from MEKH/MAVIR Kapacitás pályázati kiírás 2026, Annex 1 "
+                        "(1. melléklet)",
+    ("Inputs", "E280"): "Bora",
+    ("Open_Items", "E43"): "Single asset with one COD versus several SPVs with staggered RTB / COD. Determines whether "
+                           "Stage 2 / 3 run per SPV or on a blended asset.",
+    ("Change_Log", "F99"): "Inputs E9, rows 16/20/24/31/32/38/82/84–88, block M C277:J296; Devex_FEP E5:E37, L4:L39; "
+                           "Dashboard G14",
+    ("Change_Log", "G99"): "Selector added at Inputs E9 (fixed to Bora since #127). Grid fees from Kapacitás pályázati "
+                           "kiírás 2026 Annex 1. Restored Dashboard G14 formula (had been overwritten with 0).",
+    ("Change_Log", "I99"): "Bora unchanged; RTB FEP IRR 27.5%",
+    ("Change_Log", "E100"): "Dashboard; Inputs; Run_Map",
+    ("Change_Log", "G100"): "Added Dashboard scenario control panel: case selector and case inputs (Base / European / "
+                            "Chinese: EYA, capex, PPA, Aurora, opex, gearing, rate …). Inputs now link to the panel "
+                            "(green). Run_Map holds live result formulas; RunAllScenarios VBA (text in Run_Map B100+) "
+                            "rewrites Dashboard section 11. Button added – macro must be pasted and assigned by the user.",
+    ("Change_Log", "E103"): "Dashboard; Run_Map",
+    ("Change_Log", "F103"): "Dashboard E61/E63, C61/C63, K76, K90, H90; Run_Map C22:C23",
+    ("Change_Log", "G107"): "Stale cell-address labels updated after row inserts; 400 kV → 132 kV notes; E220 tenor "
+                            "label; Dashboard F8 stale-snapshot warning; Open_Items D6/E7/F9/E10/F12 refreshed",
+    ("Change_Log", "E109"): "MOIC; Dashboard; Run_Map",
+    ("Change_Log", "F109"): "MOIC rows 270, 272–278 deleted; Dashboard row 150 deleted; Dashboard C65:E66; Run_Map "
+                            "B36:C37",
+    ("Change_Log", "E111"): "Inputs; Run_Map",
+    ("Change_Log", "F111"): "Inputs C9, J278, J279, F283, F284, F292; Run_Map C8",
+    ("Change_Log", "G111"): "Name spelling aligned across Inputs and Run_Map on user instruction (superseded by #127).",
+    ("Change_Log", "H111"): "n/a", ("Change_Log", "I111"): "n/a",
+    ("Change_Log", "G113"): "Base turbine price 500 → 950 k€/MW (European) to score the ≥80% EU-equipment tender "
+                            "points.",
+    ("Change_Log", "E123"): "Dashboard; Run_Map",
+    ("Change_Log", "F123"): "Dashboard E7:E8; Dashboard section 11 E/F; Run_Map C3; Control_Panel E8",
+    ("Change_Log", "E125"): "Inputs; Dashboard; Control_Panel; Run_Map",
+    ("Change_Log", "F125"): "Inputs H7:I276 ↔ K7:L276; Dashboard F7:G8, E241:F241; macro",
+    ("Change_Log", "F127"): "Control_Panel E6, F6, F11:H22; Inputs E9, H278:J296; Dashboard E211:F240; Run_Map C6:C8, "
+                            "VBA text",
+    ("Change_Log", "G127"): "Model reduced to Bora only: selector fixed to 1, inputs and notes not for Bora removed. "
+                            "Dashboard section 11 re-populated with Bora case 2 / case 3 results.",
+    ("Change_Log", "H127"): "Selector over several sites",
+}
+OTHER_PROJECTS = re.compile(r"Iváncsa|Dunaújváros|\bBana\b|Bána|Ócsa|Comparison sheet|project #|project sheet", re.I)
+
+# §18.3 Dashboard section 6 (label → unit, formula): € m at the Inputs FX (mHUF ÷ HUF/EUR), k€ where small.
+SECTION6 = {"Participation fee": ("k€", "=Deposits!$M$7", "#,##0.0"),
+            "Bid security": ("€ m", "=Deposits!$H$8/Inputs!$E$11", None),
+            "Performance security (gross": ("€ m", "=Deposits!$H$10/Inputs!$E$11", None),
+            "TSO connection-request security": ("€ m", "=Deposits!$H$11/Inputs!$E$11", None),
+            "Connection fee, indirect (before TSO credit)": ("€ m", "=Deposits!$H$18/Inputs!$E$11", None),
+            "Connection fee, direct": ("€ m", "=Deposits!$H$12/Inputs!$E$11", None),
+            "Total gross": ("€ m", "=Deposits!$H$19/Inputs!$E$11", None),
+            "Total payable after netting": ("€ m", "=Deposits!$J$19/Inputs!$E$11", None)}
 
 GREEN = "FF00B050"
 
@@ -185,80 +236,6 @@ def shift_rows(wb, sheet, at, n):
     if ws.freeze_panes:
         ws.freeze_panes = _shift_addr(ws.freeze_panes, first, n)
 
-
-# =========================================================================================== §17.2 clipping curve
-def clipping(wb):
-    """Inputs block U: Table 7 (two rows, ratio and clipped share, columns Q:AB like the points bands) and the
-    interpolation helpers, inserted above In_Bottleneck_Factor, which becomes 1 − the interpolated clipped share."""
-    ws = wb["Inputs"]
-    at = name_cell(wb, "In_Bottleneck_Factor").row
-    model = at - 1                                                     # a block U calc row (label, unit, E, note)
-    band = label_row(ws, "ÖSZ-3 overbuild and ÖSZ-4 BESS ratio – lower bound")
-    rows = [  # label, unit, E formula ({r} = row of the helper, {x} = built ratio row …), note, number format
-        ("Clipping curve: installed wind ÷ connection capacity (Q:AB)", "x", None, CLIP_SRC, "0.00"),
-        ("Clipping curve: clipped share of gross energy (Q:AB)", "%", None, CLIP_SRC, "0.0%"),
-        ("Built wind ÷ connection capacity", "x", "=In_Wind_Built/Dash_MVA", "Inputs E308", "0.000"),
-        ("Curve point at or below the built ratio (1 below the curve)", "#",
-         "=IFERROR(MATCH({x},In_Clip_Ratios,1),1)", "Interpolation", "0"),
-        ("Curve segment used (the last one above the curve)", "#", "=MIN({i0},COUNT(In_Clip_Ratios)-1)",
-         "Interpolation", "0"),
-        ("Segment start: ratio", "x", "=INDEX(In_Clip_Ratios,{i})", "Interpolation", "0.00"),
-        ("Segment end: ratio", "x", "=INDEX(In_Clip_Ratios,{i}+1)", "Interpolation", "0.00"),
-        ("Segment start: clipped share", "%", "=INDEX(In_Clip_Shares,{i})", "Interpolation", "0.0%"),
-        ("Segment end: clipped share", "%", "=INDEX(In_Clip_Shares,{i}+1)", "Interpolation", "0.0%"),
-        ("Segment slope", "% per x", "=({y1}-{y0})/({x1}-{x0})", "Interpolation", "0.000"),
-        ("Clipped share at the built ratio (linear, not below 0)", "%", "=MAX(0,{y0}+{s}*({x}-{x0}))",
-         "Interpolation", "0.00%"),
-    ]
-    shift_rows(wb, "Inputs", at, len(rows))
-    keys = dict(zip(("t1", "t2", "x", "i0", "i", "x0", "x1", "y0", "y1", "s", "clip"), range(at, at + len(rows))))
-    ref = {k: f"E{r}" for k, r in keys.items()}
-    for r, (label, unit, f, note, fmt) in enumerate(rows, at):
-        like(ws.cell(r, 3), ws.cell(model, 3), label)
-        like(ws.cell(r, 4), ws.cell(model, 4), unit)
-        like(ws.cell(r, 6), ws.cell(model, 6), note)
-        if f:
-            like(ws.cell(r, 5), ws.cell(model, 5), f.format(**ref), fmt)
-    for i, (x, y) in enumerate(CLIP):
-        like(ws.cell(keys["t1"], 17 + i), ws.cell(band, 17), x, "0.00")
-        like(ws.cell(keys["t2"], 17 + i), ws.cell(band, 17), y, "0.0%")
-    define(wb, "In_Clip_Ratios", f"Inputs!$Q${keys['t1']}:${L(16 + len(CLIP))}${keys['t1']}")
-    define(wb, "In_Clip_Shares", f"Inputs!$Q${keys['t2']}:${L(16 + len(CLIP))}${keys['t2']}")
-    factor = name_cell(wb, "In_Bottleneck_Factor")
-    factor.value = f"=1-{ref['clip']}"
-    ws.cell(factor.row, 3).value = "Generation kept after clipping (1 − clipped share)"
-    ws.cell(factor.row, 6).value = "Used in HTM E36"
-
-
-def retire_bottleneck(wb):
-    """Dash_Bottleneck_Loss is no longer read (In_Bottleneck_Factor now uses the curve): name and row removed."""
-    cell = name_cell(wb, "Dash_Bottleneck_Loss")
-    for w in wb.worksheets:
-        for c in w._cells.values():
-            v = c.value.text if isinstance(c.value, ArrayFormula) else c.value
-            assert not (c.data_type == "f" and "Dash_Bottleneck_Loss" in str(v)), (w.title, c.coordinate)
-    del wb.defined_names["Dash_Bottleneck_Loss"]
-    shift_rows(wb, "Dashboard", cell.row, -1)
-    d = wb["Dashboard"]
-    d.cell(label_row(d, "Bottleneck loss applied"), 3).value = "Clipped share of gross energy (OVIT curve)"
-    d.cell(label_row(d, "Energy lost to the bottleneck"), 3).value = "Energy clipped, first full year"
-
-
-# =========================================================================================== §17.1 levers and notes
-def set_levers(wb, levers):
-    for name, v in levers.items():
-        name_cell(wb, name).value = v
-
-
-def key_notes(wb):
-    """Two key-assumption notes above the closing tolerance note."""
-    d = wb["Dashboard"]
-    note = label_row(d, "Wind built = bid")
-    shift_rows(wb, "Dashboard", note, len(NOTES))
-    for r, text in enumerate(NOTES, note):
-        like(d.cell(r, 3), d.cell(note + len(NOTES), 3), text)
-
-
 # =========================================================================================== §17.3 Bid_Points
 def _copy_cell(src, dst):
     v = src.value
@@ -311,9 +288,20 @@ def collapse_chains(wb, sheet):
             c.value = "=" + op
 
 
+# =========================================================================================== §18.2/18.3 Bid_Points
+def _clear(ws, rows, cols):
+    for r in rows:
+        for col in cols:
+            ws[f"{col}{r}"].value = None
+
+
 def bid_points(wb):
+    """The Wind HU sheet copied in (§17.3), then Bora only: column E per bid, column F the total over In_Bids bids,
+    amounts in k€ (the HUF unit rates of the tender stay HUF, converted at the one FX line E48)."""
+    at = wb.sheetnames.index("Bid_Points")
+    del wb["Bid_Points"]
     src = openpyxl.load_workbook(WIND_HU)[WIND_HU_SHEET]
-    ws = wb.create_sheet("Bid_Points", wb.sheetnames.index("Dashboard") + 1)
+    ws = wb.create_sheet("Bid_Points", at)
     for row in src.iter_rows():
         for c in row:
             if c.value is not None or c.has_style:
@@ -327,45 +315,50 @@ def bid_points(wb):
     ws.sheet_view.showGridLines = src.sheet_view.showGridLines
     for rng in src.conditional_formatting:
         for rule in rng.rules:
-            ws.conditional_formatting.add(str(rng.sqref), rule)
-    # Constants: the workbook's Thousand (Inputs block U) replaces Q4; Million, Days_In_Year and the quarter length
-    # are the sheet's own constants.
+            ws.conditional_formatting.add(str(rng.sqref).replace("E156:I156", "E156:F156"), rule)
+
+    # Bora only: the other sites' columns (G BORA S, H Iváncsa, I Dunaújváros, J total, N:O source split) go;
+    # the scoring tables (rows 158+) keep their own columns E, F, H, I.
+    _clear(ws, range(1, 157), "GHIJNO")
+    _clear(ws, [r for r in range(1, 61) if r not in (7, 8, 20, 21, 22)], "F")
+    ws["C3"].value = "Bora"
+    ws["C4"].value = '="Bid strategy – "&TEXT($E$9,"0 %")&" overbuild"'
+    for r in HEADER_ROWS:
+        ws[f"E{r}"].value, ws[f"F{r}"].value = PER_BID, (TOTAL if r != 47 else None)
+    ws["C34"].value = ws["C122"].value = "Points total, live case"
+
+    # Constants: the workbook's Thousand (Inputs block U); Million, days in a year and the quarter length here.
     ws["Q4"].value = None
     _copy_cell(src["S4"], ws["T4"])
     ws["T4"].value = 3
-    define(wb, "Million", "Bid_Points!$R$4")
-    define(wb, "Days_In_Year", "Bid_Points!$S$4")
-    define(wb, "Qtr_Months", "Bid_Points!$T$4")
-    ws["C4"].value = '="Bid strategy – "&TEXT($E$9,"0 %")&" overbuild"'
-    for col, (label, unit, source) in CONSTANTS.items():                # blue inputs with unit and source
+    for col, (label, unit, source) in CONSTANTS.items():
         like(ws[f"{col}4"], ws["H8"], ws[f"{col}4"].value, "#,##0")
         like(ws[f"{col}3"], ws["C8"], label)
         like(ws[f"{col}5"], ws["D8"], unit)
         like(ws[f"{col}6"], ws["D8"], source)
-    for r in (34, 122):
-        ws[f"C{r}"].value = "Points total, live case"
-    ws["E63"].value, ws["F63"].value = "=$E$51*In_Bids", "=$F$51*In_Bids"
-    like(ws["F45"], ws["D45"], PB_RELEASE_NOTE)
+    define(wb, "Million", "Bid_Points!$R$4")
+    define(wb, "Days_In_Year", "Bid_Points!$S$4")
+    define(wb, "Qtr_Months", "Bid_Points!$T$4")
 
-    for col in "EF":                                                  # BORA 1 and BORA 2 = the model's bid
-        for r, f in {**BID_LEVERS, **BID_RATES}.items():
-            _link(ws[f"{col}{r}"], f.format(c=col))
-    ws["C56"].value = "Direct connection fee per bid (model: per MVA of the shared point)"
-    for r, f in BID_DATES.items():
+    for r, f in {**BID_LEVERS, **BID_RATES, **BID_DATES}.items():   # the model's bid, rates and dates
         _link(ws[f"E{r}"], f)
-    for r, d in DEVEX.items():                                       # devex per line = the model's (scaled) k€
-        for col in "EF":
-            _link(ws[f"{col}{r}"], f"=Devex_FEP!$E${d}")
-        _link(ws[f"L{r}"], f"=Devex_FEP!$F${d}")
-    for col in "EF":
-        _link(ws[f"{col}118"], f"=Devex_FEP!$E${DEVEX_CONT}")
-    for r in range(85, 119):                                          # HUF m / EUR k source split: unscaled, dropped
-        for col in "NO":
-            ws[f"{col}{r}"].value = None
-            ws[f"{col}{r}"]._style = copy(ws[f"K{r}"]._style)
+    ws["C56"].value = "Direct connection fee per bid (model: per MVA of the shared point)"
+    like(ws["F45"], ws["D45"], PB_RELEASE_NOTE)
     ws["F222"].value = 1                                              # ÖSZ-6: x ≥ 2.0 scores 100 (GYIK Q34)
 
-    # Quarterly cash: one SUMPRODUCT per cell over the cash lines (flag column M) instead of the 40-term sums.
+    for r, f in EUR_K.items():                                         # securities and fees in k€
+        ws[f"E{r}"].value = f
+    for r, d in DEVEX.items():                                         # devex per line = the model's k€ ÷ bids
+        _link(ws[f"E{r}"], f"=Devex_FEP!$E${d}/In_Bids")
+        if r != 118:
+            _link(ws[f"L{r}"], f"=Devex_FEP!$F${d}")
+    for r in TOTAL_ROWS:
+        ws[f"F{r}"].value = f"=E{r}*In_Bids"
+        ws[f"F{r}"]._style = copy(ws[f"E{r}"]._style)
+    ws["F122"].value = ws["F131"].value = None
+
+    # Quarterly cash: one SUMPRODUCT per cell over the cash lines (flag column M); cumulative and guarantees on the
+    # total column.
     like(ws["M74"], ws["L74"], "In cash")
     for r in range(75, 119):
         if ws[f"E{r}"].value is not None and r != 85:
@@ -376,17 +369,22 @@ def bid_points(wb):
     for r in range(first, last + 1):
         if r > first:
             ws[f"C{r}"].value = f"=EOMONTH(C{r - 1},Qtr_Months)"
-        for col in "EFHI":
-            ws[f"{col}{r}"].value = (f"=SUMPRODUCT((Bid_Dates>EOMONTH($C{r},-Qtr_Months))*(Bid_Dates<=$C{r})"
-                                     f"*Bid_Cash,{col}$75:{col}$118)")
-        ws[f"M{r}"].value = (f"=($C{r}<=$E$44)*(($E$38<=$C{r})*($E$39>$C{r})*$J$77"
-                             f"+($E$39<=$C{r})*($E$45>$C{r})*$J$78)")
+        ws[f"E{r}"].value = f"=SUMPRODUCT((Bid_Dates>EOMONTH($C{r},-Qtr_Months))*(Bid_Dates<=$C{r})*Bid_Cash,E$75:E$118)"
+        ws[f"L{r}"].value = f"=F{r}" if r == first else f"=L{r - 1}+F{r}"
+        ws[f"M{r}"].value = (f"=($C{r}<=$E$44)*(($E$38<=$C{r})*($E$39>$C{r})*$F$77"
+                             f"+($E$39<=$C{r})*($E$45>$C{r})*$F$78)")
     chk = label_row(ws, "Check: quarters vs summary")
-    for col in "EFHI":
+    for col in "EF":
+        ws[f"{col}{chk - 1}"].value = f"=SUM({col}{first}:{col}{last})"
         ws[f"{col}{chk}"].value = f'=IF(ABS({col}{chk - 1}-{col}126)<Tolerance,"OK","CHECK")'
     mx = label_row(ws, "Maximum achievable points")
     ws[f"I{mx}"].value = "=(E159+E171+E185+E198+E211+E225+E226+E227+E229)*MAX(H160:H231)"
+
     other(wb, ws)
+    start, n = DROP["summary"]                                         # HUF rows go (bottom up: rows stay valid)
+    for r0, k in [(start + 1, n), *reversed(DROP["rows"])]:
+        _clear(ws, range(r0, r0 + k), [L(c) for c in range(1, 21)])
+        shift_rows(wb, "Bid_Points", r0, -k)
     collapse_chains(wb, "Bid_Points")
     return ws
 
@@ -397,31 +395,62 @@ def other(wb, ws):
     shift_rows(wb, "Bid_Points", at, 1)
     for col in range(2, 14):
         like(ws.cell(at, col), ws.cell(at + 1, col))
-    ws[f"C{at}"].value = "Other costs (HR, car etc.)"
-    ws[f"D{at}"].value = ws[f"D{at + 1}"].value
-    for col in "EF":
-        _link(ws[f"{col}{at}"], f"=Devex_FEP!$E${DEVEX_OTHER}")
-    for col in "HI":
-        below = Translator(ws[f"{col}{at + 1}"].value, f"{col}{at + 1}")
-        ws[f"{col}{at}"].value = below.translate_formula(f"{col}{at}")
-    ws[f"J{at}"].value = f"=SUM(E{at}:I{at})"
+    ws[f"C{at}"].value, ws[f"D{at}"].value = "Other costs (HR, car etc.)", ws[f"D{at + 1}"].value
+    _link(ws[f"E{at}"], f"=Devex_FEP!$E${DEVEX_OTHER}/In_Bids")
+    ws[f"F{at}"].value = f"=E{at}*In_Bids"
     _link(ws[f"L{at}"], f"=Devex_FEP!$F${DEVEX_OTHER}")
     ws[f"M{at}"].value = 1
 
 
-def dashboard_check(wb):
-    """Check row inside Master_Check: Bid_Points total for BORA 1 = Dashboard total points."""
-    d = wb["Dashboard"]
-    at = label_row(d, "Capacity: BESS MW")                              # before the last check row: inside the SUM
-    total = label_row(d, "Total points")
+# =========================================================================================== §18.1 the user's case
+def turbine(wb):
+    """Base turbine 800 in the scenario table; Inputs G162 links to it again (the user typed 800 over the link)."""
+    name_cell(wb, "Dash_Key_Inputs").value = BASE_TURBINE
+    inp = wb["Inputs"]
+    inp[f"G{label_row(inp, 'Turbine supply incl. transport')}"].value = "=Dashboard!$H$8"
+
+
+def clip_override(wb):
+    """Dashboard lever Dash_Clip_Override (blank = memo curve); E322 back to the interpolation (typed 4 % over it)."""
+    inp, d = wb["Inputs"], wb["Dashboard"]
+    clip = label_row(inp, "Clipped share at the built ratio")
+    inp[f"E{clip}"].value = f"=MAX(0,E{clip - 3}+E{clip - 1}*(E{clip - 8}-E{clip - 5}))"
+    inp[f"G{clip}"].value = None                                      # the user's stray copy of the formula
+    at = label_row(d, "Turbine route (case)")
     shift_rows(wb, "Dashboard", at, 1)
-    for col in range(3, 7):
-        like(d.cell(at, col), d.cell(at + 1, col))
-    d.cell(at, 3).value, d.cell(at, 4).value = "Bid_Points total for BORA 1 = Dashboard total points", "#"
-    d.cell(at, 5).value = f"=N(ABS(Bid_Points!$E$34-$F${total})>Tolerance)"
-    d.cell(at, 6).value = f'=IF(E{at}=0,"OK","CHECK")'
-    master = name_cell(wb, "Master_Check")
-    assert f"E{at}" in master.value or re.search(rf"E\d+:E{at + 1}\)", master.value), master.value
+    for col in range(3, 9):
+        like(d.cell(at, col), d.cell(at - 1, col))
+    d.cell(at, 3).value, d.cell(at, 4).value = "Clipped share of gross energy (blank = OVIT memo curve)", "%"
+    d.cell(at, 5).value = CLIP_OVERRIDE
+    d.cell(at, 5).number_format = "0.0%"
+    define(wb, "Dash_Clip_Override", f"Dashboard!$E${at}")
+    factor = name_cell(wb, "In_Bottleneck_Factor")
+    factor.value = f'=1-IF(Dash_Clip_Override="",E{clip},Dash_Clip_Override)'
+    inp.cell(factor.row, 3).value = "Generation kept after clipping (1 − clipped share applied)"
+    inp.cell(factor.row, 6).value = "Dash_Clip_Override, else the curve"
+    d.cell(label_row(d, "Clipped share of gross energy (OVIT"), 3).value = "Clipped share of gross energy applied"
+    d.cell(label_row(d, "Clipping per OVIT memo"), 3).value = CLIP_NOTE
+
+
+# =========================================================================================== §18.2 Bora only
+def bora_only(wb):
+    for (sheet, ref), text in TEXTS.items():
+        wb[sheet][ref].value = text
+    left = [(ws.title, c.coordinate) for ws in wb.worksheets if ws.title != "BORA_Devex" for c in ws._cells.values()
+            if isinstance(c.value, str) and OTHER_PROJECTS.search(c.value)]
+    assert not left, left
+
+
+# =========================================================================================== §18.3 euros first
+def euros(wb):
+    d = wb["Dashboard"]
+    top = label_row(d, "6. Securities and fees")
+    d.cell(top, 3).value = "6. Securities and fees (Deposits; € m at the Inputs FX)"
+    model = label_row(d, "Of which cash", start=top)
+    for label, (unit, f, fmt) in SECTION6.items():
+        r = label_row(d, label, start=top)
+        d.cell(r, 4).value = unit
+        like(d.cell(r, 5), d.cell(model, 5), f, fmt)
 
 
 def change_log(wb):
@@ -430,17 +459,18 @@ def change_log(wb):
     for col in "BCDEFGHIJ":
         ws[f"{col}{r}"]._style = copy(ws[f"{col}{r - 1}"]._style)
     for col, v in zip("BCDEFGHIJ", (
-            f"=B{r - 1}+1", date(2026, 10, 26), "OVIT overbuild, clipping curve, Bid_Points",
-            "Dashboard; Inputs; Bid_Points",
-            "Dashboard levers, key assumptions, check row; Inputs block U clipping curve and helpers; new sheet "
-            "Bid_Points; Dash_Bottleneck_Loss removed",
-            "Overbuild 51 % (max-points band), shortfall 10 %, BESS 30 % × 4 h, municipal 50, community 3; clipping "
-            "per OVIT memo Table 7 replaces the 5 % rule; Wind HU points sheet linked to the model (ÖSZ-6 top band "
-            "inclusive).",
-            "Overbuild 11 %, BESS 0, municipal 0, community 0, 5 % of overbuilt MW lost",
-            "Overbuild 51 %, BESS 30 MW / 120 MWh, municipal 50, community 3, OVIT clipping curve",
-            "User 26-Oct-2026; SPEC §17")):
+            f"=B{r - 1}+1", date(2026, 10, 26), "User case made proper; Bora only; euros",
+            "Dashboard; Inputs; Bid_Points; Open_Items; Change_Log",
+            "Dashboard E8, clipping lever row, section 6, key assumptions; Inputs G162, E322, In_Bottleneck_Factor, "
+            "C9, F9, C279, E280; Bid_Points rebuilt",
+            "Base turbine 800 via the scenario table; Dash_Clip_Override 4 % (blank = memo curve) replaces the typed "
+            "E322; Bid_Points per bid and total only, amounts in k€; Dashboard section 6 in € m; texts naming other "
+            "sites removed.",
+            "G162 and E322 typed over formulas; Bid_Points with other sites; section 6 in mHUF",
+            "Same numbers from levers and links; Bora only; € on the presentation sheets",
+            "User 26-Oct-2026; SPEC §18")):
         ws[f"{col}{r}"] = v
+
 
 
 # =========================================================================================== build
@@ -467,26 +497,24 @@ def general(path, sheet, cells, like):
     tmp.replace(path)
 
 
-def edit(ag=False):
+
+
+def edit():
     wb = openpyxl.load_workbook(SRC, keep_vba=False)
-    clipping(wb)
-    retire_bottleneck(wb)
-    key_notes(wb)
+    turbine(wb)
+    clip_override(wb)
     bid_points(wb)
-    dashboard_check(wb)
+    bora_only(wb)
+    euros(wb)
     change_log(wb)
-    set_levers(wb, LEVERS)
-    if ag:                                                             # ag_tieout.py: the AG levers and 5 % rule
-        set_levers(wb, AG_LEVERS)
-        name_cell(wb, "In_Bottleneck_Factor").value = AG_FACTOR
     return wb
 
 
-def build(out=HERE / "out", ag=False, name=NAME):
+def build(out=HERE / "out", name=NAME):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     xlsx, xlsm = out / f"{name}.xlsx", out / f"{name}.xlsm"
-    edit(ag).save(xlsx)
+    edit().save(xlsx)
     with tempfile.TemporaryDirectory() as vba:                         # Scenarios.bas only (as is)
         shutil.copy(VBA_DIR / "Scenarios.bas", vba)
         package(xlsx, xlsm, run=["Scenarios.RunAllScenarios"], vba_dir=Path(vba))

@@ -1,9 +1,9 @@
-"""SPEC §17.4: with the §17.1–17.2 levers set back to the AG values, the model reproduces the AG file.
+"""SPEC §18.4: the model reproduces the user's file it was built from (the user's case is the base of the round).
 
-Builds build.py with ag=True (overbuild 11 %, BESS 0, municipal 0, community 0 and the 5 % bottleneck rule in place of
-the clipping curve) into out/ag_tieout/, then recalculates both that build and the user's AG file in LibreOffice for each
-case (cases 1–3, set through Scenario_Name) and compares seven headline metrics (tolerance 1e-6, relative to
-max(1, |value|)). The AG file is only read (LibreOffice works on a private copy).
+Builds build.py (source reference/Bora_model_RTB_COD_HTM_261026_1.xlsm + the §18 edits, which change no number) into
+out/ag_tieout/, then recalculates both that build and the user's file in LibreOffice for each case (cases 1–3, set through
+Scenario_Name) and compares seven headline metrics (tolerance 1e-6, relative to max(1, |value|)). The user's file is only
+read (LibreOffice works on a private copy).
 
     PYTHONPATH=. python3 projects/bora_v5_summary/ag_tieout.py
 """
@@ -43,17 +43,17 @@ def by_case(path):
 
 
 def main():
-    paths = build.build(HERE / "out" / "ag_tieout", ag=True, name="Bora_model_RTB_COD_HTM_ag_tieout")
+    paths = build.build(HERE / "out" / "ag_tieout", name="Bora_model_RTB_COD_HTM_ag_tieout")
     ag, ours = by_case(build.SRC), by_case(paths["xlsm"])
     ok, worst = True, 0.0
     for i, case in enumerate(ag, 1):
-        print(f"Case {i}: {case}  (Master_Check AG {ag[case]['Master_Check']}, rebuilt {ours[case]['Master_Check']})")
+        print(f"Case {i}: {case}  (Master_Check user {ag[case]['Master_Check']}, rebuilt {ours[case]['Master_Check']})")
         for label, n in METRICS:
             a, b = ag[case][n], ours[case][n]
             d = abs(a - b) / max(1.0, abs(a))
             worst = max(worst, d)
             ok &= d <= TOL
-            print(f"  {label:<36} AG {a:>14.8g}  rebuilt {b:>14.8g}  diff {d:.1e}{'' if d <= TOL else '  FAIL'}")
+            print(f"  {label:<36} user {a:>14.8g}  rebuilt {b:>14.8g}  diff {d:.1e}{'' if d <= TOL else '  FAIL'}")
         ok &= ours[case]["Master_Check"] == 0
     print(f"ag tie-out: {'PASS' if ok else 'FAIL'} (21 values, largest relative difference {worst:.1e})")
     return 0 if ok else 1
