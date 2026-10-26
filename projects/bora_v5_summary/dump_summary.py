@@ -2,7 +2,7 @@
 
 Reads out/Bora_model_RTB_COD_HTM_recalc.xlsx (LibreOffice values), writes out/summary_dump.txt with one line per Dashboard
 and Cash_Flow row (label | unit | E | F | G, plus the timeline ends on Cash_Flow), then recomputes capex, the PB,
-first-year generation and the points in Python from the Dashboard levers and the Inputs values and compares them with the Dashboard results.
+the clipping interpolation, first-year generation and the points in Python from the Dashboard levers and the Inputs values and compares them with the Dashboard results.
 
     python3 projects/bora_v5_summary/dump_summary.py
 """
@@ -24,9 +24,10 @@ def fmt(v):
     return "" if v is None else str(v)
 
 
-def dump(dash, cf, path, htm=None):
+def dump(dash, cf, path, htm=None, bid=None):
     """Dashboard: label | unit | E … K. Cash_Flow: the same plus the first three and the last timeline values.
-    HTM block 17 (sale at COD): label | unit | G | timeline ends."""
+    HTM block 17 (sale at COD): label | unit | G | timeline ends. Bid_Points summary (rows 121–131): label | unit |
+    BORA 1 | BORA 2 | BORA S | Iváncsa | Dunaújváros."""
     lines = ["== Dashboard =="]
     for r in range(3, dash.max_row + 1):
         cells = [dash.cell(r, c).value for c in range(3, 12)]
@@ -45,6 +46,12 @@ def dump(dash, cf, path, htm=None):
         for r in range(332, htm.max_row + 1):
             cells = [htm.cell(r, c).value for c in (3, 4, 7, 8, 9, 10)] + ["…", htm.cell(r, 43).value]
             if any(v is not None for v in cells[:6]):
+                lines.append(" | ".join(fmt(v) for v in cells))
+    if bid is not None:
+        lines.append("== Bid_Points, summary to COD (BORA 1 | BORA 2 | BORA S | Iváncsa | Dunaújváros) ==")
+        for r in range(121, 132):
+            cells = [bid.cell(r, c).value for c in range(3, 10)]
+            if any(v is not None for v in cells):
                 lines.append(" | ".join(fmt(v) for v in cells))
     path.write_text("\n".join(lines) + "\n")
     return len(lines)
@@ -77,9 +84,11 @@ def hand_checks(wb):
     out = []
 
     # Capex breakdown (€ m) from the Inputs rates; IDC and debt fees are taken from HTM (schedule-driven).
-    wind = sum(v(r) for r in (162, 163, 164, 165, 166, 169, 170)) * built / 1000
+    lines = (163, 164, 165, 166, 169, 170)                # scaled to the Dashboard row 13 scenario total (AG edit)
+    scale = s[f"H{label_row(s, 'Construction capex excl. turbine')}"].value / sum(v(r) for r in lines)
+    wind = (v(162) + scale * sum(v(r) for r in lines)) * built / 1000
     subst = v(167) * mva / u["Source basis of the lump sums"] / 1000   # lump sum quoted for the 200 MVA source
-    cont = (wind + subst) * v(171)
+    cont = (wind + subst) * v(173)
     bess = N("Dash_BESS_Capex_MWh") * v(21) * bess_mw / 1000
     ind = (v(85) - v(83)) * mva / fx                    # indirect fee net of the TSO security credit, mHUF → € m
     direct = v(84) * mva / fx
@@ -97,9 +106,17 @@ def hand_checks(wb):
     perf = S("Performance security (gross; bid security credited)")
     out += [("Performance security, mHUF", pb, perf), ("Performance security, € m at FX", pb / fx, perf / fx)]
 
-    # First full year generation: built MW × hours × (1 − curtailment) × (1 − loss × (built − MVA) / built).
-    loss = N("Dash_Bottleneck_Loss") * (built - mva) / built
-    gen = built * v(179) * (1 - v(180)) * (1 - v(181)) * (1 - loss) / 1000
+    # Clipping: OVIT memo Table 7, linear between the points (last segment extended), not below 0.
+    curve = {k: row_values(inp, r, 17, 12) for k, r in
+             (("x", label_row(inp, "Clipping curve: installed")), ("y", label_row(inp, "Clipping curve: clipped")))}
+    x = built / mva
+    i = min(max(sum(1 for p in curve["x"] if p <= x), 1), len(curve["x"]) - 1) - 1
+    x0, x1, y0, y1 = curve["x"][i], curve["x"][i + 1], curve["y"][i], curve["y"][i + 1]
+    clip = max(0.0, y0 + (y1 - y0) / (x1 - x0) * (x - x0))
+    out.append(("Clipped share of gross energy", clip, S("Clipped share of gross energy (OVIT curve)")))
+
+    # First full year generation: built MW × P50 h × (1 − haircut) × (1 − curtailment) × yield factor × (1 − clip).
+    gen = built * v(181) * (1 - v(182)) * (1 - v(183)) * v(185) * (1 - clip) / 1000
     out += [("Net generation, first full year, GWh", gen, S("Net generation, first full year")),
             ("Equivalent hours per MW built", gen * 1000 / built, S("Equivalent full-load hours, first full year", "F")),
             ("Equivalent hours per MVA", gen * 1000 / mva, S("Equivalent full-load hours, first full year", "G"))]
@@ -121,12 +138,18 @@ def hand_checks(wb):
                       + N("Dash_Shared") * w["8"])
              + (80 * N("Dash_EU_Turbine") + 20 * N("Dash_EU_Transformer")) * w["9"])
     out.append(("Total points", round(total, 2), S("Total points", "F")))
+    out.append(("Bid_Points total, BORA 1 and BORA 2", wb["Bid_Points"]["E34"].value + wb["Bid_Points"]["F34"].value,
+                2 * S("Total points", "F")))
     return out
+
+
+def label_row(ws, text):
+    return next(r for r in range(1, ws.max_row + 1) if str(ws.cell(r, 3).value or "").startswith(text))
 
 
 def main():
     wb = openpyxl.load_workbook(OUT / "Bora_model_RTB_COD_HTM_recalc.xlsx", data_only=True)
-    n = dump(wb["Dashboard"], wb["Cash_Flow"], OUT / "summary_dump.txt", wb["HTM"])
+    n = dump(wb["Dashboard"], wb["Cash_Flow"], OUT / "summary_dump.txt", wb["HTM"], wb["Bid_Points"])
     print(f"{OUT / 'summary_dump.txt'}: {n} lines")
     ok = True
     for label, py, xl in hand_checks(wb):
