@@ -603,3 +603,29 @@ reference; its extra post-tax rows are adopted in the lean form below). Output `
 3. Lean: no scenario selectors, no tables/sparklines, no macros; one formula per row; nothing shown twice; short notes.
    Verification: LibreOffice recalc, no errors, Master_Check 0; lint clean; `check.py` recomputes the Bora RtB waterfall
    and the three HTM IRRs and COD prices; the Iváncsa/Dunaújváros results equal the §21 build (same inputs).
+
+## 23. Fourteenth round (user, 27-Oct-2026): bids re-set, case selector, deposit summary on top, details hidden below
+
+Workbook `projects/hu_wind_2/out/HU_Wind_bids.xlsx` (build_bids.py). Layout reference: the user's hand-made
+`reference/HU_Wind_bid_deposits_fees_20261027.xlsx` (bid & points → key dates → rates and fees → securities and fees in
+HUF with dates → the same in EUR k with dates, DEVEX line included, totals).
+1. **Bids:** Bora overbuild **51 %** (the user says 50; > 50 % is the maximum-points band, 50.0 % scores 90 – state it),
+   BESS 10 %, municipal 20, community 0, CN turbine (unchanged otherwise). Iváncsa and Dunaújváros: overbuild **40 %**,
+   BESS **20 %**, **CN turbines** (EU flags 0), the rest as before.
+2. **Case selector** `Case` (Base | Low | High, default Base) at the top of the Dashboard with a small blue table
+   (as the Bora model's): EU turbine 850 / 950 / 800, CN turbine 500 / 500 / 500, PPA 90 / 90 / 100, net P50 hours
+   2,500 / 2,460 / 2,600, O&M 12 / 12 / 10; Live column by INDEX/MATCH; the capex and operations read the Live column.
+3. **Dashboard order:** (a) key inputs per project + the case table; (b) **deposit summary exactly in the user's layout**
+   (HUF block with dates → EUR k block with dates, with the deductions: bid security credited into the PB, TSO credited
+   against the indirect fee; DEVEX line; totals), three project columns + Total; (c) **capex breakdown** per project
+   (turbines, installation, foundations, BoP civil, BoP electrical, owner's, land, contingency, substation, BESS,
+   connection fees, municipal, development; all-in; k€/MW built; k€/MVA) and **devex breakdown** (Bora: the devex-file
+   categories from Devex_FEP – tender/securities, grid plan and agreement, land, permits, studies, legal and financial,
+   contingency; others: devex + contingency); (d) the three simple routes (RtB / COD / hold, totals only); (e) the
+   simple annual cash flow per project; (f) **below the cash flow: the detailed calculation blocks** (claims table,
+   waterfall, full timelines, COD detail, checks, Master_Check) in collapsed row groups (outline level 1, hidden), so
+   the sheet reads top-down and the detail is one click away. No `Calc` sheet; `Inputs` keeps the rates, dates, capex,
+   opex, claim terms and band tables (band tables and helpers hidden).
+4. Points to confirm: Bora 51 % + 10 % BESS (10 + 4.5 + 4 + 0 + 5 + 0 + 0 + 5 + 0 + 0 = 28.5); Iváncsa/Dunaújváros 40 % +
+   20 % + 50 + 3 + CN (20 + 15 + 9 + 7.5 + 0 + 0 + 0 + 0 + 0 + 0 = 51.5).
+5. Verification as §22.3; check.py re-run; dump.
