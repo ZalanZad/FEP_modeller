@@ -1,9 +1,10 @@
-"""SPEC §18.4: the model reproduces the user's file it was built from (the user's case is the base of the round).
+"""SPEC §20.5: with the project selector on Bora the model reproduces the user's file it was built from.
 
-Builds build.py (source reference/Bora_model_RTB_COD_HTM_261026_1.xlsm + the §18 edits, which change no number) into
-out/ag_tieout/, then recalculates both that build and the user's file in LibreOffice for each case (cases 1–3, set through
-Scenario_Name) and compares seven headline metrics (tolerance 1e-6, relative to max(1, |value|)). The user's file is only
-read (LibreOffice works on a private copy).
+Builds build.py (source reference/Bora_model_RTB_COD_HTM_271026.xlsm + the §20 edits) into out/ag_tieout/, then
+recalculates both that build (Dash_Project = Bora) and the user's file in LibreOffice for each case (cases 1–3, set through
+Scenario_Name) and compares, per case: seven headline metrics, the seven section-5b RtB results and every Bid_Points
+value (tolerance 1e-6, relative to max(1, |value|); text must match). The user's file is only read (LibreOffice works
+on a private copy).
 
     PYTHONPATH=. python3 projects/bora_v5_summary/ag_tieout.py
 """
@@ -27,35 +28,54 @@ METRICS = [("Project IRR, unlevered post-tax", "Out_proj_irr"),
            ("Debt at COD, € m", "Out_debt"),
            ("COD sale price, € m", "Out_cod_price"),
            ("Buyer IRR at the RtB premium", "Out_buyer_irr")]
+RTB_5B = [("5b RtB premium, k€/MVA", "Out_rtb_prem"), ("5b FEP profit post-tax, € m", "Out_rtb_profit"),
+          ("5b FEP IRR post-tax", "Out_rtb_irr"), ("5b FEP NPV at 8 %, € m", "Out_rtb_npv"),
+          ("5b FEP MOIC", "Out_rtb_moic"), ("5b FEP peak exposure, € m", "Out_rtb_peak"),
+          ("5b A.RES profit post-tax, € m", "Out_ares")]
+GRID = "A1:T260"                                                      # Bid_Points, every value
 
 
 def by_case(path):
-    """{case name: {name: value}} for every case in Scenario_Names, recalculated in LibreOffice."""
+    """{case name: ({name: value}, Bid_Points values)} for every case, recalculated in LibreOffice."""
     out = {}
     with Office(path) as lo:
+        if lo.doc.NamedRanges.hasByName("Dash_Project"):
+            lo.set("Dash_Project", "Bora")
         cases = [lo.get(f"Inputs!{c}7") for c in "GHI"]
         for case in cases:
             lo.set("Scenario_Name", case)
             lo.calculate()
-            out[case] = {n: lo.get(n) for _, n in METRICS}
-            out[case]["Master_Check"] = lo.get("Master_Check")
+            vals = {n: lo.get(n) for _, n in METRICS + RTB_5B}
+            vals["Master_Check"] = lo.get("Master_Check")
+            out[case] = (vals, lo.doc.Sheets.getByName("Bid_Points").getCellRangeByName(GRID).getDataArray())
     return out
+
+
+def diff(a, b):
+    if isinstance(a, float) and isinstance(b, float):
+        return abs(a - b) / max(1.0, abs(a))
+    return 0.0 if a == b else float("inf")
 
 
 def main():
     paths = build.build(HERE / "out" / "ag_tieout", name="Bora_model_RTB_COD_HTM_ag_tieout")
     ag, ours = by_case(build.SRC), by_case(paths["xlsm"])
-    ok, worst = True, 0.0
+    ok, worst, n = True, 0.0, 0
     for i, case in enumerate(ag, 1):
-        print(f"Case {i}: {case}  (Master_Check user {ag[case]['Master_Check']}, rebuilt {ours[case]['Master_Check']})")
-        for label, n in METRICS:
-            a, b = ag[case][n], ours[case][n]
-            d = abs(a - b) / max(1.0, abs(a))
-            worst = max(worst, d)
-            ok &= d <= TOL
-            print(f"  {label:<36} user {a:>14.8g}  rebuilt {b:>14.8g}  diff {d:.1e}{'' if d <= TOL else '  FAIL'}")
-        ok &= ours[case]["Master_Check"] == 0
-    print(f"ag tie-out: {'PASS' if ok else 'FAIL'} (21 values, largest relative difference {worst:.1e})")
+        (a_vals, a_grid), (b_vals, b_grid) = ag[case], ours[case]
+        print(f"Case {i}: {case}  (Master_Check user {a_vals['Master_Check']}, rebuilt {b_vals['Master_Check']})")
+        for label, name in METRICS + RTB_5B:
+            d = diff(a_vals[name], b_vals[name])
+            worst, n, ok = max(worst, d), n + 1, ok and d <= TOL
+            print(f"  {label:<36} user {a_vals[name]:>14.8g}  rebuilt {b_vals[name]:>14.8g}  diff {d:.1e}"
+                  f"{'' if d <= TOL else '  FAIL'}")
+        bad = [(r + 1, c + 1, x, y) for r, (ra, rb) in enumerate(zip(a_grid, b_grid))
+               for c, (x, y) in enumerate(zip(ra, rb)) if diff(x, y) > TOL]
+        cells = sum(1 for row in a_grid for x in row if x != "")
+        n += cells
+        ok &= not bad and b_vals["Master_Check"] == 0
+        print(f"  Bid_Points: {cells} values, {len(bad)} differ{'' if not bad else ' – FAIL ' + str(bad[:5])}")
+    print(f"ag tie-out: {'PASS' if ok else 'FAIL'} ({n} values, largest relative difference {worst:.1e})")
     return 0 if ok else 1
 
 

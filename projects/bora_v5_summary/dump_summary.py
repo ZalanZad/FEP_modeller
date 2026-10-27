@@ -24,7 +24,7 @@ def fmt(v):
     return "" if v is None else str(v)
 
 
-def dump(dash, cf, path, htm=None, bid=None):
+def dump(dash, cf, path, htm=None, bid=None, rtb=None):
     """Dashboard: label | unit | E … K. Cash_Flow: the same plus the first three and the last timeline values.
     HTM block 17 (sale at COD): label | unit | G | timeline ends. Bid_Points summary to COD: label | unit |
     BORA 1 | BORA 2 | BORA 1 + 2."""
@@ -53,6 +53,12 @@ def dump(dash, cf, path, htm=None, bid=None):
         end = next(r for r in range(top, bid.max_row + 1) if bid.cell(r, 3).value == "COD")
         for r in range(top, end + 1):
             cells = [bid.cell(r, c).value for c in range(3, 8)]
+            if any(v is not None for v in cells):
+                lines.append(" | ".join(fmt(v) for v in cells))
+    if rtb is not None:
+        lines.append("== RtB_Projects (EUR k): live | Bora | Iváncsa | Dunaújváros | Total ==")
+        for r in range(4, rtb.max_row + 1):
+            cells = [rtb.cell(r, c).value for c in range(3, 10)]
             if any(v is not None for v in cells):
                 lines.append(" | ".join(fmt(v) for v in cells))
     path.write_text("\n".join(lines) + "\n")
@@ -165,7 +171,7 @@ def label_row(ws, text):
 
 def main():
     wb = openpyxl.load_workbook(OUT / "Bora_model_RTB_COD_HTM_recalc.xlsx", data_only=True)
-    n = dump(wb["Dashboard"], wb["Cash_Flow"], OUT / "summary_dump.txt", wb["HTM"], wb["Bid_Points"])
+    n = dump(wb["Dashboard"], wb["Cash_Flow"], OUT / "summary_dump.txt", wb["HTM"], wb["Bid_Points"], wb["RtB_Projects"])
     print(f"{OUT / 'summary_dump.txt'}: {n} lines")
     ok = True
     for label, py, xl in hand_checks(wb):
