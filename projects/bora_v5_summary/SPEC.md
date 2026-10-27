@@ -566,3 +566,5 @@ J:N). Keep that sheet untouched. Output: `projects/hu_wind_2/out/HU_Wind_bid_dep
 4. Checks on each sheet (sums, waterfall closes, capex total = Σ lines) rolled into one `Master_Check` on `Inputs` top.
    Verification: independent Python recomputation of the Iváncsa RtB waterfall (closed-form interest) and of the HTM
    IRR; lint clean on the new sheets; LibreOffice recalc with no errors.
+5. **Layout (user, 27-Oct-2026):** no separate sheets – the inputs, RtB exit, HTM/COD (annual timeline in X:BG) and
+   checks blocks (Master_Check) sit on `Bid_Cash` below the user's rows 1–78, which stay untouched.

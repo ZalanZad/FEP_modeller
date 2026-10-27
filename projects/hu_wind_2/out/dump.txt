@@ -1,0 +1,120 @@
+label | unit | Iváncsa | Dunaújváros
+## Inputs for the exit cases
+## Dates and claim terms (both projects)
+RtB date | date | 31-Mar-2029 | 
+Sale date (RtB exit) | date | 30-Sep-2029 | 
+Interest freeze date | date | 30-Jun-2029 | 
+Devex average payment date (spent continuously) | date | 31-Dec-2027 | 
+Claim rate, cash lines (incl. cash-posted securities) | % | 12.00% | 
+Claim rate, devex | % | 20.00% | 
+Devex minimum return multiple | x | 2.0 | 
+Operating life from COD | years | 30.0 | 
+Months in a year | months | 12.0 | 
+Check tolerance | EUR k | 0.0010 | 
+## Exit and valuation
+RtB premium | EUR k/MVA | 150.0 | 150.0
+Sale costs | EUR k | 250.0 | 250.0
+FEP share of distributable proceeds | % | 100.00% | 100.00%
+Developer success fee (DSA) | EUR k | 0.0 | 0.0
+Discount rate (buyer's pre-tax return at COD) | % | 8.00% | 8.00%
+## Capex (per MW of wind built unless stated)
+Build shortfall (wind built = committed less this) | % | 10.00% | 10.00%
+Turbine supply incl. transport | EUR k/MW | 850.0 | 850.0
+Turbine installation and erection | EUR k/MW | 80.0 | 80.0
+Foundations | EUR k/MW | 90.0 | 90.0
+Balance of plant – civil | EUR k/MW | 70.0 | 70.0
+Balance of plant – electrical | EUR k/MW | 60.0 | 60.0
+Owner's costs, engineering, PM, construction insurance | EUR k/MW | 40.0 | 40.0
+Land purchase and easements | EUR k/MW | 15.0 | 15.0
+On-site substation and 132 kV bay (lump sum) | EUR k | 12,000.0 | 12,000.0
+Source basis of the lump sums | MVA | 200.0 | 200.0
+Capex contingency (not on BESS) | % | 5.00% | 5.00%
+BESS capex | EUR k/MWh | 100.0 | 100.0
+## Generation and revenue
+Net P50 hours | h/yr | 2,500.0 | 2,500.0
+Curtailment | % | 2.00% | 2.00%
+Clipping | % | 4.00% | 4.00%
+Degradation | % p.a. | 0.30% | 0.30%
+PPA price in the COD year | EUR/MWh | 90.0 | 90.0
+PPA escalation | % p.a. | 1.00% | 1.00%
+## Opex (COD-year prices)
+O&M full-service contract | EUR k/MW/yr | 12.0 | 12.0
+Balance of plant maintenance | EUR k/MW/yr | 3.0 | 3.0
+Land lease | EUR k/MW/yr | 3.0 | 3.0
+Operational insurance | EUR k/MW/yr | 2.5000 | 2.5000
+Asset and commercial management | EUR k/MW/yr | 1.5000 | 1.5000
+Property tax | EUR k/MW/yr | 3.0 | 3.0
+Administration, audit, compliance (at the source basis) | EUR k/yr | 150.0 | 150.0
+Balancing cost | EUR/MWh | 4.0 | 4.0
+Grid use-of-system charges | EUR/MWh | 1.0 | 1.0
+MEKH supervisory fee | % of rev. | 0.10% | 0.10%
+HIPA local business tax | % of rev. | 2.00% | 2.00%
+Opex contingency (not on community, HIPA) | % | 5.00% | 5.00%
+Opex escalation | % p.a. | 2.50% | 2.50%
+## RtB exit: FEP claims at the sale, interest to the freeze (act/365, capitalised 31-Dec)
+Interest accrual end (earlier of freeze and sale) | date | 30-Jun-2029 | 
+Participation fee (not reimbursed) | EUR k | 2.9307 | 2.9307
+Bid security (cash) | EUR k | 218.0 | 218.0
+Performance security payable (cash) | EUR k | 791.2 | 791.2
+TSO connection-request security | EUR k | 199.5 | 199.5
+Direct connection fee | EUR k | 115.4 | 115.4
+Indirect connection fee, payable | EUR k | 192.2 | 192.2
+Devex: MAX(20 % accrued, 1× principal), not reimbursed | EUR k | 1,000.0 | 1,000.0
+Total FEP claims | EUR k | 2,519.2 | 2,519.2
+## RtB exit: waterfall at the sale
+RtB premium | EUR k | 7,500.0 | 7,500.0
+Buyer reimburses deposits and fees at cost (not fee, devex) | EUR k | 7,032.6 | 7,032.6
+Total proceeds | EUR k | 14,532.6 | 14,532.6
+Less sale costs | EUR k | -250.0 | -250.0
+Less deposits and fees repaid to FEP | EUR k | -7,032.6 | -7,032.6
+Less FEP claims at 12 % | EUR k | -1,519.2 | -1,519.2
+Less FEP devex return | EUR k | -1,000.0 | -1,000.0
+Less developer success fee (DSA) | EUR k | 0.0 | 0.0
+Distributable proceeds | EUR k | 4,730.8 | 4,730.8
+FEP share of distributable | EUR k | 4,730.8 | 4,730.8
+Developer share of distributable | EUR k | 0.0 | 0.0
+## FEP cash flows, dated (outlays, then receipts at the sale)
+Signing fee and DD | EUR k | -150.0 | -150.0
+Participation fee | EUR k | -8.2192 | -8.2192
+Bid security | EUR k | -611.3 | -611.3
+Performance security payable | EUR k | -2,445.1 | -2,445.1
+TSO connection-request security | EUR k | -616.4 | -616.4
+Direct connection fee | EUR k | -1,260.3 | -1,260.3
+Indirect connection fee, payable | EUR k | -2,099.5 | -2,099.5
+Devex | EUR k | -1,000.0 | -1,000.0
+FEP receipts at the sale (repaid, claims, share) | EUR k | 14,282.6 | 14,282.6
+FEP profit, pre-tax | EUR k | 6,091.8 | 6,091.8
+FEP MOIC | x | 1.7437 | 1.7437
+FEP IRR, pre-tax (XIRR on the dated flows) | % | 31.88% | 31.88%
+FEP profit per MVA | EUR k/MVA | 121.8 | 121.8
+Project IRR, pre-tax (unlevered) | % | 9.14% | 9.14%
+NPV at the discount rate, at the first year end | EUR k | 8,962.9 | 8,962.9
+All-in cost to COD per MW built | EUR k/MW | 1,561.3 | 1,561.3
+All-in cost to COD per MVA | EUR k/MVA | 1,981.3 | 1,981.3
+First full operating year: net generation | GWh | 149.2 | 149.2
+First full operating year: EBITDA | EUR k | 10,281.5 | 10,281.5
+First full operating year: EBITDA per MW built | EUR k/MW | 162.0 | 162.0
+## COD exit: sale at COD to a buyer earning the discount rate, pre-tax
+Price at COD (EBITDA after COD at the buyer's rate) | EUR k | 118,159.1 | 118,159.1
+Price per MW built | EUR k/MW | 1,862.2 | 1,862.2
+Price per MVA | EUR k/MVA | 2,363.2 | 2,363.2
+FEP profit, pre-tax | EUR k | 19,094.6 | 19,094.6
+FEP IRR, pre-tax | % | 14.50% | 14.50%
+FEP MOIC | x | 1.2487 | 1.2487
+## Capex and all-in cost to COD
+Wind built (committed less the build shortfall) | MW | 63.5 | 63.5
+Turbine supply incl. transport | EUR k | 53,932.5 | 53,932.5
+Turbine installation and erection | EUR k | 5,076.0 | 5,076.0
+Foundations | EUR k | 5,710.5 | 5,710.5
+Balance of plant – civil | EUR k | 4,441.5 | 4,441.5
+Balance of plant – electrical | EUR k | 3,807.0 | 3,807.0
+Owner's costs, engineering, PM, construction insurance | EUR k | 2,538.0 | 2,538.0
+Land purchase and easements | EUR k | 951.8 | 951.8
+On-site substation and 132 kV bay (scaled by MVA) | EUR k | 3,000.0 | 3,000.0
+Capex contingency | EUR k | 3,972.9 | 3,972.9
+BESS (on BESS energy) | EUR k | 8,000.0 | 8,000.0
+Construction capex | EUR k | 91,430.1 | 91,430.1
+Connection fees (TSO security, direct, indirect) | EUR k | 3,976.3 | 3,976.3
+Municipal one-off | EUR k | 2,500.0 | 2,500.0
+Development (participation fee, signing and DD, devex) | EUR k | 1,158.2 | 1,158.2
+All-in cost to COD (securities excluded: returned) | EUR k | 99,064.6 | 99,064.6
