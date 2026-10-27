@@ -295,8 +295,8 @@ def recompute_bid(dash, inp, RB, IB, col, case):
     amt["ind"] = pi("ind") * mva / fxr / 1000 - amt["tso"]
     amt["dev"] = sum(pi(x) for x in ("dv_grid", "dv_land", "dv_perm", "dv_stud", "dv_legal", "dv_other", "dv_cont"))
     sdd = pi("sdd")
-    dt_ = {n: d(pi(x)) for n, x in (("fee", "d_bid"), ("bs", "d_bid"), ("pb", "d_pb"), ("tso", "d_tso"),
-                                     ("dir", "d_hc"), ("ind", "d_hc"), ("dev", "d_dev"))}
+    dt_ = {n: d(c(x)) for n, x in (("fee", "Date_Bid"), ("bs", "Date_Bid"), ("pb", "Date_PB"), ("tso", "Date_TSO"),
+                                    ("dir", "Date_HC"), ("ind", "Date_HC"), ("dev", "Date_Devex"))}
     end = min(d(c("Freeze_Date")), d(c("Sale_Date")))
     sale = d(c("Sale_Date"))
 
@@ -315,7 +315,7 @@ def recompute_bid(dash, inp, RB, IB, col, case):
         r = c("Rate_Devex") if n == "dev" else c("Rate_Cash")
         acc = amt[n] * (factor(dt_[n], r) - 1)
         claims[n] = max(acc, amt[n] * (c("Devex_Floor") - 1)) if n == "dev" else acc
-    dsa = k("Dash_DSA") * min(c("DSA_Rate") * yf360(d(pi("d_dsa")), sale), c("DSA_Cap")) * wind
+    dsa = k("Dash_DSA") * min(c("DSA_Rate") * yf360(d(c("Date_Sign")), sale), c("DSA_Cap")) * wind
     reimb = sum(amt[n] for n in ("bs", "pb", "tso", "dir", "ind"))
     cash = k("Dash_Premium") * mva + reimb
     paid = {}
@@ -324,7 +324,7 @@ def recompute_bid(dash, inp, RB, IB, col, case):
         paid[n] = min(cash, due)
         cash -= paid[n]
     receipts = paid["rp"] + paid["c12"] + paid["dev"] + cash * k("Dash_FEP_Share")
-    flows = [(d(pi("d_sign")), -sdd)] + [(dt_[n], -a) for n, a in amt.items()] + [(sale, receipts)]
+    flows = [(d(c("Date_Sign")), -sdd)] + [(dt_[n], -a) for n, a in amt.items()] + [(sale, receipts)]
     profit = sum(x for _, x in flows)
     out = dict(claims=sum(claims.values()), dsa=dsa, proceeds=receipts, points=pts, cash=sum(amt.values()) + sdd,
                rtb_profit=profit, rtb_post=profit - max(0, profit) * c("CIT_Rate"), rtb_irr=xirr(sorted(flows)),
@@ -335,7 +335,7 @@ def recompute_bid(dash, inp, RB, IB, col, case):
     per_mw = (turb + sum(c(x) for x in ("Capex_Install", "Capex_Fdn", "Capex_Civil", "Capex_Elec", "Capex_Owner",
                                          "Capex_Land"))) * built
     capex = (per_mw + c("Subs_Lump") * mva / c("Lump_Basis")) * (1 + c("Capex_Cont")) + c("BESS_Capex") * mwh
-    ntp, cod, rel = d(pi("d_ntp")), d(pi("d_cod")), d(pi("d_rel"))
+    ntp, cod, rel = d(c("Date_NTP")), d(c("Date_COD")), d(c("Date_Release"))
     nc = (cod.year - ntp.year) * 12 + cod.month - ntp.month
 
     def months(start, n):

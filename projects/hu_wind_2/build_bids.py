@@ -35,7 +35,7 @@ BID_CASH = ROOT / "reference" / "HU_Wind_bid_deposits_fees_20261027.xlsx"     # 
 
 P = ["E", "F", "G"]                                   # Bora, Iváncsa, Dunaújváros (same columns on both sheets)
 NAMES = ["Bora", "Iváncsa", "Dunaújváros"]
-DCOL = {"E": "J", "F": "K", "G": "L"}                 # payment dates per project
+DCOL = {"E": "J", "F": "J", "G": "J"}                 # payment date (one date column, common key dates)
 TL = [L(10 + i) for i in range(36)]                   # J:AS, 2026-2061
 NUM, NUM1, PCT, MULT, DATE, INT = FMT["money"], FMT["money1"], FMT["pct"], FMT["mult"], FMT["date"], "0"
 NUM2, FAC, FLAG = FMT["money2"], FMT["factor"], FMT["flag"]
@@ -43,7 +43,7 @@ CHECK_FMT = '"CHECK" 0;"CHECK" -0;"OK"'
 THIN = Side(style="thin", color="BFBFBF")
 TOP = Border(top=Side(style="thin", color=BLACK))
 HEADS = {"E": "Bora", "F": "Iváncsa", "G": "Dunaújváros", "H": "Total"}
-DATES = {**HEADS, "J": "Date: Bora", "K": "Iváncsa", "L": "Dunaújváros"}
+DATES = {**HEADS, "J": "Date"}
 
 ws = None
 R: dict = {}          # Dashboard rows
@@ -112,13 +112,13 @@ def name(wb, n, ref):
 
 def rows3(r, key, text, unit, fmt, f, total=True, bold=False, top=False, date=None):
     """One row per project column (E:G) from a template ({c} = Dashboard / Inputs column), total in H, and the
-    payment date per project in J:L (link to the Inputs date row `date`)."""
+    payment date in J (`date`: a date name on Inputs)."""
     R[key] = r
     label(r, text, unit, bold=bold)
     for c in P:
         put(f"{c}{r}", fx(f, c=c, d=DCOL[c]), fmt=fmt, bold=bold, top=top)
-        if date:
-            put(f"{DCOL[c]}{r}", f"=Inputs!{c}${I[date]}" if date in I else date, fmt=DATE)
+    if date:
+        put(f"J{r}", "=" + date, fmt=DATE)
     if total:
         put(f"H{r}", f"=SUM(E{r}:G{r})", fmt=fmt, bold=bold, top=top)
     return r + 1
@@ -151,23 +151,17 @@ INPUTS = [
     ("sdd", "Signing fee and DD", "EUR k", NUM, [100, 150, 150], "Bora E24+E25: 400 × 50/200; Bid_Cash E55"),
     *[(k, t, "EUR k", NUM1, v, "Bora Devex_FEP × 50/100 MVA; Bid_Cash E56 (10 % cont.)") for k, t, v in DEVEX],
     ("trafo", "EU transformers ≥ 80 % (ÖSZ-9)", "flag", INT, [0, 0, 0], "Bid_Cash E16; SPEC §23.1"),
-    ("d_sign", "Signing fee and DD paid", "date", DATE, [dt(2026, 7, 31)] * 3, "Bora Inputs E27; Bid_Cash E34"),
-    ("d_bid", "Bid submission: fee paid, bid security posted", "date", DATE, [dt(2026, 10, 30)] * 3,
-     "Bora Inputs E95; Bid_Cash E35"),
-    ("d_pb", "Performance security posted", "date", DATE, [dt(2026, 12, 30), dt(2027, 1, 15), dt(2027, 1, 15)],
-     "Bora Deposits K10 (E96 + 17 d); Bid_Cash E36"),
-    ("d_tso", "TSO security paid", "date", DATE, [dt(2026, 12, 30), dt(2027, 1, 15), dt(2027, 1, 15)],
-     "Bora Inputs E97; Bid_Cash E37"),
-    ("d_hc", "Connection agreement (HCSSZ): fees paid", "date", DATE, [dt(2028, 10, 1)] * 3,
-     "Bora Inputs E99; Bid_Cash E39"),
-    ("d_dev", "Devex average payment date", "date", DATE, [dt(2028, 1, 16), dt(2027, 12, 31), dt(2027, 12, 31)],
-     "Bora Devex_FEP, amount-weighted; Bid_Cash 'continuous'"),
-    ("d_ntp", "Notice to proceed", "date", DATE, [dt(2029, 6, 30)] * 3, "Bora Inputs E154; Bid_Cash E40"),
-    ("d_cod", "COD", "date", DATE, [dt(2031, 6, 30)] * 3, "Bora Inputs E155; Bid_Cash E41"),
-    ("d_rel", "Performance security released", "date", DATE, [dt(2033, 3, 31)] * 3,
-     "Bid_Cash E42 (Kiírás XII.13, estimate)"),
-    ("d_dsa", "DSA accrual start", "date", DATE, [dt(2026, 10, 26), dt(2026, 7, 31), dt(2026, 7, 31)],
-     "Bora Inputs E70; others: signing (DSA off)"),
+    ("Key dates (all projects; value in column E)", None),
+    ("Date_Sign", "Signing fee and DD paid", "date", DATE, dt(2026, 7, 31), "Bid_Cash E34"),
+    ("Date_Bid", "Bid submission: fee paid, bid security posted", "date", DATE, dt(2026, 10, 30), "Bid_Cash E35"),
+    ("Date_PB", "Performance security posted (bid security credited)", "date", DATE, dt(2027, 1, 15), "Bid_Cash E36"),
+    ("Date_TSO", "TSO security paid", "date", DATE, dt(2027, 1, 15), "Bid_Cash E37"),
+    ("Date_Devex", "Devex average payment date (spent continuously)", "date", DATE, dt(2027, 12, 31),
+     "Bid_Cash H77 'continuous'; SPEC §21.1"),
+    ("Date_HC", "Connection agreement (HCSSZ): fees paid", "date", DATE, dt(2028, 10, 1), "Bid_Cash E39"),
+    ("Date_NTP", "Notice to proceed", "date", DATE, dt(2029, 6, 30), "Bid_Cash E40"),
+    ("Date_COD", "COD", "date", DATE, dt(2031, 6, 30), "Bid_Cash E41"),
+    ("Date_Release", "Performance security released", "date", DATE, dt(2033, 3, 31), "Bid_Cash E42 (estimate)"),
     ("RtB exit terms (all projects; value in column E)", None),
     ("Rate_Cash", "Claim rate, cash lines (incl. cash-posted securities)", "%", PCT, 0.12, "Devex file V18; SPEC §21.1"),
     ("Rate_Devex", "Claim rate, devex", "%", PCT, 0.20, "Devex file V19"),
@@ -175,7 +169,7 @@ INPUTS = [
     ("Freeze_Date", "Interest freeze date", "date", DATE, dt(2029, 6, 30), "Devex file V24"),
     ("Sale_Date", "Sale date (RtB exit)", "date", DATE, dt(2029, 9, 30), "Bora Inputs E58; SPEC §21.1"),
     ("Sale_Costs", "Sale costs per project", "EUR k", NUM, 250, "SPEC §21.1"),
-    ("DSA_Rate", "Developer success fee (on committed MW, 30/360)", "EUR k/MW/yr", NUM1, 2.5, "Bora Inputs E36"),
+    ("DSA_Rate", "Developer success fee (on committed MW, signing to sale, 30/360)", "EUR k/MW/yr", NUM1, 2.5, "Bora Inputs E36"),
     ("DSA_Cap", "Developer success fee cap", "EUR k/MW", NUM1, 10, "Bora Inputs E37"),
     ("CIT_Rate", "Corporate income tax on exit gains", "%", PCT, 0.09, "SPEC §22.2 (exit gains only)"),
     ("Capex (per MW of wind built unless stated; turbines: case table on the Dashboard)", None),
@@ -360,37 +354,38 @@ def points_capacity(r):
 # (b) deposit summary in the user's layout
 def deposits(r):
     base = "({c}{wind}*Bench_Wind+{c}{mwh}*Bench_BESS)"
-    bar(r, "Guarantees, securities and connection fees, DEVEX (HUF)", DATES, ["J", "K", "L"])
+    bar(r, "Guarantees, securities and connection fees, DEVEX (HUF)", DATES, ["J"])
     r += 1
-    huf = [("h_pf", "Participation fee", "=Part_Fee", "d_bid", False),
-           ("h_bs", "Bid security", "=Bid_Sec_Rate*" + base, "d_bid", False),
-           ("h_pbg", "Performance security, gross", "=PB_Rate*{c}{Dash_PB_Mult}*" + base, "d_pb", False),
+    huf = [("h_pf", "Participation fee", "=Part_Fee", "Date_Bid", False),
+           ("h_bs", "Bid security", "=Bid_Sec_Rate*" + base, "Date_Bid", False),
+           ("h_pbg", "Performance security, gross", "=PB_Rate*{c}{Dash_PB_Mult}*" + base, "Date_PB", False),
            ("h_pbc", "Less bid security credited", "=-{c}{h_bs}", None, False),
-           ("h_pb", "Performance security payable (bid security deducted)", "={c}{h_pbg}+{c}{h_pbc}", "d_pb", False),
-           ("h_tso", "TSO connection-request security", "=TSO_Rate*{c}{Dash_MVA}", "d_tso", False),
+           ("h_pb", "Performance security payable (bid security deducted)", "={c}{h_pbg}+{c}{h_pbc}", "Date_PB", False),
+           ("h_tso", "TSO connection-request security", "=TSO_Rate*{c}{Dash_MVA}", "Date_TSO", False),
            ("h_dir", "Direct connection fee (per point ÷ bids sharing it)",
-            "=Inputs!{c}$%d/Inputs!{c}$%d" % (I["dir"], I["share_pt"]), "d_hc", False),
-           ("h_indg", "Indirect connection fee, gross", "=Inputs!{c}$%d*{c}{Dash_MVA}" % I["ind"], "d_hc", False),
+            "=Inputs!{c}$%d/Inputs!{c}$%d" % (I["dir"], I["share_pt"]), "Date_HC", False),
+           ("h_indg", "Indirect connection fee, gross", "=Inputs!{c}$%d*{c}{Dash_MVA}" % I["ind"], "Date_HC", False),
            ("h_tsoc", "Less TSO security credited", "=-{c}{h_tso}", None, False),
-           ("h_ind", "Indirect connection fee, payable (TSO security deducted)", "={c}{h_indg}+{c}{h_tsoc}", "d_hc",
+           ("h_ind", "Indirect connection fee, payable (TSO security deducted)", "={c}{h_indg}+{c}{h_tsoc}", "Date_HC",
             False),
-           ("h_dev", "DEVEX", "=SUM(Inputs!{c}$%d:{c}$%d)*FX*Thousand" % (I["dv_grid"], I["dv_cont"]), "d_dev", False),
+           ("h_dev", "DEVEX", "=SUM(Inputs!{c}$%d:{c}$%d)*FX*Thousand" % (I["dv_grid"], I["dv_cont"]), "Date_Devex",
+            False),
            ("h_tot", "Total cash: fee, securities, connection fees, DEVEX",
             "={c}{h_pf}+{c}{h_bs}+{c}{h_pb}+{c}{h_tso}+{c}{h_dir}+{c}{h_ind}+{c}{h_dev}", None, True)]
     for key, text, f, date, bold in huf:
         r = rows3(r, key, text, "HUF", NUM, f, bold=bold, top=bold, date=date)
     r += 1
-    bar(r, "Guarantees, securities and connection fees, DEVEX (EUR k)", DATES, ["J", "K", "L"])
+    bar(r, "Guarantees, securities and connection fees, DEVEX (EUR k)", DATES, ["J"])
     r += 1
-    eur = [("e_pf", "Participation fee", "h_pf", "d_bid"), ("e_bs", "Bid security", "h_bs", "d_bid"),
-           ("e_pb", "Performance security payable (bid security deducted)", "h_pb", "d_pb"),
-           ("e_tso", "TSO connection-request security", "h_tso", "d_tso"),
-           ("e_dir", "Direct connection fee", "h_dir", "d_hc"),
-           ("e_ind", "Indirect connection fee, payable (TSO security deducted)", "h_ind", "d_hc"),
-           ("e_dev", "DEVEX", "h_dev", "d_dev")]
+    eur = [("e_pf", "Participation fee", "h_pf", "Date_Bid"), ("e_bs", "Bid security", "h_bs", "Date_Bid"),
+           ("e_pb", "Performance security payable (bid security deducted)", "h_pb", "Date_PB"),
+           ("e_tso", "TSO connection-request security", "h_tso", "Date_TSO"),
+           ("e_dir", "Direct connection fee", "h_dir", "Date_HC"),
+           ("e_ind", "Indirect connection fee, payable (TSO security deducted)", "h_ind", "Date_HC"),
+           ("e_dev", "DEVEX", "h_dev", "Date_Devex")]
     for key, text, src, date in eur:
         r = rows3(r, key, text, "EUR k", NUM1 if key == "e_pf" else NUM, "={c}{%s}/FX/Thousand" % src, date=date)
-    r = rows3(r, "e_sdd", "Signing fee and DD", "EUR k", NUM, "=Inputs!{c}$%d" % I["sdd"], date="d_sign")
+    r = rows3(r, "e_sdd", "Signing fee and DD", "EUR k", NUM, "=Inputs!{c}$%d" % I["sdd"], date="Date_Sign")
     r = rows3(r, "e_tot", "Total cash to RtB (incl. signing and DD)", "EUR k", NUM, "=SUM({c}{e_pf}:{c}{e_sdd})",
               bold=True, top=True)
     return r + 1
@@ -502,12 +497,11 @@ def claims_waterfall(r):
     for key, rate, text in (("c_s12", "Rate_Cash", "cash rate"), ("c_s20", "Rate_Devex", "devex rate")):
         r = rows3(r, key, f"Accrual factor in the end year, {text}", "x", "0.0000",
                   "=1+%s*({c}{c_end}-DATE(YEAR({c}{c_end}),1,1)+1)/Days_In_Year" % rate, total=False)
-    for ev, text, rate, stub in (("bid", "bid submission", "Rate_Cash", "c_s12"),
-                                 ("pb", "performance security posting", "Rate_Cash", "c_s12"),
-                                 ("tso", "TSO security payment", "Rate_Cash", "c_s12"),
-                                 ("hc", "connection agreement (HCSSZ)", "Rate_Cash", "c_s12"),
-                                 ("dev", "devex payment (average)", "Rate_Devex", "c_s20")):
-        x = "Inputs!{c}$%d" % I["d_" + ev]
+    for ev, text, rate, stub, x in (("bid", "bid submission", "Rate_Cash", "c_s12", "Date_Bid"),
+                                    ("pb", "performance security posting", "Rate_Cash", "c_s12", "Date_PB"),
+                                    ("tso", "TSO security payment", "Rate_Cash", "c_s12", "Date_TSO"),
+                                    ("hc", "connection agreement (HCSSZ)", "Rate_Cash", "c_s12", "Date_HC"),
+                                    ("dev", "devex payment (average)", "Rate_Devex", "c_s20", "Date_Devex")):
         r = rows3(r, "c_d_" + ev, f"Days to the first 31-Dec from {text}", "days", INT,
                   "=DATE(YEAR(%s)+1,1,1)-%s" % (x, x), total=False)
         r = rows3(r, "c_f_" + ev, f"Accrual factor from {text}", "x", "0.0000",
@@ -524,7 +518,7 @@ def claims_waterfall(r):
         r = rows3(r, key, text, "EUR k", NUM1 if key == "c_pf" else NUM, f)
     r = rows3(r, "c_tot", "Total FEP claims", "EUR k", NUM, "=SUM({c}{c_pf}:{c}{c_dev})", bold=True, top=True)
     r = rows3(r, "c_dsa", "Developer success fee due (DSA, capped)", "EUR k", NUM,
-              "={c}{Dash_DSA}*MIN(DSA_Rate*YEARFRAC(Inputs!{c}$%d,Sale_Date),DSA_Cap)*{c}{wind}" % I["d_dsa"])
+              "={c}{Dash_DSA}*MIN(DSA_Rate*YEARFRAC(Date_Sign,Sale_Date),DSA_Cap)*{c}{wind}")
     r += 1
     bar(r, "RtB exit: waterfall at the sale", HEADS)
     r += 1
@@ -542,17 +536,17 @@ def claims_waterfall(r):
     for key, text, f, bold in wf:
         r = rows3(r, key, text, "EUR k", NUM, f, bold=bold, top=key == "w_dist")
     r += 1
-    sub(r, "FEP cash flows, dated (outlays, then receipts at the sale)", DATES, ["J", "K", "L"])
+    sub(r, "FEP cash flows, dated (outlays, then receipts at the sale)", DATES, ["J"])
     r += 1
-    flows = [("f_sdd", "Signing fee and DD", "e_sdd", "d_sign"), ("f_pf", "Participation fee", "e_pf", "d_bid"),
-             ("f_bs", "Bid security", "e_bs", "d_bid"), ("f_pb", "Performance security payable", "e_pb", "d_pb"),
-             ("f_tso", "TSO connection-request security", "e_tso", "d_tso"),
-             ("f_dir", "Direct connection fee", "e_dir", "d_hc"),
-             ("f_ind", "Indirect connection fee, payable", "e_ind", "d_hc"), ("f_dev", "Devex", "e_dev", "d_dev")]
+    flows = [("f_sdd", "Signing fee and DD", "e_sdd", "Date_Sign"), ("f_pf", "Participation fee", "e_pf", "Date_Bid"),
+             ("f_bs", "Bid security", "e_bs", "Date_Bid"), ("f_pb", "Performance security payable", "e_pb", "Date_PB"),
+             ("f_tso", "TSO connection-request security", "e_tso", "Date_TSO"),
+             ("f_dir", "Direct connection fee", "e_dir", "Date_HC"),
+             ("f_ind", "Indirect connection fee, payable", "e_ind", "Date_HC"), ("f_dev", "Devex", "e_dev", "Date_Devex")]
     for key, text, src, date in flows:
         r = rows3(r, key, text, "EUR k", NUM1 if key == "f_pf" else NUM, "=-{c}{%s}" % src, date=date)
     r = rows3(r, "f_rec", "FEP receipts at the sale (repaid, claims, share)", "EUR k", NUM,
-              "={c}{w_fep}-SUM({c}{w_rp}:{c}{w_dev})", bold=True, date="=Sale_Date")
+              "={c}{w_fep}-SUM({c}{w_rp}:{c}{w_dev})", bold=True, date="Sale_Date")
     r = rows3(r, "r_profit", "FEP profit, pre-tax", "EUR k", NUM, "=SUM({c}{f_sdd}:{c}{f_rec})", bold=True, top=True)
     r = rows3(r, "r_cit", "CIT on the gain", "EUR k", NUM, "=-MAX(0,{c}{r_profit})*CIT_Rate")
     r = rows3(r, "r_post", "FEP profit, post-tax", "EUR k", NUM, "={c}{r_profit}+{c}{r_cit}", bold=True)
@@ -560,21 +554,21 @@ def claims_waterfall(r):
 
 
 SUBROWS = [
-    ("t_n", "Years from the COD year", "years", INT, None, "={x}${t_yr}-YEAR(Inputs!${p}${d_cod})"),
+    ("t_n", "Years from the COD year", "years", INT, None, "={x}${t_yr}-YEAR(Date_COD)"),
     ("t_cm", "Construction months by year end (value: construction period)", "months", INT,
-     '=DATEDIF(Inputs!${p}${d_ntp},Inputs!${p}${d_cod},"m")',
-     "=({x}${t_yr}+1-YEAR(Inputs!${p}${d_ntp}))*Months_In_Year-MONTH(Inputs!${p}${d_ntp})"),
+     '=DATEDIF(Date_NTP,Date_COD,"m")',
+     "=({x}${t_yr}+1-YEAR(Date_NTP))*Months_In_Year-MONTH(Date_NTP)"),
     ("t_cs", "Construction share of the year (NTP to COD)", "%", PCT, None,
      "=MAX(0,MIN({x}{t_cm},${p}{t_cm})-MAX({x}{t_cm}-Months_In_Year,0))/${p}{t_cm}"),
     ("t_om", "Months operated by year end (value: operating life)", "months", INT, "=Life*Months_In_Year",
-     "=({x}${t_yr}+1-YEAR(Inputs!${p}${d_cod}))*Months_In_Year-MONTH(Inputs!${p}${d_cod})"),
+     "=({x}${t_yr}+1-YEAR(Date_COD))*Months_In_Year-MONTH(Date_COD)"),
     ("t_op", "Operating share of the year (COD to end of life)", "%", PCT, None,
      "=MAX(0,MIN({x}{t_om},${p}{t_om})-MAX({x}{t_om}-Months_In_Year,0))/Months_In_Year"),
     ("t_cod", "COD year flag", "flag", FLAG, None, "=N({x}{t_n}=0)"),
     ("p_dev", "FEP outlays at their dates (signing, fee, securities, fees, devex)", "EUR k", NUM, None,
      "=SUMPRODUCT((YEAR(${d}${f_sdd}:${d}${f_dev})={x}${t_yr})*${p}${f_sdd}:${p}${f_dev})"),
     ("p_pbr", "Performance security released (bid security included)", "EUR k", NUM, None,
-     "=(${p}${e_bs}+${p}${e_pb})*({x}${t_yr}=YEAR(Inputs!${p}${d_rel}))"),
+     "=(${p}${e_bs}+${p}${e_pb})*({x}${t_yr}=YEAR(Date_Release))"),
     ("p_capex", "Construction capex (straight-line NTP to COD)", "EUR k", NUM, None, "=-${p}${k_capex}*{x}{t_cs}"),
     ("p_muni", "Municipal one-off at COD", "EUR k", NUM, None, "=-${p}${k_muni}*{x}{t_cod}"),
     ("p_inv", "Investment cash flow", "EUR k", NUM, None, "=SUM({x}{p_dev}:{x}{p_muni})"),
@@ -597,7 +591,7 @@ SUBROWS = [
     ("p_ebitda", "EBITDA", "EUR k", NUM, None, "={x}{p_rev}+{x}{p_opex}"),
     ("p_cf", "Unlevered pre-tax cash flow", "EUR k", NUM, None, "={x}{p_inv}+{x}{p_ebitda}"),
     ("p_df", "Discount factor to COD (buyer's rate)", "x", FAC, None,
-     "=(1+Discount_Rate)^((Inputs!${p}${d_cod}-{x}${t_end})/Days_In_Year)"),
+     "=(1+Discount_Rate)^((Date_COD-{x}${t_end})/Days_In_Year)"),
     ("p_pv", "EBITDA valued at COD (total = COD price)", "EUR k", NUM, None, "={x}{p_ebitda}*{x}{p_df}"),
     ("p_cod", "COD exit: FEP cash flow (to COD, price and securities at COD)", "EUR k", NUM, None,
      "={x}{p_inv}*({x}{t_n}<=0)+{x}{t_cod}*($H{p_pv}+${p}${e_bs}+${p}${e_pb})"),
@@ -628,7 +622,7 @@ def timeline(r):
             rows[key] = R[key] = r
             bold = key in BOLD
             label(r, text, unit, bold=bold)
-            kw = dict(p=c, d=DCOL[c], d_cod=I["d_cod"], d_ntp=I["d_ntp"], d_rel=I["d_rel"])
+            kw = dict(p=c, d=DCOL[c])
             if const:
                 put(f"{c}{r}", fx(const, **kw), fmt=INT)
             for x in TL:
