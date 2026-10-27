@@ -448,3 +448,40 @@ formulas there are broken; stored results re-run). It is THE source; the output 
 4. **It must work:** no `#REF!`/`#NAME?`/`#VALUE!` anywhere, Master_Check 0 after RunAllScenarios under Base, lint no new
    findings, tie-out: with the user's file recalculated in LibreOffice, cases 1–3 headline metrics reproduce it to 1e-6
    (the user's case is the base of this round: `ag_tieout.py` → compare against this file).
+
+## 19. Tenth round (user, 27-Oct-2026): Bid_Points as a two-bid calculator, like the bid-deposit file, in euros
+
+Rebuild `Bid_Points` as a self-contained calculator in the layout of `reference/Wind_HU_points_deposits_devex_20261026.xlsx`
+(same section order and row logic), Bora only, two bid columns **BORA 1 | BORA 2** plus **BORA 1 + 2**, everything in
+**EUR k** (HUF only for the tender's unit rates, converted once at Inputs E11).
+1. **Inputs per bid, blue, changeable on the sheet:** MVA, overbuild %, BESS % of MVA, hours, municipal k€/MVA, community
+   €/MWh, partial, PB multiple, brownfield, shared, EU turbines, EU transformers. BORA 1 is pre-filled with the model's
+   bid values (typed, not linked, so it stays editable); BORA 2 the same by default. One line under the points:
+   "Same as the Dashboard bid (1 = yes)" per column (compares the levers; informational, not in Master_Check).
+   Points per criterion and total per bid from the sheet's band tables (unchanged, = the Kiírás).
+2. **Rates and dates:** links to Inputs (FX, benchmarks 406 M HUF/MW and 200 M HUF/MWh, participation fee, bid-security
+   0.5 % and PB 2.5 % rates, TSO security per MVA, indirect fee per MVA, direct fee per connection point, guarantee fee,
+   signing + DD, devex contingency, dates: signing, bid, award + PB posting, TSO, HCSSZ, NTP, COD; PB release as the
+   sheet's own input with its note).
+3. **Securities and fees block – what is payable and what is deducted from what**, per bid and total, EUR k, with a
+   "Form" column (cash / guarantee) and a "Date" column. Rows, in this order:
+   - Participation fee (cash, sunk).
+   - Bid security, gross (guarantee at submission).
+   - Performance security, gross = 2.5 % × multiple × base; **less bid security credited** (Kiírás XII.11) = PB top-up
+     posted at award + 17 days; the bid security guarantee is released then (both shown).
+   - TSO connection-request security (cash at the connection request).
+   - Indirect connection fee, gross; **less TSO security credited** (XIII.6 / Annex 1); indirect fee payable at HCSSZ.
+   - Direct connection fee (per connection point; shared between the bids when ÖSZ-8 = 1: ÷ number of sharing bids).
+   - Subtotals: **Cash payable excl. connection fees** (participation + TSO), **Connection fees payable** (indirect net +
+     direct), **Cash payable incl. connection fees**; **Guarantees outstanding at peak** (PB gross; the bid security is
+     inside it after award); guarantee fees to COD (6 % p.a. on the outstanding guarantee, by dates).
+4. **Devex, land and contingency to COD** per bid = `Devex_FEP` lines × (bid MVA ÷ 200) (the devex file covers the
+   200 MVA project), contingency on devex + participation fee, total.
+5. **Summary to COD, EUR k, per bid and total:** points; signing + DD; devex incl. contingency; cash deposits and fees
+   **excl.** connection fees; connection fees; **total cash to COD excl. connection fees**; **total cash to COD incl.
+   connection fees**; guarantee fees to COD; peak guarantee; COD date. Then the quarterly cash table (as before, from the
+   dated items) with cumulative and the guarantee outstanding.
+6. Dashboard: section 6 stays (model bid, from Deposits); the check row "Bid_Points total = Dashboard points" becomes the
+   informational "Same as the Dashboard bid" line on Bid_Points (remove the check from Master_Check); keep the quarterly
+   cash check inside Bid_Points and in Master_Check. Everything else unchanged; tie-out of cases 1–3 to the previous
+   output must hold.
