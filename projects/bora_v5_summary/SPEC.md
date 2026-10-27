@@ -530,3 +530,39 @@ the colleague's design had a project switch (Inputs E9) that we fixed at 1. Re-e
 4. Dashboard section 5b (Bora RtB, FEP side) stays; add one line "Other projects: see RtB_Projects".
 5. Tie-out: with the selector on Bora, every Bora figure (cases 1–3, section 5b, Bid_Points) equals the user's 271026
    file recalculated (1e-6). Master_Check 0 after RefreshAll; no error values; lint no new findings.
+
+## 21. Twelfth round (user, 27-Oct-2026): Iváncsa and Dunaújváros – RtB exit, COD exit, quick HTM, on the user's file
+
+**Source:** `reference/HU_Wind_bid_deposits_fees_20261027.xlsx` (the user's hand-made good version: one sheet `Bid_Cash`,
+Iváncsa | Dunaújváros, all cash, HUF block with dates and an EUR k block, devex 1,000 k€ "continuous", band tables in
+J:N). Keep that sheet untouched. Output: `projects/hu_wind_2/out/HU_Wind_bid_deposits_fees.xlsx` built by
+`projects/hu_wind_2/build.py` (standalone openpyxl + fepm styles, like the extract; no macros). New sheets, formulas only:
+
+1. **`Inputs`** (blue, one column per project, Iváncsa | Dunaújváros; source notes): links to Bid_Cash for MVA,
+   overbuild, BESS, dates, deposits and fees (k€, by line with dates); and the new inputs: build shortfall 10 %
+   (wind built = committed × 90 %); capex per built MW from the latest Bora model (`reference/Bora_model_RTB_COD_HTM_271026.xlsm`
+   Inputs: turbine 850 (the user's Base), installation 80, foundations 90, BoP civil 70, BoP electrical 60, owner's 40,
+   land 15, contingency 5 %), substation lump 12,000 k€ × MVA ÷ 200, BESS 100 k€/MWh, municipal one-off 50 k€/MVA at
+   COD; generation: P50 2,500 h, curtailment 2 %, clipping 4 %, degradation 0.3 %/yr; PPA 90 €/MWh + 1 %/yr for the
+   life; opex per the Bora model (O&M 12, BoP 3, lease 3, insurance 2.5, management 1.5, property tax 3 k€/MW/yr, admin
+   150 k€/yr × MVA ÷ 200, contingency 5 %, escalation 2.5 %, balancing 4 and grid 1 €/MWh, MEKH 0.1 % and HIPA 2 % of
+   revenue, community 3 €/MWh); life 30 years from COD; discount rate 8 %; RtB: RtB date 31-Mar-2029, sale 30-Sep-2029,
+   premium **150 k€/MVA**, sale costs 250 k€, FEP share 100 %, DSA 0, claim rates 12 % (cash lines, incl. cash-posted
+   bonds – note: in the Bora model guaranteed bonds earn 6 %), 20 % with a 2× floor on devex, freeze 30-Jun-2029,
+   devex average payment date 31-Dec-2027 (the "continuous" line), devex not reimbursed (FEP-borne; the 2× claim covers it).
+2. **`RtB_Exit`** (EUR k, Iváncsa | Dunaújváros | Total): per cash line (participation fee, bid security, PB payable,
+   TSO, direct fee, indirect payable, devex): amount, date, rate, interest to the freeze (act/365, capitalised each
+   31-Dec: helper columns days to first 31-Dec, full years, stub days; ≤ 2 nested functions per cell), claim (devex:
+   MAX(accrued, principal)); totals; waterfall at the sale: premium, reimbursement of deposits and fees at cost
+   (participation fee not reimbursed), total proceeds, less sale costs, less reimbursement, less 12 % claims, less devex
+   return, less DSA, distributable, FEP share, FEP receipts, less FEP outlays, **FEP profit pre-tax**, MOIC, XIRR on the
+   dated flows, k€/MVA. Check: proceeds − deductions − distributable = 0.
+3. **`HTM_COD`** (EUR k, annual 2026–2061, one block per project, same rows): built MW, BESS MWh; capex lines at NTP →
+   COD (straight-line over the construction months), connection fees and deposits at their dates (from Bid_Cash),
+   municipal at COD; generation, PPA price, revenue, opex lines, **EBITDA**; unlevered pre-tax cash flow; **project IRR
+   pre-tax**, NPV at 8 %, all-in cost k€/MW built and k€/MVA, EBITDA first full year and per MW; **COD exit:** price =
+   Σ post-COD EBITDA × DF(8 %, from COD) (buyer earns 8 % pre-tax, unlevered), price per MW built and per MVA, FEP flows
+   to COD + price at COD → FEP profit, IRR, MOIC. No debt, no tax (state it in the header).
+4. Checks on each sheet (sums, waterfall closes, capex total = Σ lines) rolled into one `Master_Check` on `Inputs` top.
+   Verification: independent Python recomputation of the Iváncsa RtB waterfall (closed-form interest) and of the HTM
+   IRR; lint clean on the new sheets; LibreOffice recalc with no errors.
