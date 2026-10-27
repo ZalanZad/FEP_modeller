@@ -485,3 +485,48 @@ Rebuild `Bid_Points` as a self-contained calculator in the layout of `reference/
    informational "Same as the Dashboard bid" line on Bid_Points (remove the check from Master_Check); keep the quarterly
    cash check inside Bid_Points and in Master_Check. Everything else unchanged; tie-out of cases 1–3 to the previous
    output must hold.
+
+## 20. Eleventh round (user, 27-Oct-2026): RtB sale for Iváncsa and Dunaújváros, devex-file waterfall, equity shares
+
+**Source:** `reference/Bora_model_RTB_COD_HTM_271026.xlsm` (the user's edit of 936d840: scenario Base turbine 850, High
+500, O&M High 10; live case EU; Inputs G99 HCSSZ date 1-Oct-2028; Bid_Points "Wind built" row 23 added). Keep every user
+edit. The other two projects' bid inputs come from `reference/Bora_model_RTB_COD_HTM_261026_other_projects.xlsm`
+(Bid_Points columns H:I: 50 MVA each, overbuild 40 %, BESS 41 % × 4 h, municipal 50, community 3, partial 0, PB 1.0x,
+brownfield 0, shared 0, EU turbines 1, EU transformers 0; indirect fee 19,826,680 HUF/MVA, direct 460,000,000 HUF per
+connection point, signing + DD 150 k€, devex incl. contingency 500 k€). Waterfall conventions: `reference/BORA_Devex_20261002.xlsx`
+(12 % on cash lines, 6 % on guarantee lines, 20 % with a 2× floor on devex and land, act/365, 31-Dec capitalisation,
+interest frozen from 30-Jun-2029 to the sale; see docs/domain/bora_devex_and_overbuild.md).
+
+Principle: change as little as possible. The MOIC engine already computes the RtB route for one project from Inputs;
+the colleague's design had a project switch (Inputs E9) that we fixed at 1. Re-enable it for the RtB route only.
+
+1. **Inputs block M becomes a three-column project table** (Bora | Iváncsa | Dunaújváros; blue; source notes): MVA
+   (Bora = `Dash_MVA`, link), overbuild, BESS share, hours, number of bids, indirect fee HUF/MVA, direct fee HUF per
+   connection point, sharing of the direct fee (1 = shared), signing + DD k€, devex incl. contingency k€ (Bora = the
+   scaled Devex_FEP total, link), **FEP share of distributable proceeds** (Bora 70 %; the others **100 % placeholder**),
+   developer success fee live (Bora 1; others 0 placeholder), RtB premium k€/MVA (Bora = the Dashboard scenario value,
+   link; others 150 placeholder). Placeholders are flagged in the report for the user to set.
+2. **Project selector** `Dash_Project` on the Dashboard section 1 (validated list Bora | Iváncsa | Dunaújváros; default
+   Bora) → Inputs E9 = MATCH. The live cells that the RtB route uses pick the project: E16/E18 (wind MW), E20/E22 (BESS),
+   E24/E25 (signing, DD), E32/E38 (FEP share, DSA switch), E82 (bids), E141 (premium), E288/E289 (fees), E292/E294 (devex
+   target and scaling factor = project devex ÷ the unscaled Devex_FEP total). For Bora the values equal today's; for the
+   others the block M column. Everything HTM/COD stays Bora's (the Dashboard shows Bora when the selector is Bora; when
+   another project is selected the HTM figures are not meaningful – a note on the Dashboard says so, and the macro
+   always restores Bora).
+3. **New sheet `RtB_Projects`** after Bid_Points, EUR k, columns Bora | Iváncsa | Dunaújváros | Total, devex-file layout,
+   purple stored values written by a new macro `vba/RtBProjects.bas` (`RunProjects`: loop the selector, Calculate, copy
+   the `RtB_Live` column of the sheet into `RtB_Stored` column i; restore; error-safe like Scenarios.bas; `RefreshAll` =
+   RunAllScenarios + RunProjects):
+   - Capacity: MVA, wind committed, BESS MW/MWh; FEP share %, RtB premium k€/MVA, RtB date, sale date.
+   - Principal posted by class (k€): cash 12 % (participation fee, TSO security, connection fees), guarantee 6 % (bid
+     security, PB face), at-risk 20 % / 2× (devex, land, contingency); total posted.
+   - Interest claims to the sale (engine MOIC rows: 12 % recoverable-loan interest, 6 % guarantee interest, at-risk
+     return with the 2× floor), with the freeze; total FEP claims.
+   - Waterfall at the sale: RtB premium; buyer reimbursement of principal; total proceeds; less sale costs; less principal
+     repaid; less 12 % interest; less at-risk return; less 6 % interest; less DSA; distributable; FEP share; developer
+     share; **FEP receipts**; FEP-borne devex not reimbursed; **FEP net profit pre-tax, post-tax**; FEP IRR, MOIC, NPV;
+     per MVA (k€/MVA).
+   - Live column (links to MOIC) beside the stored block; check "stored = live for the selected project" in Master_Check.
+4. Dashboard section 5b (Bora RtB, FEP side) stays; add one line "Other projects: see RtB_Projects".
+5. Tie-out: with the selector on Bora, every Bora figure (cases 1–3, section 5b, Bid_Points) equals the user's 271026
+   file recalculated (1e-6). Master_Check 0 after RefreshAll; no error values; lint no new findings.
