@@ -1,260 +1,313 @@
-"""Standalone extract: the Bora bid's cash to RtB, all in EUR k, everything paid in cash (no bank guarantees).
+"""Standalone extract in the layout of the user's bid sheet (screenshot of 27-Oct-2026): Bora's two bids beside
+Iváncsa and Dunaújváros. Five blocks: the bid and its points, key dates, rates and fees, guarantees / securities /
+connection fees in HUF, deposits and fees to RtB in EUR k.
 
-Reads the current model values (out/Bora_model_RTB_COD_HTM_recalc.xlsx, Bora selected) into a blue input table and
-builds one sheet "Bid_Cash" with formulas below it: securities and fees payable (with the deductions), devex payable
-(Devex_FEP lines at the 200 MVA basis × scale), grand total, by-year summary and one check. The model is not changed.
+Inputs (blue on cream): Bora from the current model (out/Bora_model_RTB_COD_HTM_recalc.xlsx, Bora selected; the bid
+commits EU equipment), Iváncsa and Dunaújváros as in the user's sheet. Points use the model's band tables (Inputs block U),
+copied into a hidden area to the right. Everything below the inputs is a formula. The model is not changed.
 
     PYTHONPATH=. python3 projects/bora_v5_summary/extract_bid_cash.py
 """
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import openpyxl
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter as L
+from openpyxl.workbook.defined_name import DefinedName
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[1]))
 from fepm.recalc import recalc  # noqa: E402
-from fepm.xl.styles import apply, register  # noqa: E402
 
 MODEL = HERE / "out" / "Bora_model_RTB_COD_HTM_recalc.xlsx"
 OUT = HERE / "out" / "Bora_bid_cash_extract.xlsx"
-BIDS = 2                                                          # BORA 1 and BORA 2 (Bid_Points)
-DATE, KEUR = "dd-mmm-yy", "money1"
+
+FONT = "Aptos Narrow"
+GREEN, CREAM, GREY, PURPLE, BLUE = "00563C", "FFF2CC", "EDEDED", "7030A0", "0000FF"
+YELLOW, ORANGE = "FFFF00", "FFC000"
+NUM, NUM1, PCT, MULT, DATE = '#,##0;(#,##0);"–"', '#,##0.0;(#,##0.0);"–"', '0.0%;(0.0%);"–"', '0.00"x"', "dd-mmm-yy"
+PTS = '#,##0.0;(#,##0.0);"–"'
+BIDS = "EFHI"                                                     # BORA 1, BORA 2, Iváncsa, Dunaújváros
+thin = Side(style="thin", color="808080")
+BOX = Border(thin, thin, thin, thin)
+
+# (1) the bid: label, unit, format, BORA 1 = BORA 2 (None = from the model), Iváncsa = Dunaújváros
+LEVERS = [("mva", "Net connection capacity", "MVA", NUM, None, 50),
+          ("ob", "Overbuild (ÖSZ-3)", "%", PCT, None, 0.4),
+          ("bess", "BESS power, share of MVA (ÖSZ-4)", "%", PCT, None, 0.41),
+          ("hours", "BESS duration", "h", NUM, None, 4),
+          ("muni", "Municipal one-off (ÖSZ-1)", "EUR k/MW", NUM, None, 50),
+          ("comm", "Community contribution (ÖSZ-2)", "EUR/MWh", NUM, None, 3),
+          ("part", "Partial award accepted (ÖSZ-5)", "flag", NUM, None, 0),
+          ("pbm", "Performance security multiple (ÖSZ-6)", "x", MULT, None, 1),
+          ("brown", "Brownfield site (ÖSZ-7)", "flag", NUM, None, 0),
+          ("shared", "Shared connection (ÖSZ-8)", "flag", NUM, None, 0),
+          ("euturb", "EU turbines ≥ 80 % (ÖSZ-9)", "flag", NUM, 1, 1),
+          ("eutrafo", "EU transformers ≥ 80 % (ÖSZ-9)", "flag", NUM, 1, 0)]
+MODEL_LEVERS = {"mva": "Dash_MVA", "ob": "Dash_Overbuild", "bess": "Dash_BESS_Share", "muni": "Dash_Municipal",
+                "comm": "Dash_Community", "part": "Dash_Partial", "pbm": "Dash_PB_Mult", "brown": "Dash_Brownfield",
+                "shared": "Dash_Shared"}
+POINTS = [("Points – municipal one-off", "=INDEX(Osz1_Pts,1+SUMPRODUCT((Osz1_LB<{c}{muni})+(Osz1_LB={c}{muni})*Osz1_Incl))*Osz1_W"),
+          ("Points – community contribution",
+           "=INDEX(Osz2_Pts,1+SUMPRODUCT((Osz2_LB<{c}{comm})+(Osz2_LB={c}{comm})*Osz2_Incl))*Osz2_W"),
+          ("Points – overbuild", "=INDEX(Osz3_Pts,1+SUMPRODUCT((Osz3_LB<{c}{ob})+(Osz3_LB={c}{ob})*Osz3_Incl))*Osz3_W"),
+          ("Points – BESS", "=INDEX(Osz3_Pts,1+SUMPRODUCT((Osz3_LB<{c}{bess})+(Osz3_LB={c}{bess})*Osz3_Incl))*Osz4_W"),
+          ("Points – partial award", "={c}{part}*Osz5_Pts*Osz5_W"),
+          ("Points – performance security",
+           "=INDEX(Osz6_Pts,1+SUMPRODUCT((Osz6_LB<{c}{pbm})+(Osz6_LB={c}{pbm})*Osz6_Incl))*Osz6_W"),
+          ("Points – brownfield", "={c}{brown}*Osz7_Pts*Osz7_W"),
+          ("Points – shared connection", "={c}{shared}*Osz8_Pts*Osz8_W"),
+          ("Points – EU turbines", "={c}{euturb}*Osz9a_Pts*Osz9_W"),
+          ("Points – EU transformers", "={c}{eutrafo}*Osz9b_Pts*Osz9_W")]
+BANDS = ["Osz1_LB", "Osz1_Incl", "Osz1_Pts", "Osz2_LB", "Osz2_Incl", "Osz2_Pts", "Osz3_LB", "Osz3_Incl", "Osz3_Pts",
+         "Osz6_LB", "Osz6_Incl", "Osz6_Pts", "Osz1_W", "Osz2_W", "Osz3_W", "Osz4_W", "Osz5_W", "Osz6_W", "Osz7_W",
+         "Osz8_W", "Osz9_W", "Osz5_Pts", "Osz7_Pts", "Osz8_Pts", "Osz9a_Pts", "Osz9b_Pts"]
+PB_NOTE = "model has no PB release date; Kiírás XII.13, estimate"
 
 
-def model_inputs(wb):
-    i, f = wb["Inputs"], wb["Devex_FEP"]
+def model_values():
+    wb = openpyxl.load_workbook(MODEL, data_only=True)
+
+    def name(n):
+        sheet, ref = next(wb.defined_names[n].destinations)
+        rng = wb[sheet][ref.replace("$", "")]
+        return [c.value for c in rng[0]] if isinstance(rng, tuple) else rng.value
+
+    i, dep, dev = wb["Inputs"], wb["Deposits"], wb["Devex_FEP"]
+    bora = {k: name(n) for k, n in MODEL_LEVERS.items()}
+    bora["mva"] = name("Dash_MVA") / i["E82"].value
+    bora["hours"] = i["E21"].value
     v = lambda r: i[f"E{r}"].value  # noqa: E731
-    mva = wb["Dashboard"]["E20"].value / v(82)                       # Dash_MVA ÷ the model's bids
-    inputs = [  # key, label, unit, value, source, format
-        ("mva", "Connection capacity per bid", "MVA", mva, "Dashboard E20 ÷ Inputs E82", "#,##0"),
-        ("bids", "Number of bids", "#", BIDS, "Bid_Points: BORA 1 and BORA 2", "int"),
-        ("ob", "Overbuild (ÖSZ-3)", "%", wb["Dashboard"]["E22"].value, "Dashboard E22", "pct"),
-        ("bess", "BESS power, share of MVA (ÖSZ-4)", "%", wb["Dashboard"]["E23"].value, "Dashboard E23", "pct"),
-        ("hours", "BESS duration", "h", v(21), "Inputs E21", "int"),
-        ("pbm", "Performance security multiple (ÖSZ-6)", "x", wb["Dashboard"]["E27"].value, "Dashboard E27", "mult"),
-        ("fx", "FX rate", "HUF/EUR", v(11), "Inputs E11", "#,##0"),
-        ("bw", "Security base: benchmark investment, wind", "HUF/MW", v(75) * 1e6, "Inputs E75", "#,##0"),
-        ("bb", "Security base: benchmark investment, BESS", "HUF/MWh", v(89) * 1e6, "Inputs E89", "#,##0"),
-        ("bsr", "Bid security, share of the base", "%", v(76), "Inputs E76", "0.0%"),
-        ("pbr", "Performance security, share of the base", "%", v(77), "Inputs E77", "0.0%"),
-        ("pf", "Participation fee per bid", "HUF", v(81) * 1e6, "Inputs E81", "#,##0"),
-        ("tso", "TSO connection-request security", "HUF/MVA", v(83) * 1e6, "Inputs E83", "#,##0"),
-        ("ind", "Indirect connection fee", "HUF/MVA", v(297), "Inputs E297", "#,##0"),
-        ("dir", "Direct connection fee per connection point", "HUF", v(298), "Inputs E298", "#,##0"),
-        ("share", "Bids sharing the connection point", "#", BIDS, "ÖSZ-8 shared connection", "int"),
-        ("cont", "Devex contingency (on devex excl. other costs + fee)", "%", v(68), "Inputs E68", "pct"),
-        ("basis", "Devex file basis (BORA_Devex, 200 MVA project)", "MVA", 200, "Inputs E312", "#,##0"),
-        ("days", "Performance security due after award", "days", v(102), "Inputs E102", "int"),
-        ("k", "Thousand (HUF → k€ conversion)", "#", 1000, "Unit conversion", "#,##0"),
-        ("tol", "Check tolerance", "k€", 1e-6, "House standard", "General"),
-        ("d_sign", "Signing", "date", v(27), "Inputs E27", DATE),
-        ("d_bid", "Bid submission", "date", v(95), "Inputs E95", DATE),
-        ("d_award", "Award", "date", v(96), "Inputs E96", DATE),
-        ("d_req", "Connection request (TSO security)", "date", v(97), "Inputs E97", DATE),
-        ("d_hcssz", "Connection agreement (HCSSZ): connection fees", "date", v(99), "Inputs E99", DATE),
-        ("d_rtb", "RtB", "date", v(56), "Inputs E56", DATE),
-    ]
-    devex = []
-    for r in range(5, 38):
-        task, item = f[f"C{r}"].value, f[f"D{r}"].value
-        label = f"{task.strip()} – {item}" if task and task.strip() != item.strip() else item
-        devex.append((label, f[f"F{r}"].value, f[f"L{r}"].value, r == 36))   # row 36: other costs
-    return inputs, devex, (f["F38"].value, f["E39"].value), wb["Deposits"]
+    dates = [("Signing fee and DD paid", v(27)), ("Bid submission: fee paid, bid security posted", v(95)),
+             ("Performance security posted (bid security released)", dep["K10"].value),
+             ("TSO security paid", v(97)), ("Devex contingency paid", dev["F38"].value),
+             ("Connection agreement (HCSSZ): fees paid", v(99)), ("Notice to proceed", v(154)), ("COD", v(155)),
+             ("Performance security released", datetime(2033, 3, 31))]
+    # (3) rates: key, label, unit, format, Bora, Iváncsa = Dunaújváros
+    rates = [("fx", "FX rate", "HUF/EUR", NUM, v(11), 365),
+             ("bw", "Security base: benchmark investment, wind", "HUF/MW", NUM, v(75) * 1e6, 406e6),
+             ("bb", "Security base: benchmark investment, BESS", "HUF/MWh", NUM, v(89) * 1e6, 200e6),
+             ("pf", "Participation fee per bid", "HUF", NUM, v(81) * 1e6, 3e6),
+             ("bsr", "Bid security, share of base", "%", PCT, v(76), 0.005),
+             ("pbr", "Performance security, minimum share of base", "%", PCT, v(77), 0.025),
+             ("tso", "TSO security", "HUF/MVA", NUM, v(83) * 1e6, 4.5e6),
+             ("ind", "Indirect connection fee (közvetett)", "HUF/MVA", NUM, v(297), 19826680),
+             ("dir", "Direct connection fee per bid (model: per MVA of the shared point)", "HUF", NUM,
+              v(84) * 1e6 * bora["mva"], 460e6),
+             ("gf", "Bank guarantee fee", "%", PCT, v(113), 0.06),
+             ("sdd", "Signing fee and DD", "EUR k", NUM, v(24) + v(25), 150),
+             ("devex", "Devex incl. contingency", "EUR k", NUM, None, 1000),
+             ("cont", "Devex contingency", "%", PCT, v(68), None)]
+    bands = {n: name(n) for n in BANDS}
+    check = {"bs": dep["M8"].value, "pb": dep["M8"].value + dep["M10"].value, "tso": dep["M11"].value,
+             "dir": dep["M12"].value, "indn": dep["M18"].value}
+    return bora, dates, rates, bands, check
+
+
+def style(c, fmt=None, *, font=None, fill=None, border=None, bold=False, italic=False, align=None):
+    c.font = Font(name=FONT, size=10, color=font or "000000", bold=bold, italic=italic)
+    if fill:
+        c.fill = PatternFill("solid", fgColor=fill)
+    if border:
+        c.border = border
+    if fmt:
+        c.number_format = fmt
+    if align:
+        c.alignment = Alignment(horizontal=align)
+    return c
 
 
 def build():
-    src = openpyxl.load_workbook(MODEL, data_only=True)
-    inputs, devex, (cont_date, model_devex), dep = model_inputs(src)
+    bora, dates, rates, bands, check = model_values()
     wb = openpyxl.Workbook()
-    register(wb)
     ws = wb.active
     ws.title = "Bid_Cash"
     ws.sheet_view.showGridLines = False
-    for col, width in zip("ABCDEFG", (2, 58, 11, 13, 13, 46, 13)):
-        ws.column_dimensions[col].width = width
+    for col, w in zip("ABCDEFGHIJK", (2, 2, 52, 9, 12, 12, 13, 13, 13, 13, 2)):
+        ws.column_dimensions[col].width = w
     R = {}
 
-    def bar(r, text, heads=None):
-        for c in range(1, 8):
-            apply(ws.cell(r, c), "section")
-        ws.cell(r, 2).value = text
-        for col, h in (heads or {}).items():
+    def bar(r, title, heads):
+        for c in range(2, 11):
+            style(ws.cell(r, c), font="FFFFFF", fill=GREEN, bold=True, align="right" if c > 4 else None)
+        ws.cell(r, 3).value = title
+        for col, h in heads.items():
             ws[f"{col}{r}"].value = h
 
-    apply(ws["B1"], "banner")
-    for c in range(3, 8):
-        apply(ws.cell(1, c), "banner")
-    ws["B1"].value = "Bora bid – cash to RtB (EUR k; bid security and performance security as cash deposits)"
+    def label(r, text, unit, bold=False, fill=None):
+        style(ws[f"C{r}"], bold=bold, fill=fill)
+        style(ws[f"D{r}"], font="808080", italic=True, fill=fill)
+        ws[f"C{r}"].value, ws[f"D{r}"].value = text, unit
 
-    # 1. Inputs (blue) and derived values (black).
-    bar(3, "1. Inputs: current Bora bid and tender values (model 27-Oct-2026)",
-        {"C": "Unit", "D": "Value", "F": "Source"})
-    r = 4
-    for key, label, unit, value, source, fmt in inputs:
+    # Hidden constants and band tables (columns M onwards).
+    ws["M2"].value = "Band tables (model Inputs block U) and constants"
+    r = 3
+    for n, vals in bands.items():
+        vals = vals if isinstance(vals, list) else [vals]
+        ws.cell(r, 13).value = n
+        for j, x in enumerate(vals):
+            ws.cell(r, 14 + j).value = x
+        ref = f"Bid_Cash!${L(14)}${r}:${L(13 + len(vals))}${r}" if len(vals) > 1 else f"Bid_Cash!$N${r}"
+        wb.defined_names[n] = DefinedName(n, attr_text=ref)
+        r += 1
+    for n, x in (("Thousand", 1000), ("Days_In_Year", 365)):
+        ws.cell(r, 13).value, ws.cell(r, 14).value = n, x
+        wb.defined_names[n] = DefinedName(n, attr_text=f"Bid_Cash!$N${r}")
+        r += 1
+    for col in range(13, 30):
+        ws.column_dimensions[L(col)].hidden = True
+
+    # Title.
+    style(ws["C1"], font=BLUE, fill=CREAM, bold=True, border=BOX)
+    ws["C1"].font = Font(name=FONT, size=14, color=BLUE, bold=True)
+    ws["C1"].value = "Bora, Iváncsa, Dunaújváros"
+    style(ws["C2"])
+
+    # (1) The bid: commitments and points.
+    bar(4, "The bid: commitments and points", {"E": "BORA 1", "F": "BORA 2", "H": "Iváncsa", "I": "Dunaújváros"})
+    r = 5
+    for key, text, unit, fmt, bora_v, other in LEVERS:
         R[key] = r
-        apply(ws[f"B{r}"], "label")
-        apply(ws[f"C{r}"], "unit")
-        apply(ws[f"D{r}"], "input", fmt)
-        apply(ws[f"F{r}"], "unit")
-        ws[f"B{r}"], ws[f"C{r}"], ws[f"D{r}"], ws[f"F{r}"] = label, unit, value, source
+        label(r, text, unit)
+        bv = bora[key] if bora_v is None else bora_v
+        for col, x in zip("EFGHI", (bv, bv, None, other, other)):
+            style(ws[f"{col}{r}"], fmt, font=BLUE, fill=CREAM, border=BOX if col != "G" else None)
+            ws[f"{col}{r}"].value = x
         r += 1
-    D = {k: f"$D${v}" for k, v in R.items()}
-    derived = [
-        ("d_pb", "Performance security posted (award + days)", "date", f"={D['d_award']}+{D['days']}", DATE),
-        ("wind", "Wind committed per bid", "MW", f"={D['mva']}*(1+{D['ob']})", "#,##0.0"),
-        ("mwh", "BESS energy per bid", "MWh", f"={D['mva']}*{D['bess']}*{D['hours']}", "#,##0.0"),
-        ("base", "Security base per bid (wind MW × benchmark + MWh × benchmark)", "k€",
-         f"=({{wind}}*{D['bw']}+{{mwh}}*{D['bb']})/{D['fx']}/{D['k']}", KEUR),
-        ("pbg", "Performance security per bid, gross", "k€", f"={D['pbr']}*{D['pbm']}*{{base}}", KEUR),
-        ("scale", "Devex scale (MVA × bids ÷ devex file basis)", "x", f"={D['mva']}*{D['bids']}/{D['basis']}",
-         "0.000"),
-    ]
-    r += 1
-    bar(r, "Derived (formulas)")
-    r += 1
-    for key, label, unit, f, fmt in derived:
+    ws["C2"].value = f'="Bid strategy – "&TEXT(E{R["ob"]},"0 %")&" overbuild (Bora)"'
+    for key, text, unit, f, fmt in (("wind", "Wind committed", "MW", "={c}{mva}*(1+{c}{ob})", NUM1),
+                                    ("bmw", "BESS power", "MW", "={c}{mva}*{c}{bess}", NUM1),
+                                    ("mwh", "BESS energy", "MWh", "={c}{bmw}*{c}{hours}", NUM1)):
         R[key] = r
-        apply(ws[f"B{r}"], "label")
-        apply(ws[f"C{r}"], "unit")
-        apply(ws[f"D{r}"], "calc", fmt)
-        ws[f"B{r}"], ws[f"C{r}"] = label, unit
-        ws[f"D{r}"] = f.format(**{k: f"$D${v}" for k, v in R.items()})
+        label(r, text, unit)
+        for col in BIDS:
+            style(ws[f"{col}{r}"], fmt, font=PURPLE, fill=GREY, border=BOX)
+            ws[f"{col}{r}"].value = f.format(c=col, **R)
         r += 1
-    D = {k: f"$D${v}" for k, v in R.items()}
-
-    # 2. Securities and fees payable, cash.
     r += 1
-    bar(r, "2. Securities and fees payable, cash", {"C": "Date", "D": "Per bid k€", "E": "All bids k€",
-                                                   "F": "Deduction"})
-    first = r + 1
-    sec = [  # key, label, date, per-bid formula, deduction note
-        ("part", "Participation fee", D["d_bid"], f"={D['pf']}/{D['fx']}/{D['k']}", "sunk"),
-        ("bs", "Bid security paid at submission", D["d_bid"], f"={D['bsr']}*{D['base']}", None),
-        ("bsc", "Bid security credited into the performance security", D["d_pb"], "=-D{bs}",
-         "stays posted as part of the PB"),
-        ("pb", "Performance security posted at award, gross", D["d_pb"], f"={D['pbg']}",
-         "top-up paid = gross − bid security credited"),
-        ("tsop", "TSO connection-request security paid", D["d_req"], f"={D['tso']}*{D['mva']}/{D['fx']}/{D['k']}",
-         None),
-        ("tsoc", "TSO security credited against the indirect fee", D["d_hcssz"], "=-D{tsop}",
-         "indirect fee payable = gross − TSO security"),
-        ("indg", "Indirect connection fee, gross", D["d_hcssz"], f"={D['ind']}*{D['mva']}/{D['fx']}/{D['k']}", None),
-        ("dirp", "Direct connection fee (per point ÷ sharing bids)", D["d_hcssz"],
-         f"={D['dir']}/{D['share']}/{D['fx']}/{D['k']}", "shared connection point"),
-    ]
-    r = first
-    for key, label, date, f, note in sec:
+    first = r
+    for text, f in POINTS:
+        label(r, text, "points")
+        for col in BIDS:
+            style(ws[f"{col}{r}"], PTS, font=PURPLE, fill=GREY, border=BOX)
+            ws[f"{col}{r}"].value = f.format(c=col, **R)
+        r += 1
+    R["pts"] = r
+    label(r, "Points total, live case", "points", bold=True)
+    for col in BIDS:
+        style(ws[f"{col}{r}"], "#,##0.00", bold=True)
+        ws[f"{col}{r}"].value = f"=SUM({col}{first}:{col}{r - 1})"
+
+    # (2) Key dates.
+    r += 2
+    bar(r, "Key dates", {"E": "Date"})
+    r += 1
+    for text, d in dates:
+        R[text] = r
+        label(r, text, "date")
+        style(ws[f"E{r}"], DATE, font=BLUE, fill=CREAM, border=BOX)
+        ws[f"E{r}"].value = d
+        r += 1
+    style(ws[f"F{r - 1}"], font="808080", italic=True)
+    ws[f"F{r - 1}"].value = PB_NOTE
+    D = {k: f"$E${R[t]}" for k, t in (("bid", dates[1][0]), ("pb", dates[2][0]), ("cod", "COD"),
+                                       ("rel", "Performance security released"))}
+
+    # (3) Rates and fees.
+    r += 1
+    bar(r, "Rates and fees", {"E": "BORA 1", "F": "BORA 2", "H": "Iváncsa", "I": "Dunaújváros"})
+    r += 1
+    for key, text, unit, fmt, bv, other in rates:
         R[key] = r
-        apply(ws[f"B{r}"], "label")
-        apply(ws[f"C{r}"], "calc", DATE)
-        for col in "DE":
-            apply(ws[f"{col}{r}"], "calc", KEUR)
-        apply(ws[f"F{r}"], "unit")
-        ws[f"B{r}"], ws[f"C{r}"] = label, f"={date}"
-        ws[f"D{r}"] = f.format(**R)
-        ws[f"E{r}"] = f"=D{r}*{D['bids']}"
-        ws[f"F{r}"] = note
+        label(r, text, unit)
+        for col, x in zip("EFGHI", (bv, bv, None, other, other)):
+            boxed = x is not None and col != "G"
+            style(ws[f"{col}{r}"], fmt, font=BLUE, fill=CREAM if (x is not None or col == "G") else None,
+                  border=BOX if boxed else None)
+            ws[f"{col}{r}"].value = x
         r += 1
-    R["sec_sub"] = r
-    apply(ws[f"B{r}"], "total")
-    for col in "DE":
-        apply(ws[f"{col}{r}"], "total", KEUR)
-        ws[f"{col}{r}"] = f"=SUM({col}{first}:{col}{r - 1})"
-    ws[f"B{r}"] = "Securities and fees, cash"
 
-    # 3. Devex payable (Devex_FEP lines at the 200 MVA basis × scale).
-    r += 2
-    bar(r, "3. Devex payable (dates and amounts as in section 2)", {"G": "200 MVA k€"})
-    dfirst = r + 1
-    r = dfirst
-    for label, date, amount, other in devex:
-        if other:
-            R["other"] = r
-        apply(ws[f"B{r}"], "label")
-        apply(ws[f"C{r}"], "input", DATE)
-        apply(ws[f"G{r}"], "input", KEUR)
-        for col in "DE":
-            apply(ws[f"{col}{r}"], "calc", KEUR)
-        ws[f"B{r}"], ws[f"C{r}"], ws[f"G{r}"] = label, date, amount
-        ws[f"E{r}"] = f"=G{r}*{D['scale']}"
-        ws[f"D{r}"] = f"=E{r}/{D['bids']}"
-        r += 1
-    R["cont"] = r
-    apply(ws[f"B{r}"], "label")
-    apply(ws[f"C{r}"], "input", DATE)
-    for col in "DE":
-        apply(ws[f"{col}{r}"], "calc", KEUR)
-    apply(ws[f"F{r}"], "unit")
-    ws[f"B{r}"], ws[f"C{r}"] = "Contingency (devex excl. other costs + participation fee)", cont_date
-    ws[f"E{r}"] = f"={D['cont']}*(SUM(E{dfirst}:E{r - 1})-E{R['other']}+E{R['part']})"
-    ws[f"D{r}"] = f"=E{r}/{D['bids']}"
-    ws[f"F{r}"] = "other costs outside the base (as the model)"
+    # (4) Guarantees, securities and connection fees (HUF).
     r += 1
-    R["dev_sub"] = r
-    apply(ws[f"B{r}"], "total")
-    for col in "DE":
-        apply(ws[f"{col}{r}"], "total", KEUR)
-        ws[f"{col}{r}"] = f"=SUM({col}{dfirst}:{col}{r - 1})"
-    ws[f"B{r}"] = "Devex, land and contingency"
-    last = r
+    bar(r, "Guarantees, securities and connection fees (HUF)",
+        {"E": "BORA 1", "F": "BORA 2", "G": "BORA", "H": "Iváncsa", "I": "Dunaújváros", "J": "Total"})
+    r += 1
+    base = "({c}${wind}*{c}${bw}+{c}${mwh}*{c}${bb})"
+    huf = [("h_pf", "Participation fee", "={c}${pf}", None, False),
+           ("h_bs", "Bid security (guarantee)", "={c}${bsr}*" + base, YELLOW, False),
+           ("h_pb", "Performance security (guarantee)", "={c}${pbr}*{c}${pbm}*" + base, ORANGE, False),
+           ("h_tso", "TSO connection-request security (cash)", "={c}${tso}*{c}${mva}", None, False),
+           ("h_dir", "Direct connection fee", "={c}${dir}", None, False),
+           ("h_indg", "Indirect connection fee, gross", "={c}${ind}*{c}${mva}", None, False),
+           ("h_tsoc", "Less TSO security credited", "=-{c}{h_tso}", None, False),
+           ("h_indp", "Indirect connection fee, payable", "={c}{h_indg}+{c}{h_tsoc}", None, False),
+           ("h_peak", "Peak guarantee (performance security)", "=MAX({c}{h_bs},{c}{h_pb})", None, True),
+           ("h_cash", "Cash: fee, TSO security, connection fees", "={c}{h_pf}+{c}{h_tso}+{c}{h_dir}+{c}{h_indp}",
+            None, True)]
+    for key, text, f, fill, bold in huf:
+        R[key] = r
+        label(r, text, "HUF", bold=bold, fill=fill)
+        for col in "EFGHIJ":
+            top = Border(top=Side(style="thin", color="000000")) if key == "h_peak" else None
+            style(ws[f"{col}{r}"], NUM, fill=fill, bold=bold, border=top)
+        for col in BIDS:
+            ws[f"{col}{r}"].value = f.format(c=col, **R)
+        ws[f"G{r}"].value = f"=E{r}+F{r}"
+        ws[f"J{r}"].value = f"=E{r}+F{r}+H{r}+I{r}"
+        r += 1
 
-    # 4. Grand total, by year, check.
-    r += 2
-    R["grand"] = r
-    apply(ws[f"B{r}"], "total")
-    for col in "DE":
-        apply(ws[f"{col}{r}"], "total", KEUR)
-        ws[f"{col}{r}"] = f"={col}{R['sec_sub']}+{col}{R['dev_sub']}"
-    ws[f"B{r}"] = "Grand total cash to RtB"
-    r += 2
-    bar(r, "4. Cash by year", {"C": "Year", "D": "Per bid k€", "E": "All bids k€", "F": "Cumulative, all bids k€"})
-    yfirst = r + 1
-    for i in range(4):
+    # (5) Deposits and fees to RtB (EUR k).
+    r += 1
+    bar(r, "Deposits and fees to RTB (EUR k)", {"E": "BORA 1", "F": "BORA 2", "H": "Iváncsa", "I": "Dunaújváros",
+                                                 "J": "Total"})
+    r += 1
+    eur = "={c}{%s}/{c}${fx}/Thousand"
+    gfee = ("={c}${gf}*((" + D["pb"] + "-" + D["bid"] + ")*{c}{e_bs}+MAX(0,MIN(" + D["cod"] + "," + D["rel"] + ")-"
+            + D["pb"] + "+1)*{c}{e_pb})/Days_In_Year")
+    rows5 = [("e_sdd", "Signing fee and DD", "={c}${sdd}", False),
+             ("e_pf", "Participation fee", eur % "h_pf", False),
+             ("e_bs", "Bid security (guarantee)", eur % "h_bs", False),
+             ("e_pb", "Performance security (guarantee)", eur % "h_pb", False),
+             ("e_tso", "TSO connection-request security", eur % "h_tso", False),
+             ("e_dir", "Direct connection fee", eur % "h_dir", False),
+             ("e_ind", "Indirect connection fee, net of TSO security", eur % "h_indp", False),
+             ("e_gf", "Guarantee fees to COD (6 % p.a., bid security to PB posting, PB to COD)", gfee, False),
+             ("e_dep", "Deposits and fees (PB incl. the credited bid security)",
+              "={c}{e_pf}+{c}{e_pb}+{c}{e_tso}+{c}{e_dir}+{c}{e_ind}+{c}{e_gf}", True),
+             ("e_tot", "Total", "={c}{e_dep}+{c}{e_sdd}", True)]
+    for key, text, f, bold in rows5:
+        R[key] = r
+        label(r, text, "EUR k", bold=bold)
+        for col in "EFHIJ":
+            top = Border(top=Side(style="thin", color="000000")) if key == "e_dep" else None
+            style(ws[f"{col}{r}"], NUM1 if key == "e_pf" else NUM, bold=bold, border=top)
+        for col in BIDS:
+            ws[f"{col}{r}"].value = f.format(c=col, **R)
+        ws[f"J{r}"].value = f"=E{r}+F{r}+H{r}+I{r}"
         r += 1
-        apply(ws[f"B{r}"], "label")
-        apply(ws[f"C{r}"], "calc", "0")
-        for col in "DEF":
-            apply(ws[f"{col}{r}"], "calc", KEUR)
-        ws[f"B{r}"] = "Cash paid in the year"
-        ws[f"C{r}"] = f"=YEAR({D['d_sign']})" if i == 0 else f"=C{r - 1}+1"
-        for col in "DE":
-            ws[f"{col}{r}"] = f"=SUMPRODUCT((YEAR($C${first}:$C${last})=$C{r})*{col}${first}:{col}${last})"
-        ws[f"F{r}"] = f"=E{r}" if i == 0 else f"=F{r - 1}+E{r}"
-    r += 1
-    apply(ws[f"B{r}"], "total")
-    for col in "DE":
-        apply(ws[f"{col}{r}"], "total", KEUR)
-        ws[f"{col}{r}"] = f"=SUM({col}{yfirst}:{col}{r - 1})"
-    ws[f"B{r}"] = "Total by year"
-    r += 1
-    apply(ws[f"B{r}"], "label")
-    apply(ws[f"D{r}"], "calc")
-    ws[f"B{r}"] = "Check: by-year sum = grand total (all bids)"
-    ws[f"D{r}"] = f'=IF(ABS(E{r - 1}-E{R["grand"]})<{D["tol"]},"OK","CHECK")'
-    ws.freeze_panes = "C4"
+    ws.freeze_panes = "E5"
     wb.save(OUT)
 
-    # Verification against the model (cash reading of the Deposits k€ values, Devex_FEP at the same scale).
+    # Verification: Bora per bid against the model's Deposits k€ values (cash reading), others against the image.
     rc = openpyxl.load_workbook(recalc(OUT, OUT.with_name("Bora_bid_cash_extract_recalc.xlsx")), data_only=True)
     x = rc["Bid_Cash"]
-    val = lambda key, col="D": x[f"{col}{R[key]}"].value  # noqa: E731
-    model = {"bid security": (val("bs"), dep["M8"].value),
-             "PB gross": (val("pb"), dep["M8"].value + dep["M10"].value),
-             "PB top-up": (val("pb") + val("bsc"), dep["M10"].value),
-             "TSO security": (val("tsop"), dep["M11"].value),
-             "indirect net": (val("indg") + val("tsoc"), dep["M18"].value),
-             "direct": (val("dirp"), dep["M12"].value),
-             "devex per bid (100 MVA)": (val("dev_sub"), model_devex)}
-    ok = all(abs(a - b) < 1e-6 for a, b in model.values())
-    for k, (a, b) in model.items():
-        print(f"{k:<26} extract {a:>12,.1f}  model {b:>12,.1f}")
-    years = [(x[f"C{r}"].value, x[f"D{r}"].value, x[f"E{r}"].value, x[f"F{r}"].value) for r in range(yfirst, yfirst + 4)]
-    print("grand total per bid / all bids:", round(val("grand"), 1), round(val("grand", "E"), 1))
-    print("by year (per bid, all bids, cumulative):", [(y, round(a, 1), round(b, 1), round(c, 1)) for y, a, b, c in years])
-    print("check:", x[f"D{yfirst + 5}"].value, "| ties to model:", "PASS" if ok else "FAIL", "| rows:", x.max_row)
-    return OUT
+    g = lambda key, col="E": x[f"{col}{R[key]}"].value  # noqa: E731
+    ties = {"bid security": (g("e_bs"), check["bs"]), "PB gross": (g("e_pb"), check["pb"]),
+            "TSO": (g("e_tso"), check["tso"]), "direct": (g("e_dir"), check["dir"]),
+            "indirect net": (g("e_ind"), check["indn"])}
+    image = {"Iváncsa points": (g("pts", "H"), 69.5), "Bora points": (g("pts"), 80.5),
+             "Iváncsa bid security HUF": (g("h_bs", "H"), 224.1e6), "Iváncsa cash HUF": (g("h_cash", "H"), 1454.334e6),
+             "Bora cash HUF": (g("h_cash"), 7564303502), "Iváncsa guarantee fees": (round(g("e_gf", "H")), 836),
+             "Bora guarantee fees": (round(g("e_gf")), 1591)}
+    ok = all(abs(a - b) < 1e-6 * max(1, abs(b)) for a, b in {**ties, **image}.values())
+    for k, (a, b) in {**ties, **image}.items():
+        print(f"{k:<26} extract {a:>16,.1f}  reference {b:>16,.1f}")
+    print("EUR k deposits and fees:", {c: round(g("e_dep", c), 1) for c in "EFHIJ"})
+    print("EUR k total:", {c: round(g("e_tot", c), 1) for c in "EFHIJ"})
+    errors = [c.coordinate for row in x.iter_rows() for c in row if isinstance(c.value, str) and c.value.startswith("#")]
+    print("ties:", "PASS" if ok else "FAIL", "| error cells:", errors[:5], "| rows:", r - 1)
 
 
 if __name__ == "__main__":
