@@ -609,9 +609,11 @@ reference; its extra post-tax rows are adopted in the lean form below). Output `
 Workbook `projects/hu_wind_2/out/HU_Wind_bids.xlsx` (build_bids.py). Layout reference: the user's hand-made
 `reference/HU_Wind_bid_deposits_fees_20261027.xlsx` (bid & points → key dates → rates and fees → securities and fees in
 HUF with dates → the same in EUR k with dates, DEVEX line included, totals).
-1. **Bids:** Bora overbuild **51 %** (the user says 50; > 50 % is the maximum-points band, 50.0 % scores 90 – state it),
-   BESS 10 %, municipal 20, community 0, CN turbine (unchanged otherwise). Iváncsa and Dunaújváros: overbuild **40 %**,
-   BESS **20 %**, **CN turbines** (EU flags 0), the rest as before.
+1. **Bids:** Bora = **one 50 MVA bid** (the user's "Bora 50" is the connection capacity, not the overbuild): overbuild
+   20 %, BESS 10 %, municipal 20, community 0, CN turbine (23.5 points); Bora's fees per MVA / per point unchanged (direct
+   fee per point ÷ 2 bids sharing it); devex 50/200 of the Bora 200 MVA total (784.5 k€, by Devex_FEP category);
+   substation 12,000 × 50/200. Iváncsa and Dunaújváros: overbuild **40 %**, BESS **20 %**, **CN turbines** (EU flags 0),
+   the rest as before.
 2. **Case selector** `Case` (Base | Low | High, default Base) at the top of the Dashboard with a small blue table
    (as the Bora model's): EU turbine 850 / 950 / 800, CN turbine 500 / 500 / 500, PPA 90 / 90 / 100, net P50 hours
    2,500 / 2,460 / 2,600, O&M 12 / 12 / 10; Live column by INDEX/MATCH; the capex and operations read the Live column.
@@ -626,6 +628,6 @@ HUF with dates → the same in EUR k with dates, DEVEX line included, totals).
    waterfall, full timelines, COD detail, checks, Master_Check) in collapsed row groups (outline level 1, hidden), so
    the sheet reads top-down and the detail is one click away. No `Calc` sheet; `Inputs` keeps the rates, dates, capex,
    opex, claim terms and band tables (band tables and helpers hidden).
-4. Points to confirm: Bora 51 % + 10 % BESS (10 + 4.5 + 4 + 0 + 5 + 0 + 0 + 5 + 0 + 0 = 28.5); Iváncsa/Dunaújváros 40 % +
+4. Points to confirm: Bora 20 % + 10 % BESS (4 + 0 + 5 + 4.5 + 5 + 0 + 0 + 5 + 0 + 0 = 23.5); Iváncsa/Dunaújváros 40 % +
    20 % + 50 + 3 + CN (20 + 15 + 9 + 7.5 + 0 + 0 + 0 + 0 + 0 + 0 = 51.5).
 5. Verification as §22.3; check.py re-run; dump.
