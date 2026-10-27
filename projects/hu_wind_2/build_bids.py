@@ -1,8 +1,10 @@
 """HU wind bids: Bora (low bid), Iváncsa, Dunaújváros – RtB exit, build and hold (EBITDA), COD exit (SPEC §22).
 
-Two sheets, no macros:
-  Dashboard  key inputs (blue, Dash_* names) and executive values on top, then the calculation blocks of §21 per
-             project column (Bora | Iváncsa | Dunaújváros | Total) and an annual 2026–2061 timeline in J:AS.
+Three sheets, no macros (columns Bora | Iváncsa | Dunaújváros | Total in E:H on every sheet):
+  Dashboard  key inputs (blue, Dash_* names), the three routes in a few total rows (RtB exit, COD exit, hold to
+             maturity) and one simple annual cash-flow block per project (J:AS), all linked to Calc.
+  Calc       the calculation blocks of §21 per project column (points, deposits and fees, claims, waterfall, dated
+             FEP flows with dates in J:L, capex), the annual 2026–2061 timeline in M:AV, COD exit tax, checks.
   Inputs     every other input with its source (common inputs named; per-project inputs in E:G) and the band tables.
 Base: projects/hu_wind_2/build.py (§21). Writes out/HU_Wind_bids.xlsx and out/rows_bids.json (row map for check.py).
 
@@ -32,8 +34,8 @@ BID_CASH = ROOT / "reference" / "HU_Wind_bid_deposits_fees_20261027.xlsx"     # 
 P = ["E", "F", "G"]                                   # Bora, Iváncsa, Dunaújváros (same columns on both sheets)
 NAMES = ["Bora", "Iváncsa", "Dunaújváros"]
 DCOL = {"E": "J", "F": "K", "G": "L"}                 # payment-date columns
-HCOL = {"E": ("K", "L", "M"), "F": ("N", "O", "P"), "G": ("Q", "R", "S")}   # claim helpers: days 1st yr, years, factor
-TL = [L(10 + i) for i in range(36)]                   # J:AS, 2026-2061
+TL = [L(10 + i) for i in range(36)]                   # Dashboard timeline J:AS, 2026-2061
+TC = [L(13 + i) for i in range(36)]                   # Calc timeline M:AV (dates of the dated flows in J:L)
 NUM, NUM1, PCT, MULT, DATE, INT = FMT["money"], FMT["money1"], FMT["pct"], FMT["mult"], FMT["date"], "0"
 NUM2, FAC, FLAG = FMT["money2"], FMT["factor"], FMT["flag"]
 CHECK_FMT = '"CHECK" 0;"CHECK" -0;"OK"'
@@ -97,6 +99,12 @@ def sub(r, title, extra=(), sheet=None):
 
 def fx(t, **kw):
     return t.format(**{**R, **kw})
+
+
+def dash(t):
+    """Template on Calc: key inputs and the route price live on the Dashboard."""
+    return (t.replace("{c}{Dash_", "Dashboard!{c}${Dash_").replace("{c}{turb_px}", "Dashboard!{c}${turb_px}")
+            .replace("${p}${Dash_", "Dashboard!${p}${Dash_"))
 
 
 def name(wb, n, ref):
@@ -283,37 +291,34 @@ def key_inputs(wb, r):
     return r + 1
 
 
-EXEC = [("ex_pts", "Points (ÖSZ, of 100)", "points", NUM1),
-        ("ex_cash", "Cash to RtB (deposits, fees, devex, signing)", "EUR k", NUM),
-        "RtB exit at the sale (30-Sep-2029)",
-        ("ex_rp", "FEP profit, pre-tax", "EUR k", NUM), ("ex_rcit", "CIT on the gain", "EUR k", NUM),
-        ("ex_rpost", "FEP profit, post-tax", "EUR k", NUM), ("ex_rirr", "FEP IRR, pre-tax", "%", PCT),
-        ("ex_rmoic", "FEP MOIC, pre-tax", "x", MULT), ("ex_rmva", "FEP profit per MVA, pre-tax", "EUR k/MVA", NUM1),
-        "Build and operate, hold to maturity (EBITDA only, no debt, no tax)",
-        ("ex_built", "Wind built", "MW", NUM1), ("ex_allin", "All-in cost to COD", "EUR m", NUM1),
-        ("ex_cmw", "All-in cost per MW built", "EUR k/MW", NUM1), ("ex_cmva", "All-in cost per MVA", "EUR k/MVA", NUM1),
-        ("ex_eb", "First full operating year: EBITDA", "EUR k", NUM),
-        ("ex_gwh", "First full operating year: net generation", "GWh", NUM1),
-        ("ex_irr", "Project IRR, pre-tax (unlevered)", "%", PCT),
-        ("ex_npv", "NPV at the discount rate, at the first year end", "EUR k", NUM),
-        "COD exit (buyer earns the discount rate, pre-tax)",
-        ("ex_price", "Price at COD", "EUR m", NUM1), ("ex_pmw", "Price per MW built", "EUR k/MW", NUM1),
-        ("ex_pmva", "Price per MVA", "EUR k/MVA", NUM1), ("ex_xp", "FEP profit, pre-tax", "EUR k", NUM),
-        ("ex_xcit", "CIT on the gain", "EUR k", NUM), ("ex_xpost", "FEP profit, post-tax", "EUR k", NUM),
-        ("ex_xirr", "FEP IRR, pre-tax", "%", PCT), ("ex_xmoic", "FEP MOIC, pre-tax", "x", MULT)]
+EXEC = ["RtB exit (sale at RtB, 30-Sep-2029)",
+        ("ex_cash", "Total FEP cash out to RtB (peak exposure)", "EUR k", NUM),
+        ("ex_proc", "Total proceeds to FEP at the sale", "EUR k", NUM),
+        ("ex_rp", "FEP profit, pre-tax", "EUR k", NUM), ("ex_rpost", "FEP profit, post-tax", "EUR k", NUM),
+        ("ex_rmoic", "MOIC, pre-tax", "x", MULT), ("ex_rirr", "IRR, pre-tax", "%", PCT),
+        "COD exit (sale at COD to a buyer earning the discount rate)",
+        ("ex_allin", "Total capex and costs to COD", "EUR k", NUM), ("ex_price", "Sale price at COD", "EUR k", NUM),
+        ("ex_xp", "FEP profit, pre-tax", "EUR k", NUM), ("ex_xpost", "FEP profit, post-tax", "EUR k", NUM),
+        ("ex_xmoic", "MOIC, pre-tax", "x", MULT), ("ex_xirr", "IRR, pre-tax", "%", PCT),
+        "Hold to maturity (EBITDA only, no debt, no tax)",
+        ("ex_hcap", "Total capex and costs to COD", "EUR k", NUM),
+        ("ex_rev", "Total revenue over the life", "EUR k", NUM), ("ex_opex", "Total opex over the life", "EUR k", NUM),
+        ("ex_eb", "Total EBITDA over the life", "EUR k", NUM), ("ex_irr", "Project IRR, pre-tax", "%", PCT),
+        ("ex_npv", "NPV at the discount rate, at the first year end", "EUR k", NUM)]
+BOLD_EX = ("ex_rpost", "ex_xpost", "ex_irr")
 
 
 def exec_reserve(r):
-    bar(r, "Executive values (links to the calculations below)", PROJ_HEADS)
+    bar(r, "Three routes, totals (links to Calc)", PROJ_HEADS)
     r += 1
     for item in EXEC:
         if isinstance(item, str):
             sub(r, item)
         else:
             R[item[0]] = r
-            label(r, item[1], item[2], bold=item[0] in ("ex_rpost", "ex_irr", "ex_xpost"))
+            label(r, item[1], item[2], bold=item[0] in BOLD_EX)
         r += 1
-    R["exec"] = (R["ex_pts"], R["ex_xmoic"])
+    R["exec"] = (R["ex_cash"], R["ex_npv"])
     return r + 1
 
 
@@ -323,7 +328,7 @@ def rows3(r, key, text, unit, fmt, f, total=True, bold=False, top=False):
     R[key] = r
     label(r, text, unit, bold=bold)
     for c in P:
-        put(f"{c}{r}", fx(f, c=c, d=DCOL[c]), fmt=fmt, bold=bold, top=top)
+        put(f"{c}{r}", fx(dash(f), c=c, d=DCOL[c]), fmt=fmt, bold=bold, top=top)
     if total:
         put(f"H{r}", f"=SUM(E{r}:G{r})", fmt=fmt, bold=bold, top=top)
     return r + 1
@@ -361,9 +366,7 @@ def calc_blocks(r):
     r += 1
 
     # Deposits and fees to RtB, with payment dates in J:L
-    bar(r, "Deposits, fees and devex to RtB (HUF rates at the FX rate)", {**PROJ_HEADS, "J": "Paid: Bora",
-                                                                          "K": "Iváncsa", "L": "Dunaújváros"},
-        ["J", "K", "L"])
+    bar(r, "Deposits, fees and devex to RtB (HUF rates at the FX rate; dates: FEP cash flows below)", PROJ_HEADS)
     r += 1
     r = rows3(r, "d_base", "Security base (benchmark investment), not cash", "EUR k", NUM,
               "=({c}{wind}*Bench_Wind+{c}{mwh}*Bench_BESS)/FX/Thousand")
@@ -380,45 +383,37 @@ def calc_blocks(r):
            ("d_sdd", "Signing fee and DD", NUM, "=Inputs!{c}$%d" % I["sdd"], "d_sign")]
     for key, text, fmt, f, dkey in dep:
         r = rows3(r, key, text, "EUR k", fmt, f)
-        for c in P:
-            put(f"{DCOL[c]}{r - 1}", f"=Inputs!{c}${I[dkey]}", fmt=DATE)
     r = rows3(r, "d_tot", "Total cash to RtB", "EUR k", NUM, "=SUM({c}{d_pf}:{c}{d_sdd})", bold=True, top=True)
     r += 1
 
-    # RtB claims
-    heads = {**PROJ_HEADS, "J": "Rate"}
-    for c, nm in zip(P, NAMES):
-        k1, k2, k3 = HCOL[c]
-        heads.update({k1: f"{nm}: days 1st yr", k2: "full years", k3: "factor"})
-    bar(r, "RtB exit: FEP claims at the sale (interest to the freeze, act/365, capitalised 31-Dec)", heads,
-        [L(10 + i) for i in range(10)])
+    # RtB claims: accrual factor per payment date (act/365 both ends, simple within a year, capitalised 31-Dec)
+    bar(r, "RtB exit: FEP claims at the sale (interest to the freeze)", PROJ_HEADS)
     r += 1
     r = rows3(r, "c_end", "Interest accrual end (earlier of freeze and sale)", "date", DATE,
               "=MIN(Freeze_Date,Sale_Date)", total=False)
-    r = rows3(r, "c_last", "Days in the accrual end year", "days", INT, "={c}{c_end}-DATE(YEAR({c}{c_end}),1,1)+1",
-              total=False)
-    lines = [("c_pf", "Participation fee (not reimbursed)", "d_pf", "Rate_Cash"),
-             ("c_bs", "Bid security (cash)", "d_bs", "Rate_Cash"),
-             ("c_pb", "Performance security payable (cash)", "d_pb", "Rate_Cash"),
-             ("c_tso", "TSO connection-request security", "d_tso", "Rate_Cash"),
-             ("c_dir", "Direct connection fee", "d_dir", "Rate_Cash"),
-             ("c_ind", "Indirect connection fee, payable", "d_ind", "Rate_Cash"),
-             ("c_dev", "Devex: MAX(20 % accrued, 1× principal), not reimbursed", "d_dev", "Rate_Devex")]
-    for key, text, dkey, rate in lines:
-        R[key] = r
-        label(r, text, "EUR k")
-        put(f"J{r}", f"={rate}", fmt=PCT)
-        for c in P:
-            d1, n, fac = HCOL[c]
-            dc = f"{DCOL[c]}{R[dkey]}"
-            put(f"{d1}{r}", f"=DATE(YEAR({dc})+1,1,1)-{dc}", fmt=INT)
-            put(f"{n}{r}", f"=YEAR({c}${R['c_end']})-YEAR({dc})-1", fmt=INT)
-            put(f"{fac}{r}", f"=(1+$J{r}*{d1}{r}/Days_In_Year)*(1+$J{r})^{n}{r}*(1+$J{r}*{c}${R['c_last']}/Days_In_Year)",
-                fmt="0.0000")
-            f = (f"={c}{R[dkey]}*MAX({fac}{r}-1,Devex_Floor-1)" if key == "c_dev" else f"={c}{R[dkey]}*({fac}{r}-1)")
-            put(f"{c}{r}", f, fmt=NUM1 if key == "c_pf" else NUM)
-        put(f"H{r}", f"=SUM(E{r}:G{r})", fmt=NUM)
-        r += 1
+    for key, rate, text in (("c_s12", "Rate_Cash", "cash rate"), ("c_s20", "Rate_Devex", "devex rate")):
+        r = rows3(r, key, f"Accrual factor in the end year, {text}", "x", "0.0000",
+                  "=1+%s*({c}{c_end}-DATE(YEAR({c}{c_end}),1,1)+1)/Days_In_Year" % rate, total=False)
+    for ev, text, rate, stub in (("bid", "bid submission", "Rate_Cash", "c_s12"),
+                                 ("pb", "performance security posting", "Rate_Cash", "c_s12"),
+                                 ("tso", "TSO security payment", "Rate_Cash", "c_s12"),
+                                 ("hc", "connection agreement (HCSSZ)", "Rate_Cash", "c_s12"),
+                                 ("dev", "devex payment (average)", "Rate_Devex", "c_s20")):
+        x = "Inputs!{c}$%d" % I["d_" + ev]
+        r = rows3(r, "c_d_" + ev, f"Days to the first 31-Dec from {text}", "days", INT,
+                  "=DATE(YEAR(%s)+1,1,1)-%s" % (x, x), total=False)
+        r = rows3(r, "c_f_" + ev, f"Accrual factor from {text}", "x", "0.0000",
+                  "=(1+%s*{c}{c_d_%s}/Days_In_Year)*(1+%s)^(YEAR({c}{c_end})-YEAR(%s)-1)*{c}{%s}"
+                  % (rate, ev, rate, x, stub), total=False)
+    lines = [("c_pf", "Claim: participation fee (not reimbursed)", "={c}{d_pf}*({c}{c_f_bid}-1)"),
+             ("c_bs", "Claim: bid security (cash)", "={c}{d_bs}*({c}{c_f_bid}-1)"),
+             ("c_pb", "Claim: performance security payable (cash)", "={c}{d_pb}*({c}{c_f_pb}-1)"),
+             ("c_tso", "Claim: TSO connection-request security", "={c}{d_tso}*({c}{c_f_tso}-1)"),
+             ("c_dir", "Claim: direct connection fee", "={c}{d_dir}*({c}{c_f_hc}-1)"),
+             ("c_ind", "Claim: indirect connection fee, payable", "={c}{d_ind}*({c}{c_f_hc}-1)"),
+             ("c_dev", "Claim: devex, MAX(20 % accrued, 1× principal)", "={c}{d_dev}*MAX({c}{c_f_dev}-1,Devex_Floor-1)")]
+    for key, text, f in lines:
+        r = rows3(r, key, text, "EUR k", NUM1 if key == "c_pf" else NUM, f)
     r = rows3(r, "c_tot", "Total FEP claims", "EUR k", NUM, "=SUM({c}{c_pf}:{c}{c_dev})", bold=True, top=True)
     r = rows3(r, "c_dsa", "Developer success fee due (DSA, capped)", "EUR k", NUM,
               "={c}{Dash_DSA}*MIN(DSA_Rate*YEARFRAC(Inputs!{c}$%d,Sale_Date),DSA_Cap)*{c}{wind}" % I["d_dsa"])
@@ -524,7 +519,8 @@ SUBROWS = [
     ("p_oc", "Opex contingency", "EUR k", NUM, None, "=SUM({x}{p_fix}:{x}{p_mekh})*Opex_Cont"),
     ("p_comm", "Community contribution", "EUR k", NUM, None, "=-{x}{p_gen}*${p}${Dash_Community}"),
     ("p_hipa", "HIPA local business tax", "EUR k", NUM, None, "=-{x}{p_rev}*HIPA_Rate"),
-    ("p_ebitda", "EBITDA", "EUR k", NUM, None, "={x}{p_rev}+SUM({x}{p_fix}:{x}{p_hipa})"),
+    ("p_opex", "Total opex", "EUR k", NUM, None, "=SUM({x}{p_fix}:{x}{p_hipa})"),
+    ("p_ebitda", "EBITDA", "EUR k", NUM, None, "={x}{p_rev}+{x}{p_opex}"),
     ("p_cf", "Unlevered pre-tax cash flow", "EUR k", NUM, None, "={x}{p_inv}+{x}{p_ebitda}"),
     ("p_df", "Discount factor to COD (buyer's rate)", "x", FAC, None,
      "=(1+Discount_Rate)^((Inputs!${p}${d_cod}-{x}${t_end})/Days_In_Year)"),
@@ -533,25 +529,25 @@ SUBROWS = [
      "={x}{p_inv}*({x}{t_n}<=0)+{x}{t_cod}*($H{p_pv}+${p}${d_bs}+${p}${d_pb})"),
 ]
 NO_TOTAL = {"t_n", "t_cm", "t_om", "t_cod", "p_deg", "p_px", "p_idx", "p_df"}
-BOLD = {"p_inv", "p_rev", "p_ebitda", "p_cf", "p_cod"}
+BOLD = {"p_inv", "p_rev", "p_opex", "p_ebitda", "p_cf", "p_cod"}
 
 
 def timeline(r):
-    bar(r, "Annual timeline", {"H": "Total"}, TL)
+    bar(r, "Annual timeline", {"H": "Total"}, TC)
     r += 1
     R["t_yr"] = r
     label(r, "Year", "year")
-    for x in TL:
-        put(f"{x}{r}", "=First_Year+COLUMN()-COLUMN($J$1)", fmt=INT)
+    for x in TC:
+        put(f"{x}{r}", "=First_Year+COLUMN()-COLUMN($M$1)", fmt=INT)
     r += 1
     R["t_end"] = r
     label(r, "Year end", "date")
-    for x in TL:
+    for x in TC:
         put(f"{x}{r}", f"=DATE({x}{R['t_yr']}+1,1,1)-1", fmt=DATE)
     r += 2
     proj = {}
     for c, nm in zip(P, NAMES):
-        bar(r, f"{nm}: annual cash flow (EUR k)", {c: "Value", "H": "Total"}, TL)
+        bar(r, f"{nm}: annual cash flow (EUR k)", {c: "Value", "H": "Total"}, TC)
         r += 1
         rows = {}
         for key, text, unit, fmt, const, f in SUBROWS:
@@ -560,12 +556,12 @@ def timeline(r):
             label(r, text, unit, bold=bold)
             kw = dict(p=c, d=DCOL[c], d_cod=I["d_cod"], d_ntp=I["d_ntp"], d_rel=I["d_rel"])
             if const:
-                put(f"{c}{r}", fx(const, **kw), fmt=INT)
-            for x in TL:
-                put(f"{x}{r}", fx(f, x=x, **kw),
-                    fmt=fmt, bold=bold, top=bold and key != "p_inv")
+                put(f"{c}{r}", fx(dash(const), **kw), fmt=INT)
+            for x in TC:
+                put(f"{x}{r}", fx(dash(f), x=x, **kw),
+                    fmt=fmt, bold=bold, top=bold and key not in ("p_inv", "p_ebitda"))
             if key not in NO_TOTAL:
-                put(f"H{r}", f"=SUM(J{r}:AS{r})", fmt=NUM2 if fmt == PCT else fmt, bold=bold,
+                put(f"H{r}", f"=SUM(M{r}:AV{r})", fmt=NUM2 if fmt == PCT else fmt, bold=bold,
                     top=bold and key != "p_inv")
             r += 1
         proj[c] = rows
@@ -597,9 +593,9 @@ def checks(r):
     defs = [("ch_wf", "RtB waterfall closes (proceeds = all amounts paid out)",
              lambda c: fx("=N(ABS({c}{w_proc}+{c}{w_sc}+{c}{w_dsa}-{c}{w_devsh}-{c}{f_rec})>Tolerance)", c=c)),
             ("ch_end", "Claim lines paid before the accrual end year",
-             lambda c: fx("=SUMPRODUCT(--(YEAR({d}{d_pf}:{d}{d_dev})>=YEAR({c}{c_end})))", c=c, d=DCOL[c])),
+             lambda c: fx("=SUMPRODUCT(--(YEAR({d}{f_pf}:{d}{f_dev})>=YEAR({c}{c_end})))", c=c, d=DCOL[c])),
             ("ch_route", "Turbine route is EU or CN",
-             lambda c: fx('=N(AND({c}{Dash_Turbine}<>"EU",{c}{Dash_Turbine}<>"CN"))', c=c)),
+             lambda c: fx(dash('=N(AND({c}{Dash_Turbine}<>"EU",{c}{Dash_Turbine}<>"CN"))'), c=c)),
             ("ch_capex", "Construction capex spread in full (timeline = capex)",
              lambda c: fx("=N(ABS({c}{k_capex}+$H$%d)>Tolerance)" % pr[c]["p_capex"], c=c)),
             ("ch_allin", "Investment cash flows = all-in cost to COD",
@@ -624,81 +620,116 @@ def checks(r):
 
 
 def exec_fill():
+    """Simple route rows: links to the totals on Calc; IRR, MOIC and NPV on the Calc cash-flow rows."""
     pr = R["proj"]
-    ye = f"$J${R['t_end']}:$AS${R['t_end']}"
-    yr = f"$J${R['t_yr']}:$AS${R['t_yr']}"
+    ye = f"Calc!$M${R['t_end']}:$AV${R['t_end']}"
     for c in P:
         q = pr[c]
-        tl = lambda k: f"$J${q[k]}:$AS${q[k]}"  # noqa: E731
-        fl = f"{c}{R['f_sdd']}:{c}{R['f_rec']}"
-        cod = f"YEAR(Inputs!{c}${I['d_cod']})+1"
-        f = {"ex_pts": f"={c}{R['pt_tot']}", "ex_cash": f"={c}{R['d_tot']}",
-             "ex_rp": f"={c}{R['r_profit']}", "ex_rcit": f"={c}{R['r_cit']}", "ex_rpost": f"={c}{R['r_post']}",
-             "ex_rirr": f"=XIRR({fl},{DCOL[c]}{R['f_sdd']}:{DCOL[c]}{R['f_rec']})",
-             "ex_rmoic": f'=SUMIF({fl},">0")/-SUMIF({fl},"<0")',
-             "ex_rmva": f"={c}{R['r_profit']}/{c}{R['Dash_MVA']}",
-             "ex_built": f"={c}{R['built']}", "ex_allin": f"={c}{R['k_allin']}/Thousand",
-             "ex_cmw": f"={c}{R['k_allin']}/{c}{R['built']}", "ex_cmva": f"={c}{R['k_allin']}/{c}{R['Dash_MVA']}",
-             "ex_eb": f"=SUMIF({yr},{cod},{tl('p_ebitda')})", "ex_gwh": f"=SUMIF({yr},{cod},{tl('p_gen')})",
-             "ex_irr": f"=XIRR({tl('p_cf')},{ye})", "ex_npv": f"=XNPV(Discount_Rate,{tl('p_cf')},{ye})",
-             "ex_price": f"=$H${q['p_pv']}/Thousand", "ex_pmw": f"=$H${q['p_pv']}/{c}{R['built']}",
-             "ex_pmva": f"=$H${q['p_pv']}/{c}{R['Dash_MVA']}", "ex_xp": f"=$H${q['p_cod']}",
-             "ex_xcit": f"={c}{R['x_cit']}", "ex_xpost": f"={c}{R['x_post']}",
+        tl = lambda k: f"Calc!$M${q[k]}:$AV${q[k]}"  # noqa: E731
+        fl = f"Calc!{c}{R['f_sdd']}:{c}{R['f_rec']}"
+        cr = lambda k: f"Calc!{c}{R[k]}"  # noqa: E731
+        f = {"ex_cash": "=" + cr("d_tot"), "ex_proc": "=" + cr("f_rec"), "ex_rp": "=" + cr("r_profit"),
+             "ex_rpost": "=" + cr("r_post"), "ex_rmoic": f'=SUMIF({fl},">0")/-SUMIF({fl},"<0")',
+             "ex_rirr": f"=XIRR({fl},Calc!{DCOL[c]}{R['f_sdd']}:{DCOL[c]}{R['f_rec']})",
+             "ex_allin": "=" + cr("k_allin"), "ex_price": f"=Calc!$H${q['p_pv']}", "ex_xp": f"=Calc!$H${q['p_cod']}",
+             "ex_xpost": "=" + cr("x_post"), "ex_xmoic": f'=SUMIF({tl("p_cod")},">0")/-SUMIF({tl("p_cod")},"<0")',
              "ex_xirr": f"=XIRR({tl('p_cod')},{ye})",
-             "ex_xmoic": f'=SUMIF({tl("p_cod")},">0")/-SUMIF({tl("p_cod")},"<0")'}
+             "ex_hcap": "=" + cr("k_allin"), "ex_rev": f"=Calc!$H${q['p_rev']}",
+             "ex_opex": f"=Calc!$H${q['p_opex']}", "ex_eb": f"=Calc!$H${q['p_ebitda']}",
+             "ex_irr": f"=XIRR({tl('p_cf')},{ye})", "ex_npv": f"=XNPV(Discount_Rate,{tl('p_cf')},{ye})"}
         fmts = {k[0]: k[3] for k in EXEC if not isinstance(k, str)}
         for key, form in f.items():
-            put(f"{c}{R[key]}", form, fmt=fmts[key], bold=key in ("ex_rpost", "ex_irr", "ex_xpost"))
-    # Totals (H): sums and ratios on the totals; IRRs per project only.
-    for key, src in (("ex_cash", "d_tot"), ("ex_rp", "r_profit"), ("ex_rcit", "r_cit"), ("ex_rpost", "r_post"),
-                     ("ex_built", "built"), ("ex_xcit", "x_cit"), ("ex_xpost", "x_post")):
-        put(f"H{R[key]}", f"=H{R[src]}", fmt=NUM1 if key == "ex_built" else NUM,
-            bold=key in ("ex_rpost", "ex_xpost"))
-    for key in ("ex_eb", "ex_gwh", "ex_npv"):
-        put(f"H{R[key]}", f"=SUM(E{R[key]}:G{R[key]})", fmt=NUM1 if key == "ex_gwh" else NUM)
-    hf = f"H{R['f_sdd']}:H{R['f_rec']}"
+            put(f"{c}{R[key]}", form, fmt=fmts[key], bold=key in BOLD_EX)
+    for key in ("ex_cash", "ex_proc", "ex_rp", "ex_rpost", "ex_allin", "ex_price", "ex_xp", "ex_xpost", "ex_hcap",
+                "ex_rev", "ex_opex", "ex_eb", "ex_npv"):
+        put(f"H{R[key]}", f"=SUM(E{R[key]}:G{R[key]})", fmt=NUM, bold=key in BOLD_EX)
+    hf = f"Calc!H{R['f_sdd']}:H{R['f_rec']}"
     put(f"H{R['ex_rmoic']}", f'=SUMIF({hf},">0")/-SUMIF({hf},"<0")', fmt=MULT)
-    put(f"H{R['ex_rmva']}", f"=H{R['r_profit']}/H{R['Dash_MVA']}", fmt=NUM1)
-    put(f"H{R['ex_allin']}", f"=H{R['k_allin']}/Thousand", fmt=NUM1)
-    put(f"H{R['ex_cmw']}", f"=H{R['k_allin']}/H{R['built']}", fmt=NUM1)
-    put(f"H{R['ex_cmva']}", f"=H{R['k_allin']}/H{R['Dash_MVA']}", fmt=NUM1)
-    for key in ("ex_xp",):
-        put(f"H{R[key]}", f"=SUM(E{R[key]}:G{R[key]})", fmt=NUM)
-    put(f"H{R['ex_price']}", f"=SUM(E{R['ex_price']}:G{R['ex_price']})", fmt=NUM1)
-    put(f"H{R['ex_pmw']}", f"=H{R['ex_price']}*Thousand/H{R['built']}", fmt=NUM1)
-    put(f"H{R['ex_pmva']}", f"=H{R['ex_price']}*Thousand/H{R['Dash_MVA']}", fmt=NUM1)
+
+
+CF = [("cf_spend", "Spending (capex, fees, securities, devex), net", "p_inv"), ("cf_rev", "Revenue", "p_rev"),
+      ("cf_opex", "Opex", "p_opex"), ("cf_eb", "EBITDA", "p_ebitda"), ("cf_ncf", "Net cash flow", "p_cf")]
+
+
+def cash_flow_block(r):
+    """Dashboard: one simple annual block per project, linked to Calc (J:AS = Calc M:AV)."""
+    bar(r, "Annual cash flow per project (EUR k, links to Calc)", {"H": "Total"}, TL)
+    r += 1
+    R["cf_yr"] = r
+    label(r, "Year", "year")
+    for x, xc in zip(TL, TC):
+        put(f"{x}{r}", f"=Calc!{xc}{R['t_yr']}", fmt=INT, bold=True)
+    r += 2
+    cf = {}
+    for c, nm in zip(P, NAMES):
+        sub(r, nm, TL)
+        r += 1
+        rows = {}
+        for key, text, src in CF:
+            rows[key] = r
+            label(r, text, "EUR k", bold=key == "cf_ncf")
+            for x, xc in zip(TL, TC):
+                put(f"{x}{r}", f"=Calc!{xc}{R['proj'][c][src]}", fmt=NUM, bold=key == "cf_ncf")
+            put(f"H{r}", f"=SUM(J{r}:AS{r})", fmt=NUM, bold=key == "cf_ncf")
+            r += 1
+        rows["cf_cum"] = r
+        label(r, "Cumulative net cash flow", "EUR k")
+        for x in TL:
+            put(f"{x}{r}", f"=SUM($J{r - 1}:{x}{r - 1})", fmt=NUM)
+        r += 2
+        cf[c] = rows
+    R["cf"] = cf
+    ws[f"C{r}"].value, ws[f"C{r}"].font = "***END***", font(GREY, bold=True)
+    return r
+
+
+def setup(sheet, title, timeline):
+    sheet.sheet_view.showGridLines = False
+    for col, w in zip("ABCDEFGHI", (2, 2, 54, 10, 13, 13, 13, 13, 2)):
+        sheet.column_dimensions[col].width = w
+    for x in timeline:
+        sheet.column_dimensions[x].width = 10
+    sheet["C2"].value, sheet["C2"].font = title, font(bold=True)
+    sheet.freeze_panes = "E5"
+
+
+def status(sheet):
+    for op, colr in (("equal", OK_GREEN), ("notEqual", CHECK_RED)):
+        sheet.conditional_formatting.add("H3", CellIsRule(operator=op, formula=["0"],
+                                                          font=Font(color=colr, bold=True)))
 
 
 def build():
     global ws
     wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Dashboard"
-    ws.sheet_view.showGridLines = False
+    dsh = wb.active
+    dsh.title = "Dashboard"
+    calc = wb.create_sheet("Calc")
     build_inputs(wb)
-    for col, w in zip("ABCDEFGHI", (2, 2, 54, 10, 13, 13, 13, 13, 2)):
-        ws.column_dimensions[col].width = w
-    for x in TL:
-        ws.column_dimensions[x].width = 10
-    ws["C2"].value = "HU wind bids: Bora (low bid), Iváncsa, Dunaújváros – RtB exit, build and hold, COD exit (EUR k)"
-    ws["C2"].font = font(bold=True)
+    setup(dsh, "HU wind bids: Bora (low bid), Iváncsa, Dunaújváros – three routes (EUR k)", TL)
+    setup(calc, "HU wind bids – calculations (EUR k; key inputs on the Dashboard, others on Inputs)",
+          ["J", "K", "L"] + TC)
+    ws = dsh
     r = key_inputs(wb, 5)
     r = exec_reserve(r)
-    r = calc_blocks(r)
+    R["cf_start"] = r
+    ws = calc
+    r = calc_blocks(5)
     r = timeline(r)
     r = cod_exit(r)
     checks(r)
+    ws = dsh
     exec_fill()
-    label(3, "Master check (0 = OK)", "flag", bold=True)
+    cash_flow_block(R["cf_start"])
+    label(3, "Master check (0 = OK; checks at the end of Calc)", "flag", bold=True)
     put("H3", "=Master_Check", fmt=CHECK_FMT, bold=True)
-    for op, colr in (("equal", OK_GREEN), ("notEqual", CHECK_RED)):
-        ws.conditional_formatting.add("H3", CellIsRule(operator=op, formula=["0"], font=Font(color=colr, bold=True)))
-    name(wb, "Master_Check", f"Dashboard!$H${R['master']}")
-    ws.freeze_panes = "E5"
+    status(dsh)
+    name(wb, "Master_Check", f"Calc!$H${R['master']}")
     wb.calculation.fullCalcOnLoad = True
     OUT.parent.mkdir(exist_ok=True)
     wb.save(OUT)
-    ROWS.write_text(json.dumps({"R": R, "I": I}, indent=1))
+    dash_keys = [k[0] for k in KEY] + [k[0] for k in EXEC if not isinstance(k, str)] + ["cf_yr", "cf_start"]
+    ROWS.write_text(json.dumps({"R": R, "I": I, "dash_keys": dash_keys}, indent=1))
     print(f"wrote {OUT}")
 
 

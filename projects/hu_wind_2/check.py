@@ -320,7 +320,7 @@ def recompute_bid(dash, inp, RB, IB, col):
     receipts = paid["rp"] + paid["c12"] + paid["dev"] + cash * k("Dash_FEP_Share")
     flows = [(d(pi("d_sign")), -sdd)] + [(dt_[n], -a) for n, a in amt.items()] + [(sale, receipts)]
     profit = sum(x for _, x in flows)
-    out = dict(claims=sum(claims.values()), dsa=dsa, points=pts, cash=sum(amt.values()) + sdd, rtb_profit=profit,
+    out = dict(claims=sum(claims.values()), dsa=dsa, proceeds=receipts, points=pts, cash=sum(amt.values()) + sdd, rtb_profit=profit,
                rtb_post=profit - max(0, profit) * c("CIT_Rate"), rtb_irr=xirr(sorted(flows)),
                rtb_moic=sum(x for _, x in flows if x > 0) / -sum(x for _, x in flows if x < 0))
     # Build and hold, annual flows at 31-Dec.
@@ -343,7 +343,7 @@ def recompute_bid(dash, inp, RB, IB, col):
     outl = flows[:-1]
     fixed = sum(c(x) for x in ("Opex_OM", "Opex_BoP", "Opex_Lease", "Opex_Ins", "Opex_Mgmt", "Opex_PropTax"))
     years = range(c("First_Year"), c("First_Year") + 36)
-    inv_y, eb_y, gen_y = {}, {}, {}
+    inv_y, eb_y, gen_y, rev_y = {}, {}, {}, {}
     for y in years:
         n = y - cod.year
         op = oper.get(y, 0) / 12
@@ -356,38 +356,45 @@ def recompute_bid(dash, inp, RB, IB, col):
         base_opex = (fixed * built * op + c("Opex_Admin") * mva / c("Lump_Basis") * op
                      + gen * (c("Balancing") + c("Grid_Charges"))) * ix + rev * c("MEKH_Fee")
         opex = base_opex * (1 + c("Opex_Cont")) + gen * k("Dash_Community") + rev * c("HIPA_Rate")
-        inv_y[y], eb_y[y], gen_y[y] = inv, rev - opex, gen
+        inv_y[y], eb_y[y], gen_y[y], rev_y[y] = inv, rev - opex, gen, rev
     ye = {y: date(y, 12, 31) for y in years}
     htm = [(ye[y], inv_y[y] + eb_y[y]) for y in years]
     price = sum(eb_y[y] * (1 + c("Discount_Rate")) ** ((cod - ye[y]).days / 365) for y in years)
     codf = [(ye[y], inv_y[y] * (y <= cod.year) + (price + amt["bs"] + amt["pb"]) * (y == cod.year)) for y in years]
     cprofit = sum(x for _, x in codf)
     allin = capex + amt["tso"] + amt["dir"] + amt["ind"] + k("Dash_Municipal") * mva + amt["fee"] + amt["dev"] + sdd
-    out.update(built=built, allin=allin / 1000, ebitda1=eb_y[cod.year + 1], gwh1=gen_y[cod.year + 1],
-               htm_irr=xirr(htm), htm_npv=xnpv(c("Discount_Rate"), htm), price=price / 1000,
+    out.update(built=built, allin=allin, allin_htm=allin, revenue=sum(rev_y.values()),
+               opex=sum(eb_y.values()) - sum(rev_y.values()), ebitda=sum(eb_y.values()),
+               htm_irr=xirr(htm), htm_npv=xnpv(c("Discount_Rate"), htm), price=price,
                cod_profit=cprofit, cod_post=cprofit - max(0, cprofit) * c("CIT_Rate"), cod_irr=xirr(codf),
                cod_moic=sum(x for _, x in codf if x > 0) / -sum(x for _, x in codf if x < 0))
     return out
 
 
-EX = {"claims": "c_tot", "dsa": "c_dsa", "points": "ex_pts", "cash": "ex_cash", "rtb_profit": "ex_rp", "rtb_post": "ex_rpost", "rtb_irr": "ex_rirr",
-      "rtb_moic": "ex_rmoic", "built": "ex_built", "allin": "ex_allin", "ebitda1": "ex_eb", "gwh1": "ex_gwh",
-      "htm_irr": "ex_irr", "htm_npv": "ex_npv", "price": "ex_price", "cod_profit": "ex_xp", "cod_post": "ex_xpost",
-      "cod_irr": "ex_xirr", "cod_moic": "ex_xmoic"}
-S21 = {"claims": "c_tot", "rtb_profit": "r_profit", "rtb_irr": "r_irr", "rtb_moic": "r_moic", "built": "k_built", "ebitda1": "h_ebitda",
-       "gwh1": "h_gwh", "htm_irr": "h_irr", "htm_npv": "h_npv", "cod_profit": "x_profit", "cod_irr": "x_irr",
-       "cod_moic": "x_moic"}
+EX = {"claims": "c_tot", "dsa": "c_dsa", "points": "pt_tot", "cash": "ex_cash", "proceeds": "ex_proc",
+      "rtb_profit": "ex_rp", "rtb_post": "ex_rpost", "rtb_irr": "ex_rirr", "rtb_moic": "ex_rmoic", "built": "built",
+      "allin": "ex_allin", "price": "ex_price", "cod_profit": "ex_xp", "cod_post": "ex_xpost", "cod_irr": "ex_xirr",
+      "cod_moic": "ex_xmoic", "allin_htm": "ex_hcap", "revenue": "ex_rev", "opex": "ex_opex", "ebitda": "ex_eb",
+      "htm_irr": "ex_irr", "htm_npv": "ex_npv"}
+S21 = {"claims": "c_tot", "rtb_profit": "r_profit", "rtb_irr": "r_irr", "rtb_moic": "r_moic", "built": "k_built",
+       "allin": "k_allin", "price": "x_price", "htm_irr": "h_irr", "htm_npv": "h_npv", "cod_profit": "x_profit",
+       "cod_irr": "x_irr", "cod_moic": "x_moic"}
 
 
 def lint_bids(RB):
-    """Workbook lint, plus the calc-sheet rules on the Dashboard: one formula per timeline row (J:AS) and direction
-    (up/left; within the timeline block also no reference to a later column). Exempt: the executive values and the
-    master-check link at the top (summary panel)."""
+    """Workbook lint (Calc gets the calc-sheet rules natively: direction, one formula per row from column J), plus:
+    every Calc timeline row filled across M:AV, and on the Dashboard one formula per row across J:AS and direction
+    (up/left). Exempt: the route totals and the status link at the top of the Dashboard (summary panel)."""
     found = [str(f) for f in lint(BIDS)]
     wb = openpyxl.load_workbook(BIDS)
-    ws, names = wb["Dashboard"], _name_targets(wb)
+    names = _name_targets(wb)
+    calc = wb["Calc"]
+    for row in calc.iter_rows(min_row=RB["t_yr"]):
+        n = sum(1 for c in row if 13 <= c.column <= 48 and isinstance(c.value, str) and c.value.startswith("="))
+        if n not in (0, 36):
+            found.append(f"[c-row] Calc!row {row[0].row}: timeline row not filled across M:AV")
+    ws = wb["Dashboard"]
     lo, hi = RB["exec"]
-    t0 = RB["t_yr"]
     tl = range(10, 46)
     for row in ws.iter_rows():
         forms = {}
@@ -395,24 +402,11 @@ def lint_bids(RB):
             v = cell.value
             if not (isinstance(v, str) and v.startswith("=")):
                 continue
-            if cell.row >= t0 and cell.column in tl:
+            if cell.column in tl:
                 forms[cell.column] = to_r1c1(v, cell.row, cell.column)
             if lo <= cell.row <= hi or cell.row == 3:
                 continue
-            for op in [t.value for t in Tokenizer(v).items if t.type == "OPERAND" and t.subtype == "RANGE"]:
-                sh, addr = (op.rsplit("!", 1) if "!" in op else (None, op))
-                if sh is None and op in names:
-                    sh, addr = names[op]
-                if (sh or "Dashboard").strip("'") != "Dashboard":
-                    continue
-                try:
-                    c1, r1, c2, r2 = range_boundaries(addr.replace("$", ""))
-                except ValueError:
-                    continue
-                in_tl = cell.row >= t0 and r2 >= t0 and cell.column in tl
-                if r2 > cell.row or (in_tl and c2 > cell.column) or (r2 == cell.row and cell.column in tl
-                                                                     and c2 >= cell.column):
-                    found.append(f"[d-direction] Dashboard!{cell.coordinate}: refers right/down to {op}")
+            found += [str(f) for f in _direction("Dashboard", cell.row, cell.column, v, names)]
         if forms and (len(set(forms.values())) > 1 or len(forms) != len(tl)):
             found.append(f"[c-row] Dashboard!row {row[0].row}: timeline row not uniform or not filled")
     return found
@@ -425,10 +419,13 @@ def bids():
     rb = json.loads((HERE / "out" / "rows_bids.json").read_text())
     RB, IB = rb["R"], rb["I"]
     vals = openpyxl.load_workbook(BIDS_RC, data_only=True)
-    dash, inp = vals["Dashboard"], vals["Inputs"]
+    dash, inp, calc = vals["Dashboard"], vals["Inputs"], vals["Calc"]
+    dk = set(rb["dash_keys"])
+    val = lambda col, key: (dash if key in dk else calc)[f"{col}{RB[key]}"].value  # noqa: E731
     errs = lint_values(BIDS_RC)
     print("\n§22 bids workbook")
-    print("recalc:", "no errors, Master_Check", dash[f"H{RB['master']}"].value if not errs else errs[:10])
+    print("recalc:", "no errors, Master_Check", calc[f"H{RB['master']}"].value, "| Dashboard status",
+          dash["H3"].value if not errs else errs[:10])
     lf = lint_bids(RB)
     print("lint:", "clean" if not lf else f"{len(lf)} finding(s)")
     for f in lf[:20]:
@@ -437,21 +434,30 @@ def bids():
     for col, nm in zip("EFG", ("Bora", "Iváncsa", "Dunaújváros")):
         x = recompute_bid(dash, inp, RB, IB, col)
         for key, ex in EX.items():
-            diff = abs(dash[f"{col}{RB[ex]}"].value - x[key])
+            diff = abs(val(col, ex) - x[key])
             worst = max(worst, diff)
             if diff > 1e-6:
-                print(f"   MISMATCH {nm} {key}: model {dash[f'{col}{RB[ex]}'].value} python {x[key]}")
+                print(f"   MISMATCH {nm} {key}: model {val(col, ex)} python {x[key]}")
         print(f"  {nm:<12} points {x['points']:.1f} | RtB profit {x['rtb_profit']:,.1f} post {x['rtb_post']:,.1f} "
-              f"IRR {x['rtb_irr']:.2%} | HTM IRR {x['htm_irr']:.2%} | COD price {x['price']:,.3f} m")
+              f"IRR {x['rtb_irr']:.2%} | HTM IRR {x['htm_irr']:.2%} | COD price {x['price']:,.1f}")
     print(f"independent recomputation (3 projects): max abs diff {worst:.2e} ->", "PASS" if worst < 1e-6 else "FAIL")
     s21 = openpyxl.load_workbook(RC, data_only=True)["Bid_Cash"]
     tie = 0.0
     for col, c21 in (("F", "E"), ("G", "F")):
         for key, k21 in S21.items():
-            tie = max(tie, abs(dash[f"{col}{RB[EX[key]]}"].value - s21[f"{c21}{R[k21]}"].value))
-        tie = max(tie, abs(dash[f"{col}{RB['ex_price']}"].value * 1000 - s21[f"{c21}{R['x_price']}"].value),
-                  abs(dash[f"{col}{RB['ex_allin']}"].value * 1000 - s21[f"{c21}{R['k_allin']}"].value))
+            tie = max(tie, abs(val(col, EX[key]) - s21[f"{c21}{R[k21]}"].value))
     print(f"Iváncsa / Dunaújváros vs the §21 build: max abs diff {tie:.2e} ->", "PASS" if tie < 1e-6 else "FAIL")
+    cfd = 0.0
+    for col in "EFG":
+        q, cf = RB["proj"][col], RB["cf"][col]
+        cum = 0.0
+        for j in range(36):
+            ncf = calc.cell(q["p_cf"], 13 + j).value
+            cum += ncf
+            cfd = max(cfd, abs(dash.cell(cf["cf_ncf"], 10 + j).value - ncf), abs(dash.cell(cf["cf_cum"], 10 + j).value - cum),
+                      abs(dash.cell(cf["cf_opex"], 10 + j).value - calc.cell(q["p_opex"], 13 + j).value))
+    print(f"Dashboard cash-flow block vs Calc: max abs diff {cfd:.2e} ->", "PASS" if cfd < 1e-6 else "FAIL")
+    worst = max(worst, cfd)
     dump_bids(vals, RB)
     print("dump:", BIDS_DUMP)
     return not errs and not lf and worst < 1e-6 and tie < 1e-6
@@ -467,13 +473,12 @@ def dump_bids(vals, RB):
             return f"{x:,.4f}" if abs(x) < 10 and x != int(x) else f"{x:,.1f}"
         return "" if x is None else str(x)
     out = []
-    for sheet, cols, last in (("Dashboard", "DEFGH", RB["t_yr"] - 1), ("Inputs", "DEFG", None)):
+    parts = (("Dashboard", "DEFGH", range(1, RB["cf_start"])),
+             ("Calc", "DEFGH", list(range(1, RB["t_yr"])) + list(range(RB["x_cit"], RB["master"] + 1))),
+             ("Inputs", "DEFG", range(1, vals["Inputs"].max_row + 1)))
+    for sheet, cols, rows in parts:
         ws = vals[sheet]
-        out.append(f"#### {sheet}: label | unit | Bora | Iváncsa | Dunaújváros" + (" | Total" if sheet == "Dashboard"
-                                                                                  else ""))
-        rows = list(range(1, (last or ws.max_row) + 1))
-        if sheet == "Dashboard":
-            rows += list(range(RB["x_cit"], RB["master"] + 1))
+        out.append(f"#### {sheet}: label | unit | Bora | Iváncsa | Dunaújváros" + (" | Total" if "H" in cols else ""))
         for r in rows:
             lab = ws[f"C{r}"].value
             if lab is None or lab == "***END***":
@@ -484,7 +489,6 @@ def dump_bids(vals, RB):
                 continue
             out.append(" | ".join([lab, cells[0] or ""] + [fmt(x, cells[0]) for x in cells[1:]]))
     BIDS_DUMP.write_text("\n".join(out) + "\n")
-
 
 
 def main():
