@@ -32,6 +32,22 @@ Failed:
 End Sub
 
 Public Sub RefreshAll()
+    ' The case results are stored for the first project (Bora); the original selection is restored at the end.
+    Dim original As Variant, errNo As Long, errMsg As String
+    original = Range("Dash_Project").Value
+    On Error GoTo Failed
+    Range("Dash_Project").Value = Range("In_Projects").Cells(1, 1).Value
     RunAllScenarios
     RunProjects
+    Range("Dash_Project").Value = original
+    Application.Calculate
+    Exit Sub
+Failed:
+    errNo = Err.Number
+    errMsg = Err.Description
+    On Error Resume Next
+    Range("Dash_Project").Value = original
+    Application.Calculate
+    On Error GoTo 0
+    Err.Raise errNo, "RefreshAll", errMsg & " (original project restored)"
 End Sub

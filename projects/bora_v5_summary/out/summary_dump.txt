@@ -32,7 +32,7 @@ EU transformers, at least 80 % (ÖSZ-9) | flag | 1 | 3 |
 Wind built below the bid (no sanction up to 10 %) | % | 0.1 |  | 
 Clipped share of gross energy (blank = OVIT memo curve) | % | 0.04 |  | 
 Turbine route (case) | case | EU turbine, normal debt (60 % at 5 %) |  | 
-Project for the RtB route (HTM, COD and Bid_Points stay Bora's) | project | Bora |  | 
+Project for the RtB route (HTM and COD meaningful for Bora only) | project | Bora |  | 
 Total points | points |  | 80.5 | 
 Total points if ÖSZ-4 is scored on installed wind (GYIK Q20) | points |  | 76 | 
 2. Capacity and basis |  |  |  | 
@@ -194,7 +194,7 @@ Refinancing: new loan tenor | years | 15 |  |
 Refinancing: gearing added to the base gearing | % | 0.04 |  | 
 Overbuild per OVIT optimal-overbuild memo (23-Oct-2026), capped at the maximum-points band |  |  |  | 
 Clipping override (user, 26-Oct-26); blank = OVIT memo curve for a 36 % CF park |  |  |  | 
-Other project selected: only the RtB route (MOIC, RtB_Projects) is meaningful; HTM figures are Bora's |  |  |  | 
+HTM and COD figures are meaningful for Bora only; with another project selected they recompute on that capacity and are not meaningful |  |  |  | 
 Wind built = bid − 10 %: tolerance per GYIK Q28/30/76, not in the Kiírás itself |  |  |  | 
 ***END*** |  |  |  | 
 Annuity | 0.06 | 0.08 | 0.1 | 
@@ -300,36 +300,36 @@ Principal posted by class |  |  |  |  |  |
 Cash, 12 % recoverable loan (TSO security, connection fees) | EUR k | 20715.9 | 20715.9 | 3976.26 | 3976.26 | 28668.4
 Cash, 20 % at-risk loan (participation fee, sunk) | EUR k | 8.21918 | 8.21918 | 8.21918 | 8.21918 | 24.6575
 Guarantees, 6 % (bid security, performance security face) | EUR k | 5842.88 | 5842.88 | 3069.86 | 3069.86 | 11982.6
-Devex and land, 20 % / 2× floor | EUR k | 1543.92 | 1543.92 | 492.722 | 492.722 | 2529.37
-Total posted | EUR k | 28110.9 | 28110.9 | 7547.06 | 7547.06 | 43205
+Devex and land, 20 % / 2× floor | EUR k | 1543.92 | 1543.92 | 492.042 | 492.042 | 2528.01
+Total posted | EUR k | 28110.9 | 28110.9 | 7546.38 | 7546.38 | 43203.7
 Interest claims to the sale (frozen from the date above) |  |  |  |  |  | 
 12 % interest on the recoverable loan | EUR k | 2190.48 | 2190.48 | 510.977 | 510.977 | 3212.44
 6 % interest on the guarantees | EUR k | 933.293 | 933.293 | 490.355 | 490.355 | 1914
-At-risk return (devex and land 2× floor, participation fee) | EUR k | 1546.85 | 1546.85 | 495.652 | 495.652 | 2538.16
-Total FEP claims (cash and at-risk principal + interest) | EUR k | 26938.7 | 26938.7 | 5974.18 | 5974.18 | 38887
+At-risk return (devex and land 2× floor, participation fee) | EUR k | 1546.85 | 1546.85 | 494.972 | 494.972 | 2536.8
+Total FEP claims (cash and at-risk principal + interest) | EUR k | 26938.7 | 26938.7 | 5972.82 | 5972.82 | 38884.3
 Waterfall at the sale |  |  |  |  |  | 
 RtB premium | EUR k | 15000 | 15000 | 7500 | 7500 | 30000
-Buyer reimbursement of principal (securities, connection fees, land) | EUR k | 20928.6 | 20928.6 | 4044.06 | 4044.06 | 29016.7
-Total proceeds | EUR k | 35928.6 | 35928.6 | 11544.1 | 11544.1 | 59016.7
+Buyer reimbursement of principal (securities, connection fees, land) | EUR k | 20928.6 | 20928.6 | 4043.96 | 4043.96 | 29016.5
+Total proceeds | EUR k | 35928.6 | 35928.6 | 11544 | 11544 | 59016.5
 Less sale costs | EUR k | -250 | -250 | -250 | -250 | -750
 Less recoverable principal repaid | EUR k | -20715.9 | -20715.9 | -3976.26 | -3976.26 | -28668.4
 Less 12 % interest | EUR k | -2190.48 | -2190.48 | -510.977 | -510.977 | -3212.44
-Less at-risk principal repaid (land reimbursed) | EUR k | -212.69 | -212.69 | -67.7999 | -67.7999 | -348.29
-Less at-risk return | EUR k | -1546.85 | -1546.85 | -495.652 | -495.652 | -2538.16
+Less at-risk principal repaid (land reimbursed) | EUR k | -212.69 | -212.69 | -67.7062 | -67.7062 | -348.102
+Less at-risk return | EUR k | -1546.85 | -1546.85 | -494.972 | -494.972 | -2536.8
 Less 6 % interest on the guarantees | EUR k | -933.293 | -933.293 | -490.355 | -490.355 | -1914
 Less developer success fee (DSA) | EUR k | -1105.24 | -1105.24 | 0 | 0 | -1105.24
-Distributable proceeds | EUR k | 8974.13 | 8974.13 | 5753.02 | 5753.02 | 20480.2
-FEP share | EUR k | 6281.89 | 6281.89 | 5753.02 | 5753.02 | 17787.9
+Distributable proceeds | EUR k | 8974.13 | 8974.13 | 5753.7 | 5753.7 | 20481.5
+FEP share | EUR k | 6281.89 | 6281.89 | 5753.7 | 5753.7 | 17789.3
 Developer share | EUR k | 2692.24 | 2692.24 | 0 | 0 | 2692.24
 FEP result |  |  |  |  |  | 
-FEP receipts at the sale | EUR k | 31881.1 | 31881.1 | 11294.1 | 11294.1 | 54469.2
-FEP outflows (signing, DD, loans, devex, guarantee fees) | EUR k | -23473 | -23473 | -5155.21 | -5155.21 | -33783.4
-of which FEP-borne devex not reimbursed | EUR k | -1331.23 | -1331.23 | -424.922 | -424.922 | -2181.08
-FEP net profit pre-tax | EUR k | 8408.1 | 8408.1 | 6138.84 | 6138.84 | 20685.8
-FEP net profit post-tax | EUR k | 8089.17 | 8089.17 | 6080.97 | 6080.97 | 20251.1
-FEP IRR post-tax | % | 0.295103 | 0.295103 | 0.680693 | 0.680693 | 
-FEP MOIC | x | 1.34462 | 1.34462 | 2.17958 | 2.17958 | 
-FEP NPV at 8 % | EUR k | 4691.84 | 4691.84 | 4322.92 | 4322.92 | 13337.7
-FEP net profit post-tax per MVA | k€/MVA | 80.8917 | 80.8917 | 121.619 | 121.619 | 101.256
+FEP receipts at the sale | EUR k | 31881.1 | 31881.1 | 11294 | 11294 | 54469
+FEP outflows (signing, DD, loans, devex, guarantee fees) | EUR k | -23473 | -23473 | -5154.53 | -5154.53 | -33782.1
+of which FEP-borne devex not reimbursed | EUR k | -1331.23 | -1331.23 | -424.336 | -424.336 | -2179.9
+FEP net profit pre-tax | EUR k | 8408.1 | 8408.1 | 6139.43 | 6139.43 | 20687
+FEP net profit post-tax | EUR k | 8089.17 | 8089.17 | 6081.57 | 6081.57 | 20252.3
+FEP IRR post-tax | % | 0.295103 | 0.295103 | 0.680839 | 0.680839 | 
+FEP MOIC | x | 1.34462 | 1.34462 | 2.17985 | 2.17985 | 
+FEP NPV at 8 % | EUR k | 4691.84 | 4691.84 | 4323.46 | 4323.46 | 13338.8
+FEP net profit post-tax per MVA | k€/MVA | 80.8917 | 80.8917 | 121.631 | 121.631 | 101.262
 Purple: written by RtBProjects.RunProjects (RefreshAll); live column = the project selected on the Dashboard |  |  |  |  |  | 
 ***END*** |  |  |  |  |  | 

@@ -65,16 +65,17 @@ OTHER_VALUES = {"Project name": ("Iváncsa", "Dunaújváros"),
                 "Indirect connection fee": ("={c}{ind_ft}/Million",) * 2,
                 "Direct connection fee": ("={c}{dir_ft}/Million/{c}{mva}/(1+{c}{shared})",) * 2,
                 "Devex target": (500, 500),
-                "Devex scaling factor": ("={c}{target}/$G${target}",) * 2}
+                "Devex scaling factor": ("=({c}{target}-$E$68*Deposits!$O$7)/($G${target}-$E$68*Deposits!$O$7)",)
+                * 2}
 NOTES_M = {"Signing fee to current owners": "Bora: case value × In_Scale; others: signing + DD",
            "FEP share of net proceeds if JV": "Others: placeholder 100 % (user to set)",
            "Developer success fee live": "Others: placeholder 0 (user to set)",
            "Devex target": "Others: devex incl. contingency (other-projects file)",
-           "Devex scaling factor": "Bora: In_Scale; others: target ÷ Bora 200 MVA total"}
+           "Devex scaling factor": "Bora: In_Scale; others: Devex_FEP E39 = the target"}
 
-PROJECT_LABEL = "Project for the RtB route (HTM, COD and Bid_Points stay Bora's)"
-PROJECT_NOTE = ("Other project selected: only the RtB route (MOIC, RtB_Projects) is meaningful; HTM figures are "
-                "Bora's")
+PROJECT_LABEL = "Project for the RtB route (HTM and COD meaningful for Bora only)"
+PROJECT_NOTE = ("HTM and COD figures are meaningful for Bora only; with another project selected they recompute "
+                "on that capacity and are not meaningful")
 LINE_5B = "Other projects (Iváncsa, Dunaújváros): see RtB_Projects"
 
 # §20.3 RtB_Projects rows: (key, label, unit, live formula, total rule) – None label = section bar.
@@ -366,6 +367,12 @@ def block_m(wb):
         if text in NOTES_M:
             ws[f"F{r}"].value = NOTES_M[text]
     signing, bids, scale = find("Signing fee to current owners"), find("Number of separate bids"), find("Devex scaling")
+    blue = ws[f"G{signing}"]._style                                    # §20 audit: H:I inputs blue on input fill
+    for r in [*range(at, at + len(NEW_ROWS)), rows["target"]]:
+        for col in "HI":
+            fmt = ws[f"{col}{r}"].number_format
+            ws[f"{col}{r}"]._style = copy(blue)
+            ws[f"{col}{r}"].number_format = fmt
     ws[f"G{signing}"].value = old[24]                                 # Bora: the previous live formula
     ws[f"G{bids}"].value = "=In_Bids"
     ws[f"G{scale}"].value = "=In_Scale"
@@ -443,7 +450,7 @@ def dashboard(wb):
     for col in range(3, 7):
         d.cell(cap, col)._style = copy(d.cell(cap + 1, col)._style)
     d.cell(cap, 3).value, d.cell(cap, 4).value = "RtB_Projects stored = live for the selected project", "#"
-    d.cell(cap, 5).value = "=--(SUMPRODUCT(ABS(RtB_Delta))>Tolerance)"
+    d.cell(cap, 5).value = "=SUM(RtB_Fail)"
     d.cell(cap, 6).value = f'=IF(E{cap}=0,"OK","CHECK")'
     master = name_cell(wb, "Master_Check")
     assert re.search(rf"E\d+:E{cap + 1}\)", master.value), master.value
@@ -453,15 +460,16 @@ def dashboard(wb):
 def rtb_projects(wb):
     bp = wb["Bid_Points"]
     ws = wb.create_sheet("RtB_Projects", wb.sheetnames.index("Bid_Points") + 1)
-    for col, width in zip("ABCDEFGHIJ", (3, 2, 62, 9, 14, 13, 13, 13, 13, 12)):
+    for col, width in zip("ABCDEFGHIJK", (3, 2, 62, 9, 14, 13, 13, 13, 13, 12, 8)):
         ws.column_dimensions[col].width = width
     ws.sheet_view.showGridLines = False
     _copy_style(bp["B2"], ws["B2"])
     ws["B2"].value = "RtB sale by project (EUR k) – live project and stored results (RtBProjects.RefreshAll)"
     bar, label, unit, calc, total = bp["C7"], bp["C8"], bp["D8"], bp["E20"], bp["E34"]
-    for col in "ABCDEFGHIJ":
+    for col in "ABCDEFGHIJK":
         _copy_style(bar, ws[f"{col}4"])
-    for col, v in zip("CDEFGHIJ", ("Item", "Unit", '="Live: "&Inputs!$E$281', *PROJECTS, "Total", "Stored − live")):
+    for col, v in zip("CDEFGHIJK", ("Item", "Unit", '="Live: "&Inputs!$E$281', *PROJECTS, "Total", "Stored − live",
+                                    "Fail (1)")):
         ws[f"{col}4"].value = v
     stored_font = Font(name=calc.font.name, size=calc.font.sz, color=PURPLE)
     stored_fill, thin = PatternFill("solid", fgColor=MACRO_FILL), Side(style="thin", color="FFBFBFBF")
@@ -469,7 +477,7 @@ def rtb_projects(wb):
     for key, text, un, f, tot in RTB_ROWS:
         if key is None:
             r += 1 if r > 5 else 0
-            for col in "ABCDEFGHIJ":
+            for col in "ABCDEFGHIJK":
                 _copy_style(bar, ws[f"{col}{r}"])
             ws[f"C{r}"].value = text
             r += 1
@@ -479,9 +487,9 @@ def rtb_projects(wb):
         _copy_style(unit, ws[f"D{r}"])
         ws[f"C{r}"].value, ws[f"D{r}"].value = text, un
         bold = key in ("p_tot", "claims", "w_tot", "dist", "post")
-        for col in "EFGHIJ":
+        for col in "EFGHIJK":
             _copy_style(total if bold else calc, ws[f"{col}{r}"])
-            ws[f"{col}{r}"].number_format = FORMATS[un] if col != "J" else "#,##0.000"
+            ws[f"{col}{r}"].number_format = FORMATS[un] if col not in "JK" else ("#,##0.000" if col == "J" else "0")
         if "!" in f or f.startswith("=In_"):
             _link(ws[f"E{r}"], f.format(**rows))
         else:
@@ -493,12 +501,13 @@ def rtb_projects(wb):
             ws[f"I{r}"].value = f"=F{r}+G{r}+H{r}"
         elif tot == "mva":
             ws[f"I{r}"].value = f"=I{rows['post']}/I{rows['mva']}"
-        ws[f"J{r}"].value = f"=IFERROR(INDEX(F{r}:H{r},Inputs!$E$9)-E{r},0)"
+        ws[f"J{r}"].value = f"=INDEX(F{r}:H{r},Inputs!$E$9)-E{r}"
+        ws[f"K{r}"].value = f"=IF(ISERROR(J{r}),1,--(ABS(J{r})>Tolerance))"
         r += 1
     first, last = min(rows.values()), max(rows.values())
     define(wb, "RtB_Live", f"RtB_Projects!$E${first}:$E${last}")
     define(wb, "RtB_Stored", f"RtB_Projects!$F${first}:$H${last}")
-    define(wb, "RtB_Delta", f"RtB_Projects!$J${first}:$J${last}")
+    define(wb, "RtB_Fail", f"RtB_Projects!$K${first}:$K${last}")
     _copy_style(unit, ws[f"C{last + 2}"])
     ws[f"C{last + 2}"].value = ("Purple: written by RtBProjects.RunProjects (RefreshAll); live column = the project "
                                 "selected on the Dashboard")
