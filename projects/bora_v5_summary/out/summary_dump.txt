@@ -166,7 +166,6 @@ Stored results = live case (numbers only) | # | 0 | OK |
 ÖSZ-4 BESS ratio at least the minimum | # | 0 | OK | 
 Cash_Flow foots to the equity cash flow | # | 0 | OK | 
 Gearing grid ties to the live case at the live gearing | # | 0 | OK | 
-Bid_Points total points | # | 0 | OK | 
 Bid_Points quarterly cash = summary to COD | # | 0 | OK | 
 Capacity: BESS MW ≤ wind MW, duration ≥ minimum | # | 0 | OK | 
 Master check (number of failing rows) | # | 0 | OK | 
@@ -267,13 +266,15 @@ Debt after refinancing (closing balance, refinancing year) | k€ | 0 |  |  |  |
 Gearing after refinancing (debt ÷ sizing base) | % | 0 |  |  |  | … | 
 Minimum DSCR after refinancing | x | n/a |  |  |  | … | 
 Released to equity at the refinancing (new loan − old loan repaid − fee) | k€ | 0 |  |  |  | … | 
-== Bid_Points, summary to COD (Bora, per bid | total over the bids) ==
-Summary to COD |  | Bora, per bid | Total, 1 bid(s)
-Points total, live case | points | 65.5 | 
-Signing fee and DD | EUR k | 200 | 200
-Deposits and fees in cash | EUR k | 20724.1 | 20724.1
-Devex, land and contingency | EUR k | 1568.92 | 1568.92
-Total cash to COD | EUR k | 22493 | 22493
-Guarantee fees to COD | EUR k | 1590.74 | 1590.74
-Peak guarantee | EUR k | 5842.88 | 5842.88
-COD | date | 2031-06-30 | 
+== Bid_Points, summary to COD (BORA 1 | BORA 2 | BORA 1 + 2) ==
+Summary to COD (EUR k) |  | BORA 1 | BORA 2 | BORA 1 + 2
+Points | points | 80.5 | 80.5 | 
+Signing fee and DD | EUR k | 200 | 200 | 400
+Devex, land and contingency | EUR k | 1568.92 | 1568.92 | 3137.85
+Cash deposits and fees excl. connection fees | EUR k | 1241.1 | 1241.1 | 2482.19
+Connection fees | EUR k | 19483 | 19483 | 38966
+Total cash to COD excl. connection fees | EUR k | 3010.02 | 3010.02 | 6020.04
+Total cash to COD incl. connection fees | EUR k | 22493 | 22493 | 44986.1
+Guarantee fees to COD | EUR k | 1590.74 | 1590.74 | 3181.47
+Peak guarantee | EUR k | 5842.88 | 5842.88 | 11685.8
+COD | date | 2031-06-30 |  | 

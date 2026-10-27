@@ -1,4 +1,4 @@
-"""Bora model RtB / COD / HTM – SPEC §18: the user's case made proper, Bora only, euros first.
+"""Bora model RtB / COD / HTM – SPEC §18 (the user's case made proper, Bora only, euros) and §19 (Bid_Points).
 
 Source (SPEC §18): reference/Bora_model_RTB_COD_HTM_261026_1.xlsm, the user's edit of our §17 output (scenario-table
 tweaks, Inputs G162 typed 800 over the link, Inputs E322 typed 4 % over the interpolation, Bid_Points columns H:I deleted
@@ -46,28 +46,78 @@ CLIP_OVERRIDE = 0.04
 CLIP_NOTE = "Clipping override (user, 26-Oct-26); blank = OVIT memo curve for a 36 % CF park"
 LOW_TURBINE = 950                                                  # coordinator: 500 is not a pessimistic Low
 
-# §18.2 / §17.3 Bid_Points: Wind HU row numbers (the copy is rebuilt from the user's sheet of 26-Oct-2026).
-# Column E = Bora, per bid; column F = total over In_Bids bids (amount rows only).
-PER_BID, TOTAL = "Bora, per bid", '="Total, "&In_Bids&" bid(s)"'
-BID_LEVERS = {8: "=Dash_MVA/In_Bids", 9: "=Dash_Overbuild", 10: "=Dash_BESS_Share", 11: "=Inputs!$E$21",
-              12: "=Dash_Municipal", 13: "=Dash_Community", 14: "=Dash_Partial", 15: "=Dash_PB_Mult",
-              16: "=Dash_Brownfield", 17: "=Dash_Shared", 18: "=Dash_EU_Turbine", 19: "=Dash_EU_Transformer"}
-BID_RATES = {48: "=Inputs!$E$11", 49: "=Inputs!$E$75*Million", 50: "=Inputs!$E$89*Million",
-             51: "=Inputs!$E$81*Million", 52: "=Inputs!$E$76", 53: "=Inputs!$E$77", 54: "=Inputs!$E$83*Million",
-             55: "=Inputs!$E$85*Million", 56: "=Deposits!$M$12/In_Bids", 57: "=Inputs!$E$113",
-             58: "=(Inputs!$E$24+Inputs!$E$25)/In_Bids"}
-BID_DATES = {37: "=Inputs!$E$27", 38: "=Inputs!$E$95", 39: "=Deposits!$K$10", 40: "=Inputs!$E$97",
-             41: "=Devex_FEP!$F$38", 42: "=Inputs!$E$99", 43: "=Inputs!$E$154", 44: "=Inputs!$E$155"}
-EUR_K = {75: "=E$58", 76: "=Deposits!$M$7/In_Bids", 77: "=Deposits!$M$8/In_Bids",   # Deposits k€, per bid
-         78: "=(Deposits!$M$8+Deposits!$M$10)/In_Bids", 79: "=Deposits!$M$11/In_Bids", 80: "=E$56",
-         81: "=Deposits!$M$18/In_Bids"}
-# Devex lines: Wind HU row → Devex_FEP row (the model's k€ per line, scaled by In_Scale), per bid = ÷ In_Bids.
-DEVEX = {**{r: r - 81 for r in range(86, 117)}, 117: 37, 118: 38}
-DEVEX_OTHER = 36                                                   # no Wind HU line: inserted as row 117
-TOTAL_ROWS = (8, 20, 21, 22, *range(75, 85), *range(86, 120), *range(123, 129), *range(134, 155))
-HEADER_ROWS = (7, 47, 74, 85, 121, 133)
-CASH_LINES = (75, 76, 79, 80, 81, *range(86, 119))                 # the lines the quarterly cash rows add up
-DROP = {"rows": [(59, 2), (62, 12)], "summary": (129, 2)}           # devex for other sites, HUF block, HUF summary
+# §19 Bid_Points: a two-bid calculator in the Wind HU layout. Rows 1–35 stay where the Wind HU sheet has them (the bid,
+# its points, the band tables further down); the sections below the points are written by bid_points() in this order.
+BIDS = "EF"                                                         # BORA 1, BORA 2; column G = BORA 1 + 2
+DASH_BID = {8: "=Dash_MVA/In_Bids", 9: "=Dash_Overbuild", 10: "=Dash_BESS_Share", 11: "=Inputs!$E$21",
+            12: "=Dash_Municipal", 13: "=Dash_Community", 14: "=Dash_Partial", 15: "=Dash_PB_Mult",
+            16: "=Dash_Brownfield", 17: "=Dash_Shared", 18: "=Dash_EU_Turbine", 19: "=Dash_EU_Transformer"}
+DATES = [("d_sign", "Signing fee and DD paid", "=Inputs!$E$27"),
+         ("d_bid", "Bid submission: fee paid, bid security posted", "=Inputs!$E$95"),
+         ("d_award", "Award", "=Inputs!$E$96"),
+         ("d_pb", "PB top-up posted (award + 17 days), bid security released", "=Deposits!$K$10"),
+         ("d_tso", "TSO security paid (connection request)", "=Inputs!$E$97"),
+         ("d_cont", "Devex contingency paid", "=Devex_FEP!$F$38"),
+         ("d_hcssz", "Connection agreement (HCSSZ): connection fees paid", "=Inputs!$E$99"),
+         ("d_ntp", "Notice to proceed", "=Inputs!$E$154"),
+         ("d_cod", "COD", "=Inputs!$E$155"),
+         ("d_rel", "Performance security released", None)]               # the sheet's own input (no model date)
+RATES = [("fx", "FX rate", "HUF/EUR", "=Inputs!$E$11", "#,##0"),
+         ("bw", "Security base: benchmark investment, wind", "HUF/MW", "=Inputs!$E$75*Million", "#,##0"),
+         ("bb", "Security base: benchmark investment, BESS", "HUF/MWh", "=Inputs!$E$89*Million", "#,##0"),
+         ("pf", "Participation fee per bid", "HUF", "=Inputs!$E$81*Million", "#,##0"),
+         ("bsr", "Bid security, share of base", "%", "=Inputs!$E$76", "0.0%"),
+         ("pbr", "Performance security, minimum share of base", "%", "=Inputs!$E$77", "0.0%"),
+         ("tso", "TSO security", "HUF/MVA", "=Inputs!$E$83*Million", "#,##0"),
+         ("ind", "Indirect connection fee (közvetett)", "HUF/MVA", "=Inputs!$E$290", "#,##0"),
+         ("dir", "Direct connection fee per connection point (közvetlen)", "HUF", "=Inputs!$E$291", "#,##0"),
+         ("gf", "Bank guarantee fee", "%", "=Inputs!$E$113", "0.0%"),
+         ("sdd", "Signing fee and DD, 200 MVA project", "EUR k", "=(Inputs!$E$24+Inputs!$E$25)/In_Scale", "#,##0"),
+         ("dc", "Devex contingency", "%", "=Inputs!$E$68", "0.0%"),
+         ("src", "Project capacity in the devex file and the signing fee", "MVA", "=In_Source_MVA", "#,##0")]
+# Securities and fees: key, label, formula ({c} = bid column, {k} = row of key k), form, date key, kind
+FEES = [("share", "Share of the 200 MVA project (bid MVA ÷ 200)", "x", "={c}$8/$E${src}", None, None, "calc"),
+        ("base", "Security base (wind MW × benchmark + BESS MWh × benchmark)", "EUR k",
+         "=({c}$20*$E${bw}+{c}$22*$E${bb})/$E${fx}/Thousand", None, None, "calc"),
+        ("sign", "Signing fee and DD", "EUR k", "=$E${sdd}*{c}{share}", "cash", "d_sign", "calc"),
+        ("part", "Participation fee (sunk)", "EUR k", "=$E${pf}/$E${fx}/Thousand", "cash", "d_bid", "calc"),
+        ("bsg", "Bid security, gross", "EUR k", "=$E${bsr}*{c}{base}", "guarantee", "d_bid", "calc"),
+        ("pbg", "Performance security, gross (rate × multiple × base)", "EUR k", "=$E${pbr}*{c}$15*{c}{base}",
+         "guarantee", "d_pb", "calc"),
+        ("bsc", "Less bid security credited (XII.11; its guarantee released)", "EUR k", "=-{c}{bsg}", None, "d_pb",
+         "calc"),
+        ("pbt", "Performance security top-up posted at award", "EUR k", "={c}{pbg}+{c}{bsc}", "guarantee", "d_pb",
+         "calc"),
+        ("tsor", "TSO connection-request security", "EUR k", "=$E${tso}*{c}$8/$E${fx}/Thousand", "cash", "d_tso",
+         "calc"),
+        ("indg", "Indirect connection fee, gross", "EUR k", "=$E${ind}*{c}$8/$E${fx}/Thousand", None, "d_hcssz",
+         "calc"),
+        ("tsoc", "Less TSO security credited (XIII.6, Annex 1)", "EUR k", "=-{c}{tsor}", None, "d_hcssz", "calc"),
+        ("indp", "Indirect connection fee payable", "EUR k", "={c}{indg}+{c}{tsoc}", "cash", "d_hcssz", "calc"),
+        ("dirp", "Direct connection fee (per point ÷ bids sharing it, ÖSZ-8)", "EUR k",
+         "=$E${dir}/$E${fx}/Thousand/MAX(1,{c}$17*SUM($E$17:$F$17))", "cash", "d_hcssz", "calc"),
+        ("sub1", "Cash payable excl. connection fees", "EUR k", "={c}{part}+{c}{tsor}", None, None, "total"),
+        ("sub2", "Connection fees payable", "EUR k", "={c}{indp}+{c}{dirp}", None, None, "total"),
+        ("sub3", "Cash payable incl. connection fees", "EUR k", "={c}{sub1}+{c}{sub2}", None, None, "total"),
+        ("peak", "Guarantees outstanding at peak (PB gross)", "EUR k", "=MAX({c}{bsg},{c}{pbg})", None, None, "total"),
+        ("gfee", "Guarantee fees to COD (on the guarantee outstanding)", "EUR k",
+         "=$E${gf}*(($E${d_pb}-$E${d_bid})*{c}{bsg}+MAX(0,MIN($E${d_cod},$E${d_rel})-$E${d_pb}+1)*{c}{pbg})"
+         "/Days_In_Year", None, None, "total")]
+SUMMARY = [("s_pts", "Points", "points", "={c}$34"),
+           ("s_sign", "Signing fee and DD", "EUR k", "={c}{sign}"),
+           ("s_dev", "Devex, land and contingency", "EUR k", "={c}{dtot}"),
+           ("s_cash", "Cash deposits and fees excl. connection fees", "EUR k", "={c}{sub1}"),
+           ("s_conn", "Connection fees", "EUR k", "={c}{sub2}"),
+           ("s_ex", "Total cash to COD excl. connection fees", "EUR k", "={c}{s_sign}+{c}{s_dev}+{c}{s_cash}"),
+           ("s_in", "Total cash to COD incl. connection fees", "EUR k", "={c}{s_ex}+{c}{s_conn}"),
+           ("s_gfee", "Guarantee fees to COD", "EUR k", "={c}{gfee}"),
+           ("s_peak", "Peak guarantee", "EUR k", "={c}{peak}"),
+           ("s_cod", "COD", "date", "=$E${d_cod}")]
+DEVEX_LINES = range(5, 38)                                          # Devex_FEP rows (200 MVA amounts in column L)
+DEVEX_OTHER = 36                                                   # other costs: outside the contingency base
+QUARTERS = 21
+PB_RELEASE = date(2033, 3, 31)
+EU_NOTE = "the bid commits EU equipment; the CN case is a build switch on the Dashboard"
 PB_RELEASE_NOTE = "model has no PB release date; Kiírás XII.13, estimate"
 CONSTANTS = {"R": ("Million", "#", "Unit conversion"), "S": ("Days in a year", "days", "Guarantee-fee day count"),
              "T": ("Months in a quarter", "months", "Calendar")}
@@ -289,16 +339,62 @@ def collapse_chains(wb, sheet):
             c.value = "=" + op
 
 
-# =========================================================================================== §18.2/18.3 Bid_Points
+# =========================================================================================== §19 Bid_Points
 def _clear(ws, rows, cols):
     for r in rows:
         for col in cols:
             ws[f"{col}{r}"].value = None
 
 
+class _Writer:
+    """Writes the Bid_Points rows with the Wind HU styles (header bar, label, unit, input, calc, total, date)."""
+
+    def __init__(self, ws, src, first):
+        self.ws, self.src, self.r, self.rows = ws, src, first, {}
+
+    def blank(self):
+        self.r += 1
+
+    def header(self, title, heads):
+        for col in range(1, 17):
+            _copy_style(self.src.cell(47, col), self.ws.cell(self.r, col))
+        self.ws[f"A{self.r}"].value, self.ws[f"C{self.r}"].value = "x", title
+        for col, v in heads.items():
+            self.ws[f"{col}{self.r}"].value = v
+        self.r += 1
+
+    def row(self, key, label, unit, values, kind="calc", fmt=None):
+        r, s = self.r, self.src
+        total = kind == "total"
+        _copy_style(s["C72"] if total else s["C48"], self.ws[f"C{r}"])
+        _copy_style(s["D48"], self.ws[f"D{r}"])
+        self.ws[f"C{r}"].value, self.ws[f"D{r}"].value = label, unit
+        for col, v in values.items():
+            if col in "EFG":
+                model = {"input": s["E48"], "date_in": s["E37"], "date": s["L63"], "total": s["E72"]}.get(kind, s["E63"])
+            else:
+                model = {"H": s["D48"], "L": s["L63"]}.get(col, s["E63"])
+            _copy_style(model, self.ws[f"{col}{r}"])
+            self.ws[f"{col}{r}"].value = v
+            if fmt and col in "EFG":
+                self.ws[f"{col}{r}"].number_format = fmt
+        if key:
+            self.rows[key] = r
+        self.r += 1
+        return r
+
+
+def _copy_style(src, dst):
+    dst.font, dst.fill, dst.border = copy(src.font), copy(src.fill), copy(src.border)
+    dst.alignment, dst.number_format = copy(src.alignment), src.number_format
+
+
+def _fmt(f, rows, c="E"):
+    return f.format(c=c, **{k: v for k, v in rows.items()})
+
+
 def bid_points(wb):
-    """The Wind HU sheet copied in (§17.3), then Bora only: column E per bid, column F the total over In_Bids bids,
-    amounts in k€ (the HUF unit rates of the tender stay HUF, converted at the one FX line E48)."""
+    """The Wind HU sheet copied in (§17.3), then §19: a self-contained two-bid calculator, Bora only, EUR k."""
     at = wb.sheetnames.index("Bid_Points")
     del wb["Bid_Points"]
     src = openpyxl.load_workbook(WIND_HU)[WIND_HU_SHEET]
@@ -309,102 +405,163 @@ def bid_points(wb):
                 _copy_cell(c, ws.cell(c.row, c.column))
     for k, dim in src.column_dimensions.items():
         ws.column_dimensions[k].width, ws.column_dimensions[k].hidden = dim.width, dim.hidden
+    ws.column_dimensions["H"].width = 11
     for r, dim in src.row_dimensions.items():
         if dim.height:
             ws.row_dimensions[r].height = dim.height
     ws.freeze_panes = src.freeze_panes
     ws.sheet_view.showGridLines = src.sheet_view.showGridLines
-    for rng in src.conditional_formatting:
-        for rule in rng.rules:
-            ws.conditional_formatting.add(str(rng.sqref).replace("E156:I156", "E156:F156"), rule)
+    cf_rules = [rule for rng in src.conditional_formatting for rule in rng.rules]
 
-    # Bora only: the other sites' columns (G BORA S, H Iváncsa, I Dunaújváros, J total, N:O source split) go;
-    # the scoring tables (rows 158+) keep their own columns E, F, H, I.
-    _clear(ws, range(1, 157), "GHIJNO")
-    _clear(ws, [r for r in range(1, 61) if r not in (7, 8, 20, 21, 22)], "F")
-    ws["C3"].value = "Bora"
-    ws["C4"].value = "Bora – bid, deposits and devex to COD"
-    ws["D12"].value, ws["D56"].value = "EUR k/MVA", "EUR k"
-    for r in HEADER_ROWS:
-        ws[f"E{r}"].value, ws[f"F{r}"].value = PER_BID, (TOTAL if r != 47 else None)
-    ws["C34"].value = ws["C122"].value = "Points total, live case"
-
-    # Constants: the workbook's Thousand (Inputs block U); Million, days in a year and the quarter length here.
+    # Title, constants and the bid (rows 1–35): two typed bids pre-filled with the model's bid, the Dashboard bid
+    # alongside for comparison; the other sites' columns go.
+    _clear(ws, range(1, 36), "GHIJ")
+    ws["C3"].value, ws["C4"].value = "Bora", "Bora – bid, deposits and devex to COD"
     ws["Q4"].value = None
     _copy_cell(src["S4"], ws["T4"])
     ws["T4"].value = 3
     for col, (label, unit, source) in CONSTANTS.items():
-        like(ws[f"{col}4"], ws["H8"], ws[f"{col}4"].value, "#,##0")
-        like(ws[f"{col}3"], ws["C8"], label)
-        like(ws[f"{col}5"], ws["D8"], unit)
-        like(ws[f"{col}6"], ws["D8"], source)
+        _copy_style(src["E48"], ws[f"{col}4"])
+        ws[f"{col}4"].number_format = "#,##0"
+        for r, v in ((3, label), (5, unit), (6, source)):
+            _copy_style(src["D48"], ws[f"{col}{r}"])
+            ws[f"{col}{r}"].value = v
     define(wb, "Million", "Bid_Points!$R$4")
     define(wb, "Days_In_Year", "Bid_Points!$S$4")
     define(wb, "Qtr_Months", "Bid_Points!$T$4")
-
-    for r, f in {**BID_LEVERS, **BID_RATES, **BID_DATES}.items():   # the model's bid, rates and dates
-        _link(ws[f"E{r}"], f)
-    ws["C56"].value = "Direct connection fee per bid (model: per MVA of the shared point)"
-    like(ws["F45"], ws["D45"], PB_RELEASE_NOTE)
+    ws["E7"].value, ws["F7"].value, ws["G7"].value, ws["H7"].value = "BORA 1", "BORA 2", "BORA 1 + 2", "Dashboard bid"
+    _copy_style(src["G7"], ws["H7"])
+    bid = model_bid(wb)
+    for r, f in DASH_BID.items():
+        for col in BIDS:
+            ws[f"{col}{r}"].value = bid[r]
+        _copy_style(src["E20"], ws[f"H{r}"])
+        ws[f"H{r}"].number_format = ws[f"E{r}"].number_format
+        _link(ws[f"H{r}"], f)
+    ws["D12"].value = "EUR k/MVA"
+    _copy_style(src["D48"], ws["I18"])
+    ws["I18"].value = EU_NOTE
+    for r in (8, 20, 21, 22):
+        _copy_style(src["E20"], ws[f"G{r}"])
+        ws[f"G{r}"].value = f"=E{r}+F{r}"
+    ws["C34"].value = "Points total"
+    _copy_style(src["C24"], ws["C35"])
+    _copy_style(src["D24"], ws["D35"])
+    ws["C35"].value, ws["D35"].value = "Same as the Dashboard bid (1 = yes)", "flag"
+    for col in BIDS:
+        _copy_style(src["E20"], ws[f"{col}35"])
+        ws[f"{col}35"].value = f"=N(SUMPRODUCT(--({col}8:{col}19<>$H$8:$H$19))=0)"
+        ws[f"{col}35"].number_format = "0"
     ws["F222"].value = 1                                              # ÖSZ-6: x ≥ 2.0 scores 100 (GYIK Q34)
 
-    for r, f in EUR_K.items():                                         # securities and fees in k€
-        if "Deposits" in f:
-            _link(ws[f"E{r}"], f)
+    # Everything between the points and the scoring tables is rewritten: clear it, close the gap, open the rows.
+    ws.conditional_formatting = ConditionalFormattingList()
+    _clear(ws, range(36, 157), [L(c) for c in range(1, 21)])
+    shift_rows(wb, "Bid_Points", 36, -121)
+    n = 3 + len(DATES) + 2 + len(RATES) + 2 + len(FEES) + 2 + len(DEVEX_LINES) + 3 + len(SUMMARY) + 2 + QUARTERS + 3
+    shift_rows(wb, "Bid_Points", 36, n)
+    w = _Writer(ws, src, 37)
+    heads = {"E": "BORA 1", "F": "BORA 2", "G": "BORA 1 + 2"}
+
+    w.header("Key dates", {"E": "Date"})
+    for key, label, f in DATES:
+        if f:
+            w.row(key, label, "date", {"E": f}, "date")
+            _link(ws[f"E{w.rows[key]}"], f)
         else:
-            ws[f"E{r}"].value = f
-    for r, d in DEVEX.items():                                         # devex per line = the model's k€ ÷ bids
-        _link(ws[f"E{r}"], f"=Devex_FEP!$E${d}/In_Bids")
-        if r != 118:
-            _link(ws[f"L{r}"], f"=Devex_FEP!$F${d}")
-    for r in TOTAL_ROWS:
-        ws[f"F{r}"].value = f"=E{r}*In_Bids"
-        ws[f"F{r}"]._style = copy(ws[f"E{r}"]._style)
-    ws["F122"].value = ws["F131"].value = None
+            w.row(key, label, "date", {"E": PB_RELEASE, "F": PB_RELEASE_NOTE}, "date_in")
+            _copy_style(src["D48"], ws[f"F{w.rows[key]}"])
+    w.blank()
+    w.header("Rates and fees (tender unit rates in HUF, converted at the FX rate)", {"E": "Rate"})
+    for key, label, unit, f, fmt in RATES:
+        r = w.row(key, label, unit, {"E": f}, "calc", fmt)
+        _link(ws[f"E{r}"], f)
+    w.blank()
+    w.header("Securities and fees to COD (EUR k)", {**heads, "H": "Form", "L": "Date"})
+    for key, label, unit, f, form, dkey, kind in FEES:
+        w.rows[key] = w.r                                              # rows may refer to their own key
+        vals = {col: _fmt(f, w.rows, col) for col in BIDS}
+        vals["G"] = None if key == "share" else f"=E{w.r}+F{w.r}"
+        if form:
+            vals["H"] = form
+        if dkey:
+            vals["L"] = f"=$E${w.rows[dkey]}"
+        w.row(key, label, unit, {k: v for k, v in vals.items() if v is not None}, kind,
+              "0.00" if unit == "x" else "#,##0.0")
+    w.blank()
+    w.header("Devex, land and contingency to COD (EUR k)", {**heads, "H": "Form", "L": "Date"})
+    dev = wb["Devex_FEP"]
+    first = w.r
+    for d in DEVEX_LINES:
+        task, item = dev[f"C{d}"].value, dev[f"D{d}"].value
+        label = f"{task.strip()} – {item}" if task and task.strip() != item.strip() else item
+        r = w.row(f"dev{d}", label, "EUR k", {**{col: f"=Devex_FEP!$L${d}*{col}${w.rows['share']}" for col in BIDS},
+                                               "G": f"=E{w.r}+F{w.r}", "H": "cash"}, "calc", "#,##0.0")
+        _link(ws[f"L{r}"], f"=Devex_FEP!$F${d}")
+        _copy_style(src["L63"], ws[f"L{r}"])
+        ws[f"L{r}"].font = Font(name=ws[f"L{r}"].font.name, size=ws[f"L{r}"].font.sz, color=GREEN)
+    last, other = w.r - 1, w.rows[f"dev{DEVEX_OTHER}"]
+    w.row("cont", "Contingency on devex (excl. other costs) and participation fee", "EUR k",
+          {**{col: f"=$E${w.rows['dc']}*(SUM({col}{first}:{col}{last})-{col}{other}+{col}{w.rows['part']})"
+              for col in BIDS}, "G": f"=E{w.r}+F{w.r}", "H": "cash", "L": f"=$E${w.rows['d_cont']}"}, "calc", "#,##0.0")
+    w.row("dtot", "Devex, land and contingency", "EUR k",
+          {**{col: f"=SUM({col}{first}:{col}{w.r - 1})" for col in BIDS}, "G": f"=E{w.r}+F{w.r}"}, "total", "#,##0.0")
+    items = (w.rows["sign"], w.rows["cont"])
+    w.blank()
+    w.header("Summary to COD (EUR k)", heads)
+    for key, label, unit, f in SUMMARY:
+        w.rows[key] = w.r
+        vals = {col: _fmt(f, w.rows, col) for col in (BIDS if key in ("s_pts", "s_cod") else "EFG")}
+        if key == "s_cod":
+            vals = {"E": vals["E"]}
+        w.row(key, label, unit, vals, "total" if key in ("s_ex", "s_in") else ("date" if key == "s_cod" else "calc"),
+              None if key == "s_cod" else ("#,##0.0" if unit == "EUR k" else "#,##0.00"))
+    w.blank()
 
-    # Quarterly cash: one SUMPRODUCT per cell over the cash lines (flag column M); cumulative and guarantees on the
-    # total column.
-    like(ws["M74"], ws["L74"], "In cash")
-    for r in range(75, 119):
-        if ws[f"E{r}"].value is not None and r != 85:
-            like(ws[f"M{r}"], ws["F222"], 1 if r in CASH_LINES else 0, "0")
-    define(wb, "Bid_Dates", "Bid_Points!$L$75:$L$118")
-    define(wb, "Bid_Cash", "Bid_Points!$M$75:$M$118")
-    first, last = 134, label_row(ws, "Total", start=134) - 1
-    for r in range(first, last + 1):
-        if r > first:
-            ws[f"C{r}"].value = f"=EOMONTH(C{r - 1},Qtr_Months)"
-        ws[f"E{r}"].value = f"=SUMPRODUCT((Bid_Dates>EOMONTH($C{r},-Qtr_Months))*(Bid_Dates<=$C{r})*Bid_Cash,E$75:E$118)"
-        ws[f"L{r}"].value = f"=F{r}" if r == first else f"=L{r - 1}+F{r}"
-        ws[f"M{r}"].value = (f"=($C{r}<=$E$44)*(($E$38<=$C{r})*($E$39>$C{r})*$F$77"
-                             f"+($E$39<=$C{r})*($E$45>$C{r})*$F$78)")
-    chk = label_row(ws, "Check: quarters vs summary")
-    for col in "EF":
-        ws[f"{col}{chk - 1}"].value = f"=SUM({col}{first}:{col}{last})"
-        ws[f"{col}{chk}"].value = f'=IF(ABS({col}{chk - 1}-{col}126)<Tolerance,"OK","CHECK")'
+    # Quarterly cash: the dated cash items (Form = cash) per quarter; cumulative and guarantees on the total column.
+    define(wb, "Bid_Dates", f"Bid_Points!$L${items[0]}:$L${items[1]}")
+    define(wb, "Bid_Form", f"Bid_Points!$H${items[0]}:$H${items[1]}")
+    w.header("Cash to COD by quarter (EUR k)", {**heads, "L": "Cumulative", "M": "Guarantees"})
+    q0 = w.r
+    R = w.rows
+    for i in range(QUARTERS):
+        r = w.r
+        span = f"$C{r}"
+        vals = {col: (f"=SUMPRODUCT((Bid_Dates>EOMONTH({span},-Qtr_Months))*(Bid_Dates<={span})"
+                      f'*(Bid_Form="cash"),{col}${items[0]}:{col}${items[1]})') for col in BIDS}
+        vals["G"] = f"=E{r}+F{r}"
+        vals["L"] = f"=G{r}" if i == 0 else f"=L{r - 1}+G{r}"
+        vals["M"] = (f"=({span}<=$E${R['d_cod']})*(($E${R['d_bid']}<={span})*($E${R['d_pb']}>{span})*$G${R['bsg']}"
+                     f"+($E${R['d_pb']}<={span})*($E${R['d_rel']}>{span})*$G${R['pbg']})")
+        w.row(None, None, "EUR k", vals, "calc", "#,##0.0")
+        ws[f"L{r}"].number_format = ws[f"M{r}"].number_format = "#,##0.0"
+        _copy_style(src["C134"] if i == 0 else src["L63"], ws[f"C{r}"])
+        ws[f"C{r}"].value = date(2026, 9, 30) if i == 0 else f"=EOMONTH(C{r - 1},Qtr_Months)"
+    q1 = w.r - 1
+    w.row("qtot", "Total", "EUR k", {col: f"=SUM({col}{q0}:{col}{q1})" for col in "EFG"}, "total", "#,##0.0")
+    chk = w.row("qchk", "Check: quarters vs summary", "flag",
+                {col: f'=IF(ABS({col}{w.rows["qtot"]}-{col}{R["s_in"]})<Tolerance,"OK","CHECK")' for col in "EFG"},
+                "calc")
+    for rule in cf_rules:
+        ws.conditional_formatting.add(f"E{chk}:G{chk}", rule)
+    assert w.r == 36 + n - 1, (w.r, n)                                  # one blank row above the band tables
     mx = label_row(ws, "Maximum achievable points")
-    ws[f"I{mx}"].value = "=(E159+E171+E185+E198+E211+E225+E226+E227+E229)*MAX(H160:H231)"
-
-    other(wb, ws)
-    start, n = DROP["summary"]                                         # HUF rows go (bottom up: rows stay valid)
-    for r0, k in [(start + 1, n), *reversed(DROP["rows"])]:
-        _clear(ws, range(r0, r0 + k), [L(c) for c in range(1, 21)])
-        shift_rows(wb, "Bid_Points", r0, -k)
+    top, bottom = label_row(ws, "ÖSZ-1 – Municipal"), label_row(ws, "Generator transformers")
+    ws[f"I{mx}"].value = ws[f"I{mx}"].value.replace(")*100", f")*MAX(H{top}:H{bottom})")
     collapse_chains(wb, "Bid_Points")
     return ws
 
 
-def other(wb, ws):
-    """Devex_FEP row 36 (other costs) has no Wind HU line: a row is inserted above the RtB land purchase."""
-    at = 117
-    shift_rows(wb, "Bid_Points", at, 1)
-    for col in range(2, 14):
-        like(ws.cell(at, col), ws.cell(at + 1, col))
-    ws[f"C{at}"].value, ws[f"D{at}"].value = "Other costs (HR, car etc.)", ws[f"D{at + 1}"].value
-    _link(ws[f"E{at}"], f"=Devex_FEP!$E${DEVEX_OTHER}/In_Bids")
-    ws[f"F{at}"].value = f"=E{at}*In_Bids"
-    _link(ws[f"L{at}"], f"=Devex_FEP!$F${DEVEX_OTHER}")
-    ws[f"M{at}"].value = 1
+def model_bid(wb):
+    """The model's bid per bid (typed into BORA 1 and BORA 2): Dashboard levers; the bid commits EU equipment (the CN
+    case is a build switch on the Dashboard), so ÖSZ-9 is 1 for both items."""
+    v = lambda n: name_cell(wb, n).value  # noqa: E731
+    eu = 1
+    bids = -(-v("Dash_MVA") // name_cell(wb, "In_MVA_Per_Bid").value)
+    return {8: v("Dash_MVA") / bids, 9: v("Dash_Overbuild"), 10: v("Dash_BESS_Share"), 11: wb["Inputs"]["G21"].value,
+            12: v("Dash_Municipal"), 13: v("Dash_Community"), 14: v("Dash_Partial"), 15: v("Dash_PB_Mult"),
+            16: v("Dash_Brownfield"), 17: v("Dash_Shared"), 18: eu, 19: eu}
+
 
 
 # =========================================================================================== §18.1 the user's case
@@ -462,16 +619,19 @@ def euros(wb):
 
 
 def checks(wb):
-    """Dashboard section 8: Bid_Points quarterly cash = summary (inside Master_Check); check label shortened."""
+    """Dashboard section 8 (§19.6): the Bid_Points points check leaves Master_Check (Bid_Points shows "Same as the
+    Dashboard bid" instead); the Bid_Points quarterly cash check (all three columns) goes in."""
     d, bp = wb["Dashboard"], wb["Bid_Points"]
-    d.cell(label_row(d, "Bid_Points total for BORA 1"), 3).value = "Bid_Points total points"
+    old = label_row(d, "Bid_Points total for BORA 1")
+    _clear(d, [old], [L(c) for c in range(1, 12)])
+    shift_rows(wb, "Dashboard", old, -1)
     chk = label_row(bp, "Check: quarters vs summary")
     at = label_row(d, "Capacity: BESS MW")                              # before the last check row: inside the SUM
     shift_rows(wb, "Dashboard", at, 1)
     for col in range(3, 7):
         like(d.cell(at, col), d.cell(at + 1, col))
     d.cell(at, 3).value, d.cell(at, 4).value = "Bid_Points quarterly cash = summary to COD", "#"
-    d.cell(at, 5).value = f'=COUNTIF(Bid_Points!$E${chk}:$F${chk},"CHECK")'
+    d.cell(at, 5).value = f'=COUNTIF(Bid_Points!$E${chk}:$G${chk},"CHECK")'
     d.cell(at, 6).value = f'=IF(E{at}=0,"OK","CHECK")'
     master = name_cell(wb, "Master_Check")
     assert re.search(rf"E\d+:E{at + 1}\)", master.value), master.value
@@ -493,6 +653,19 @@ def change_log(wb):
             "G162 and E322 typed over formulas; Bid_Points with other sites; section 6 in mHUF",
             "Same numbers from levers and links; Bora only; € on the presentation sheets",
             "User 26-Oct-2026; SPEC §18")):
+        ws[f"{col}{r}"] = v
+    r += 1
+    for col in "BCDEFGHIJ":
+        ws[f"{col}{r}"]._style = copy(ws[f"{col}{r - 1}"]._style)
+    for col, v in zip("BCDEFGHIJ", (
+            f"=B{r - 1}+1", date(2026, 10, 27), "Bid_Points two-bid calculator", "Bid_Points; Dashboard",
+            "Bid_Points rows 7–157; Dashboard section 8 (points check removed, quarterly check E:G)",
+            "BORA 1 | BORA 2 | BORA 1 + 2 with typed bid levers, securities and fees with the deductions (bid security "
+            "into the PB, TSO security against the indirect fee), devex per bid on the 200 MVA lines, summary excl. / "
+            "incl. connection fees, quarterly cash.",
+            "Bid_Points per bid and total, linked to the Dashboard levers",
+            "Self-contained two-bid calculator in EUR k; 'Same as the Dashboard bid' line",
+            "User 27-Oct-2026; SPEC §19")):
         ws[f"{col}{r}"] = v
 
 

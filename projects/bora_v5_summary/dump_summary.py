@@ -27,7 +27,7 @@ def fmt(v):
 def dump(dash, cf, path, htm=None, bid=None):
     """Dashboard: label | unit | E … K. Cash_Flow: the same plus the first three and the last timeline values.
     HTM block 17 (sale at COD): label | unit | G | timeline ends. Bid_Points summary to COD: label | unit |
-    per bid | total."""
+    BORA 1 | BORA 2 | BORA 1 + 2."""
     lines = ["== Dashboard =="]
     for r in range(3, dash.max_row + 1):
         cells = [dash.cell(r, c).value for c in range(3, 12)]
@@ -48,11 +48,11 @@ def dump(dash, cf, path, htm=None, bid=None):
             if any(v is not None for v in cells[:6]):
                 lines.append(" | ".join(fmt(v) for v in cells))
     if bid is not None:
-        lines.append("== Bid_Points, summary to COD (Bora, per bid | total over the bids) ==")
-        top = next(r for r in range(1, bid.max_row + 1) if bid.cell(r, 3).value == "Summary to COD")
+        lines.append("== Bid_Points, summary to COD (BORA 1 | BORA 2 | BORA 1 + 2) ==")
+        top = next(r for r in range(1, bid.max_row + 1) if str(bid.cell(r, 3).value).startswith("Summary to COD"))
         end = next(r for r in range(top, bid.max_row + 1) if bid.cell(r, 3).value == "COD")
         for r in range(top, end + 1):
-            cells = [bid.cell(r, c).value for c in range(3, 7)]
+            cells = [bid.cell(r, c).value for c in range(3, 8)]
             if any(v is not None for v in cells):
                 lines.append(" | ".join(fmt(v) for v in cells))
     path.write_text("\n".join(lines) + "\n")
@@ -145,9 +145,17 @@ def hand_checks(wb):
              + (80 * N("Dash_EU_Turbine") + 20 * N("Dash_EU_Transformer")) * w["9"])
     out.append(("Total points", round(total, 2), S("Total points", "F")))
     bid = wb["Bid_Points"]
-    out.append(("Bid_Points points, per bid", bid["E34"].value, S("Total points", "F")))
+    eu_bid = total + (100 - 80 * N("Dash_EU_Turbine") - 20 * N("Dash_EU_Transformer")) * w["9"]   # bid: EU equipment
+    out.append(("Bid_Points points, per bid (EU equipment)", round(eu_bid, 2), bid["E34"].value))
     dev = next(r for r in range(1, bid.max_row + 1) if bid.cell(r, 3).value == "Devex, land and contingency")
-    out.append(("Bid_Points devex total = Devex_FEP E39", bid[f"F{dev}"].value, wb["Devex_FEP"]["E39"].value))
+    out.append(("Bid_Points BORA 1 devex = Devex_FEP E39", bid[f"E{dev}"].value, wb["Devex_FEP"]["E39"].value))
+    # BORA 1 = the model's bid (one 100 MVA bid): cash and PB top-up equal the Deposits k€ column.
+    B = lambda label: bid[f"E{label_row(bid, label)}"].value  # noqa: E731
+    dep = wb["Deposits"]
+    out += [("Bid_Points BORA 1 cash incl. connection fees", B("Cash payable incl. connection fees"),
+             sum(dep[f"M{r}"].value for r in (7, 11, 12, 18))),
+            ("Bid_Points BORA 1 PB top-up = Deposits M10", B("Performance security top-up"), dep["M10"].value),
+            ("Bid_Points BORA 1 PB gross = Dashboard (€ m × 1000)", B("Performance security, gross"), perf * 1000)]
     return out
 
 
