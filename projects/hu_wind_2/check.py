@@ -237,6 +237,7 @@ BIDS_RC = HERE / "out" / "HU_Wind_bids_recalc.xlsx"
 BIDS_DUMP = HERE / "out" / "dump_bids.txt"
 BID_CASH = HERE.parents[1] / "reference" / "HU_Wind_bid_deposits_fees_20261027.xlsx"
 CASE_COL = {"Base": "E", "Low": "F", "High": "G"}
+NY = 41                                                       # timeline years 2026-2066 (J:AX)
 POINTS_EXPECTED = {"E": 23.5, "F": 51.5, "G": 51.5}
 
 
@@ -301,6 +302,8 @@ def recompute_bid(dash, inp, RB, IB, col, case):
     sale = d(c("Sale_Date"))
 
     def factor(p, r):                   # simple interest within a year, capitalised 31-Dec, act/365 both ends
+        if p > end:                     # paid after the accrual end: no interest
+            return 1.0
         bal, y, start = 1.0, p.year, p
         while True:
             stop = min(date(y, 12, 31), end)
@@ -348,7 +351,7 @@ def recompute_bid(dash, inp, RB, IB, col, case):
     cons, oper = months(ntp, nc), months(cod, int(c("Life")) * 12)
     outl = flows[:-1]
     fixed = cs("Case_OM") + sum(c(x) for x in ("Opex_BoP", "Opex_Lease", "Opex_Ins", "Opex_Mgmt", "Opex_PropTax"))
-    years = range(c("First_Year"), c("First_Year") + 36)
+    years = range(c("First_Year"), c("First_Year") + NY)
     inv_y, eb_y, rev_y = {}, {}, {}
     for y in years:
         n = y - cod.year
@@ -369,7 +372,7 @@ def recompute_bid(dash, inp, RB, IB, col, case):
     codf = [(ye[y], inv_y[y] * (y <= cod.year) + (price + amt["bs"] + amt["pb"]) * (y == cod.year)) for y in years]
     cprofit = sum(x for _, x in codf)
     allin = capex + amt["tso"] + amt["dir"] + amt["ind"] + k("Dash_Municipal") * mva + amt["fee"] + amt["dev"] + sdd
-    out.update(built=built, allin=allin, allin_htm=allin, revenue=sum(rev_y.values()),
+    out.update(built=built, allin=allin, allin_htm=allin, revenue=sum(rev_y.values()), ebitda1=eb_y[cod.year + 1],
                opex=sum(eb_y.values()) - sum(rev_y.values()), ebitda=sum(eb_y.values()),
                htm_irr=xirr(htm), htm_npv=xnpv(c("Discount_Rate"), htm), price=price,
                cod_profit=cprofit, cod_post=cprofit - max(0, cprofit) * c("CIT_Rate"), cod_irr=xirr(codf),
@@ -381,12 +384,12 @@ EX = {"claims": "c_tot", "dsa": "c_dsa", "points": "pt_tot", "cash": "ex_cash", 
       "rtb_profit": "ex_rp", "rtb_post": "ex_rpost", "rtb_irr": "ex_rirr", "rtb_moic": "ex_rmoic", "built": "built",
       "allin": "ex_allin", "price": "ex_price", "cod_profit": "ex_xp", "cod_post": "ex_xpost", "cod_irr": "ex_xirr",
       "cod_moic": "ex_xmoic", "allin_htm": "ex_hcap", "revenue": "ex_rev", "opex": "ex_opex", "ebitda": "ex_eb",
-      "htm_irr": "ex_irr", "htm_npv": "ex_npv"}
+      "ebitda1": "ex_eb1", "htm_irr": "ex_irr", "htm_npv": "ex_npv"}
 
 
 def lint_bids(RB):
     """Workbook lint, plus the calc-sheet rules on the Dashboard (the lint applies them to `Calc` sheets only):
-    one formula per row across the columns from J (timeline rows filled across J:AS) and direction: up / left, and in
+    one formula per row across the columns from J (timeline rows filled across J:AX) and direction: up / left, and in
     the detailed timeline no reference to a later year. Exempt: the route totals and the annual cash flow (summary
     panels linking to the detail below) and the status link in row 3."""
     found = [str(f) for f in lint(BIDS)]
@@ -394,7 +397,7 @@ def lint_bids(RB):
     ws, names = wb["Dashboard"], _name_targets(wb)
     lo, hi = RB["summary"]
     t0 = RB["t_yr"]
-    tl = range(10, 46)
+    tl = range(10, 10 + NY)
     timeline_rows = {r for rows in RB["cf"].values() for r in rows.values()} | {RB["cf_yr"]}
     for row in ws.iter_rows():
         forms = {}
@@ -428,9 +431,16 @@ def lint_bids(RB):
     return found
 
 
-def run_case(RB, IB, case, out):
+def serial(day):
+    return (day - date(1899, 12, 30)).days
+
+
+def run_case(RB, IB, name, out, case="Base", settings=None, master_zero=True):
+    """Recalculate with the case and any input overrides; no errors, Master_Check 0, python = model to 1e-6."""
     with Office(BIDS) as lo:
         lo.set(f"Dashboard!H{RB['Dash_Case']}", case)
+        for ref, v in (settings or {}).items():
+            lo.set(ref, v)
         lo.calculate()
         lo.save(out)
     vals = openpyxl.load_workbook(out, data_only=True)
@@ -444,13 +454,15 @@ def run_case(RB, IB, case, out):
             diff = abs(dash[f"{col}{RB[ex]}"].value - x[key])
             worst = max(worst, diff)
             if diff > 1e-6:
-                lines.append(f"   MISMATCH {case} {nm} {key}: model {dash[f'{col}{RB[ex]}'].value} python {x[key]}")
-        worst = max(worst, abs(x["points"] - POINTS_EXPECTED[col]))
-        lines.append(f"  {case:<5} {nm:<12} points {x['points']:.1f} | RtB profit {x['rtb_profit']:,.1f} IRR "
+                lines.append(f"   MISMATCH {name} {nm} {key}: model {dash[f'{col}{RB[ex]}'].value} python {x[key]}")
+        if not settings:
+            worst = max(worst, abs(x["points"] - POINTS_EXPECTED[col]))
+        lines.append(f"  {name:<14} {nm:<12} points {x['points']:.1f} | RtB profit {x['rtb_profit']:,.1f} IRR "
                      f"{x['rtb_irr']:.2%} | HTM IRR {x['htm_irr']:.2%} | COD price {x['price']:,.1f}")
-    ok = not errs and worst < 1e-6 and dash[f"H{RB['master']}"].value == 0
-    print(f"case {case}: recalc", "no errors" if not errs else errs[:5], "| Master_Check",
-          dash[f"H{RB['master']}"].value, f"| python vs model max abs diff {worst:.2e} ->", "PASS" if ok else "FAIL")
+    master = dash[f"H{RB['master']}"].value
+    ok = not [e for e in errs if e.rule == "f-error"] and worst < 1e-6 and (master == 0 or not master_zero)
+    print(f"{name}: recalc", "no errors" if not [e for e in errs if e.rule == "f-error"] else errs[:5],
+          "| Master_Check", master, f"| python vs model max abs diff {worst:.2e} ->", "PASS" if ok else "FAIL")
     print("\n".join(lines))
     return ok, vals
 
@@ -464,10 +476,15 @@ def bids():
     for f in lf[:20]:
         print("  ", f)
     ok = not lf
+    hc = f"Inputs!E{IB['Date_HC']}"
+    tests = [("case Low", "Low", None), ("case High", "High", None),
+             ("HCSSZ 8-Jan-29", "Base", {hc: serial(date(2029, 1, 8))}),
+             ("HCSSZ 31-Mar-30", "Base", {hc: serial(date(2030, 3, 31))}),
+             ("MVA doubled", "Base", {f"Dashboard!{c}{RB['Dash_MVA']}": 100 for c in "EFG"})]
     with tempfile.TemporaryDirectory() as td:
-        for case in ("Low", "High"):
-            ok &= run_case(RB, IB, case, Path(td) / f"bids_{case}.xlsx")[0]
-    good, vals = run_case(RB, IB, "Base", BIDS_RC)
+        for name, case, settings in tests:
+            ok &= run_case(RB, IB, name, Path(td) / "t.xlsx", case, settings)[0]
+    good, vals = run_case(RB, IB, "case Base", BIDS_RC)
     ok &= good
     dump_bids(vals, RB)
     print("dump:", BIDS_DUMP)

@@ -1,6 +1,6 @@
 """HU wind bids: Bora (one 50 MVA low bid), Iváncsa, Dunaújváros – RtB exit, COD exit, hold to maturity (SPEC §23).
 
-Two sheets, no macros (columns Bora | Iváncsa | Dunaújváros | Total in E:H; dates per project in J:L; years in J:AS):
+Two sheets, no macros (columns Bora | Iváncsa | Dunaújváros | Total in E:H; dates in J; years 2026-2066 in J:AX):
   Dashboard  read top-down: key inputs and the case table (Base | Low | High, Live column) → bid points and capacity →
              deposit summary in the user's layout (HUF with dates, EUR k with dates, deductions shown, DEVEX line) →
              capex and devex breakdowns → the three routes (totals) → annual cash flow per project → the detailed
@@ -36,7 +36,9 @@ BID_CASH = ROOT / "reference" / "HU_Wind_bid_deposits_fees_20261027.xlsx"     # 
 P = ["E", "F", "G"]                                   # Bora, Iváncsa, Dunaújváros (same columns on both sheets)
 NAMES = ["Bora", "Iváncsa", "Dunaújváros"]
 DCOL = {"E": "J", "F": "J", "G": "J"}                 # payment date (one date column, common key dates)
-TL = [L(10 + i) for i in range(36)]                   # J:AS, 2026-2061
+NY = 41                                               # years 2026-2066 (COD up to 2035 + 30 years)
+TL = [L(10 + i) for i in range(NY)]                   # J:AX
+TLR = f"J{{r}}:{TL[-1]}{{r}}"                          # a timeline row range
 NUM, NUM1, PCT, MULT, DATE, INT = FMT["money"], FMT["money1"], FMT["pct"], FMT["mult"], FMT["date"], "0"
 NUM2, FAC, FLAG = FMT["money2"], FMT["factor"], FMT["flag"]
 CHECK_FMT = '"CHECK" 0;"CHECK" -0;"OK"'
@@ -148,8 +150,9 @@ INPUTS = [
     ("dir", "Direct connection fee per connection point", "HUF", NUM, [508345804, 460e6, 460e6],
      "Bora Inputs G291; Bid_Cash E53"),
     ("share_pt", "Bids sharing the connection point", "count", INT, [2, 1, 1], "Bora: 2 bids per point (SPEC §22.2)"),
-    ("sdd", "Signing fee and DD", "EUR k", NUM, [100, 150, 150], "Bora E24+E25: 400 × 50/200; Bid_Cash E55"),
-    *[(k, t, "EUR k", NUM1, v, "Bora Devex_FEP × 50/100 MVA; Bid_Cash E56 (10 % cont.)") for k, t, v in DEVEX],
+    ("sdd", "Signing fee and DD", "EUR k", NUM, [100, 150, 150], "Bora E24+E25 × 50/200; Bid_Cash E55; per project, not per MVA"),
+    *[(k, t, "EUR k", NUM1, v, "Bora devex × 50/200; Bid_Cash E56; per project, not per MVA")
+      for k, t, v in DEVEX],
     ("trafo", "EU transformers ≥ 80 % (ÖSZ-9)", "flag", INT, [0, 0, 0], "Bid_Cash E16; SPEC §23.1"),
     ("Key dates (all projects; value in column E)", None),
     ("Date_Sign", "Signing fee and DD paid", "date", DATE, dt(2026, 7, 31), "Bid_Cash E34"),
@@ -168,7 +171,7 @@ INPUTS = [
     ("Devex_Floor", "Devex minimum return multiple", "x", MULT, 2.0, "Devex file V20"),
     ("Freeze_Date", "Interest freeze date", "date", DATE, dt(2029, 6, 30), "Devex file V24"),
     ("Sale_Date", "Sale date (RtB exit)", "date", DATE, dt(2029, 9, 30), "Bora Inputs E58; SPEC §21.1"),
-    ("Sale_Costs", "Sale costs per project", "EUR k", NUM, 250, "SPEC §21.1"),
+    ("Sale_Costs", "Sale costs per project", "EUR k", NUM, 250, "SPEC §21.1; per project, not per MVA"),
     ("DSA_Rate", "Developer success fee (on committed MW, signing to sale, 30/360)", "EUR k/MW/yr", NUM1, 2.5, "Bora Inputs E36"),
     ("DSA_Cap", "Developer success fee cap", "EUR k/MW", NUM1, 10, "Bora Inputs E37"),
     ("CIT_Rate", "Corporate income tax on exit gains", "%", PCT, 0.09, "SPEC §22.2 (exit gains only)"),
@@ -182,7 +185,7 @@ INPUTS = [
     ("Subs_Lump", "On-site substation and 132 kV bay (lump sum)", "EUR k", NUM, 12000, "Bora Inputs G167"),
     ("Lump_Basis", "Source basis of the lump sums", "MVA", NUM, 200, "Bora Inputs E305"),
     ("Capex_Cont", "Capex contingency (not on BESS)", "%", PCT, 0.05, "Bora Inputs G173"),
-    ("BESS_Capex", "BESS capex", "EUR k/MWh", NUM, 100, "CLAUDE.md standing assumption, 15-Oct-26"),
+    ("BESS_Capex", "BESS capex (at cost; no BESS revenue or opex modelled)", "EUR k/MWh", NUM, 100, "CLAUDE.md standing assumption, 15-Oct-26"),
     ("Generation (hours and PPA price: case table on the Dashboard)", None),
     ("Curtailment", "Curtailment", "%", PCT, 0.02, "Bora Inputs G183"),
     ("Clipping", "Clipping", "%", PCT, 0.04, "Bora Dash_Clip_Override (user, 26-Oct-26)"),
@@ -404,7 +407,7 @@ def breakdowns(r):
              ("k_land", "Land purchase and easements", "=Capex_Land*{c}{built}"),
              ("k_subs", "Substation and 132 kV bay (scaled by MVA)", "=Subs_Lump*{c}{Dash_MVA}/Lump_Basis"),
              ("k_cont", "Contingency (not on BESS)", "=SUM({c}{k_turb}:{c}{k_subs})*Capex_Cont"),
-             ("k_bess", "BESS (on BESS energy)", "=BESS_Capex*{c}{mwh}")]
+             ("k_bess", "BESS (at cost; no BESS revenue or opex modelled)", "=BESS_Capex*{c}{mwh}")]
     for key, text, f in capex:
         r = rows3(r, key, text, "EUR k", NUM, f)
     r = rows3(r, "k_capex", "Construction capex", "EUR k", NUM, "=SUM({c}{k_turb}:{c}{k_bess})", bold=True, top=True)
@@ -447,7 +450,8 @@ EXEC = ["RtB exit (sale at RtB, 30-Sep-2029)",
         "Hold to maturity (EBITDA only, no debt, no tax)",
         ("ex_hcap", "Total capex and costs to COD", "EUR k", NUM),
         ("ex_rev", "Total revenue over the life", "EUR k", NUM), ("ex_opex", "Total opex over the life", "EUR k", NUM),
-        ("ex_eb", "Total EBITDA over the life", "EUR k", NUM), ("ex_irr", "Project IRR, pre-tax", "%", PCT),
+        ("ex_eb", "Total EBITDA over the life", "EUR k", NUM),
+        ("ex_eb1", "First full operating year EBITDA", "EUR k", NUM), ("ex_irr", "Project IRR, pre-tax", "%", PCT),
         ("ex_npv", "NPV at the discount rate, at the first year end", "EUR k", NUM)]
 BOLD_EX = ("ex_rpost", "ex_xpost", "ex_irr")
 CF = [("cf_spend", "Spending (capex, fees, securities, devex), net", "p_inv"), ("cf_rev", "Revenue", "p_rev"),
@@ -494,19 +498,20 @@ def claims_waterfall(r):
     r += 1
     r = rows3(r, "c_end", "Interest accrual end (earlier of freeze and sale)", "date", DATE,
               "=MIN(Freeze_Date,Sale_Date)", total=False)
-    for key, rate, text in (("c_s12", "Rate_Cash", "cash rate"), ("c_s20", "Rate_Devex", "devex rate")):
-        r = rows3(r, key, f"Accrual factor in the end year, {text}", "x", "0.0000",
-                  "=1+%s*({c}{c_end}-DATE(YEAR({c}{c_end}),1,1)+1)/Days_In_Year" % rate, total=False)
-    for ev, text, rate, stub, x in (("bid", "bid submission", "Rate_Cash", "c_s12", "Date_Bid"),
-                                    ("pb", "performance security posting", "Rate_Cash", "c_s12", "Date_PB"),
-                                    ("tso", "TSO security payment", "Rate_Cash", "c_s12", "Date_TSO"),
-                                    ("hc", "connection agreement (HCSSZ)", "Rate_Cash", "c_s12", "Date_HC"),
-                                    ("dev", "devex payment (average)", "Rate_Devex", "c_s20", "Date_Devex")):
-        r = rows3(r, "c_d_" + ev, f"Days to the first 31-Dec from {text}", "days", INT,
-                  "=DATE(YEAR(%s)+1,1,1)-%s" % (x, x), total=False)
-        r = rows3(r, "c_f_" + ev, f"Accrual factor from {text}", "x", "0.0000",
-                  "=(1+%s*{c}{c_d_%s}/Days_In_Year)*(1+%s)^(YEAR({c}{c_end})-YEAR(%s)-1)*{c}{%s}"
-                  % (rate, ev, rate, x, stub), total=False)
+    r = rows3(r, "c_ys", "Start of the accrual end year", "date", DATE, "=DATE(YEAR({c}{c_end}),1,1)", total=False)
+    for ev, text, rate, x in (("bid", "bid submission", "Rate_Cash", "Date_Bid"),
+                              ("pb", "performance security posting", "Rate_Cash", "Date_PB"),
+                              ("tso", "TSO security payment", "Rate_Cash", "Date_TSO"),
+                              ("hc", "connection agreement (HCSSZ)", "Rate_Cash", "Date_HC"),
+                              ("dev", "devex payment (average)", "Rate_Devex", "Date_Devex")):
+        r = rows3(r, "c_a_" + ev, f"From {text}: factor in the payment year (if before the end year)", "x",
+                  "0.0000", "=1+%s*(DATE(YEAR(%s)+1,1,1)-%s)*(%s<{c}{c_ys})/Days_In_Year" % (rate, x, x, x),
+                  total=False)
+        r = rows3(r, "c_b_" + ev, f"From {text}: factor in the end year (to the accrual end)", "x", "0.0000",
+                  "=1+%s*MAX(0,{c}{c_end}-MAX(%s,{c}{c_ys})+1)/Days_In_Year" % (rate, x), total=False)
+        r = rows3(r, "c_f_" + ev, f"From {text}: accrual factor (whole years in between at 1 + rate)", "x",
+                  "0.0000", "={c}{c_a_%s}*(1+%s)^MAX(0,YEAR({c}{c_ys})-YEAR(%s)-1)*{c}{c_b_%s}" % (ev, rate, x, ev),
+                  total=False)
     lines = [("c_pf", "Claim: participation fee (not reimbursed)", "={c}{e_pf}*({c}{c_f_bid}-1)"),
              ("c_bs", "Claim: bid security (cash)", "={c}{e_bs}*({c}{c_f_bid}-1)"),
              ("c_pb", "Claim: performance security payable (cash)", "={c}{e_pb}*({c}{c_f_pb}-1)"),
@@ -556,7 +561,7 @@ def claims_waterfall(r):
 SUBROWS = [
     ("t_n", "Years from the COD year", "years", INT, None, "={x}${t_yr}-YEAR(Date_COD)"),
     ("t_cm", "Construction months by year end (value: construction period)", "months", INT,
-     '=DATEDIF(Date_NTP,Date_COD,"m")',
+     "=(YEAR(Date_COD)-YEAR(Date_NTP))*Months_In_Year+MONTH(Date_COD)-MONTH(Date_NTP)",
      "=({x}${t_yr}+1-YEAR(Date_NTP))*Months_In_Year-MONTH(Date_NTP)"),
     ("t_cs", "Construction share of the year (NTP to COD)", "%", PCT, None,
      "=MAX(0,MIN({x}{t_cm},${p}{t_cm})-MAX({x}{t_cm}-Months_In_Year,0))/${p}{t_cm}"),
@@ -596,6 +601,7 @@ SUBROWS = [
     ("p_cod", "COD exit: FEP cash flow (to COD, price and securities at COD)", "EUR k", NUM, None,
      "={x}{p_inv}*({x}{t_n}<=0)+{x}{t_cod}*($H{p_pv}+${p}${e_bs}+${p}${e_pb})"),
 ]
+TOTAL_FMT = {"t_cs": PCT, "t_op": '0.0" yrs"'}                # totals: construction 100 %, operating years
 NO_TOTAL = {"t_n", "t_cm", "t_om", "t_cod", "p_deg", "p_px", "p_idx", "p_df"}
 BOLD = {"p_inv", "p_rev", "p_opex", "p_ebitda", "p_cf", "p_cod"}
 
@@ -628,7 +634,7 @@ def timeline(r):
             for x in TL:
                 put(f"{x}{r}", fx(f, x=x, **kw), fmt=fmt, bold=bold, top=bold and key not in ("p_inv", "p_ebitda"))
             if key not in NO_TOTAL:
-                put(f"H{r}", f"=SUM(J{r}:AS{r})", fmt=NUM2 if fmt == PCT else fmt, bold=bold,
+                put(f"H{r}", "=SUM(%s)" % TLR.format(r=r), fmt=TOTAL_FMT.get(key, fmt), bold=bold,
                     top=bold and key not in ("p_inv", "p_ebitda"))
             r += 1
         proj[c] = rows
@@ -659,8 +665,6 @@ def checks(r):
     first = r
     defs = [("ch_wf", "RtB waterfall closes (proceeds = all amounts paid out)",
              lambda c: fx("=N(ABS({c}{w_proc}+{c}{w_sc}+{c}{w_dsa}-{c}{w_devsh}-{c}{f_rec})>Tolerance)", c=c)),
-            ("ch_end", "Claim lines paid before the accrual end year",
-             lambda c: fx("=SUMPRODUCT(--(YEAR({d}{f_pf}:{d}{f_dev})>=YEAR({c}{c_end})))", c=c, d=DCOL[c])),
             ("ch_route", "Turbine route is EU or CN",
              lambda c: fx('=N(AND({c}{Dash_Turbine}<>"EU",{c}{Dash_Turbine}<>"CN"))', c=c)),
             ("ch_devex", "Devex breakdown = DEVEX line",
@@ -689,11 +693,11 @@ def checks(r):
 def fill_summary():
     """Route totals and the annual cash flow: links to the detail; IRR, MOIC and NPV on the detail cash-flow rows."""
     pr = R["proj"]
-    ye = f"$J${R['t_end']}:$AS${R['t_end']}"
+    ye = f"$J${R['t_end']}:${TL[-1]}${R['t_end']}"
     fmts = {k[0]: k[3] for k in EXEC if not isinstance(k, str)}
     for c in P:
         q = pr[c]
-        tl = lambda k: f"$J${q[k]}:$AS${q[k]}"  # noqa: E731
+        tl = lambda k: f"$J${q[k]}:${TL[-1]}${q[k]}"  # noqa: E731
         fl = f"{c}{R['f_sdd']}:{c}{R['f_rec']}"
         f = {"ex_cash": f"={c}{R['e_tot']}", "ex_proc": f"={c}{R['f_rec']}", "ex_rp": f"={c}{R['r_profit']}",
              "ex_rpost": f"={c}{R['r_post']}", "ex_rmoic": f'=SUMIF({fl},">0")/-SUMIF({fl},"<0")',
@@ -702,6 +706,7 @@ def fill_summary():
              "ex_xpost": f"={c}{R['x_post']}", "ex_xmoic": f'=SUMIF({tl("p_cod")},">0")/-SUMIF({tl("p_cod")},"<0")',
              "ex_xirr": f"=XIRR({tl('p_cod')},{ye})", "ex_hcap": f"={c}{R['k_allin']}",
              "ex_rev": f"=$H${q['p_rev']}", "ex_opex": f"=$H${q['p_opex']}", "ex_eb": f"=$H${q['p_ebitda']}",
+             "ex_eb1": f"=SUMIF($J${R['t_yr']}:${TL[-1]}${R['t_yr']},YEAR(Date_COD)+1,{tl('p_ebitda')})",
              "ex_irr": f"=XIRR({tl('p_cf')},{ye})", "ex_npv": f"=XNPV(Discount_Rate,{tl('p_cf')},{ye})"}
         for key, form in f.items():
             put(f"{c}{R[key]}", form, fmt=fmts[key], bold=key in BOLD_EX)
@@ -709,14 +714,12 @@ def fill_summary():
         for key, _, src in CF:
             for x in TL:
                 put(f"{x}{cf[key]}", f"={x}{q[src]}", fmt=NUM, bold=key == "cf_ncf")
-            put(f"H{cf[key]}", f"=SUM(J{cf[key]}:AS{cf[key]})", fmt=NUM, bold=key == "cf_ncf")
+            put(f"H{cf[key]}", "=SUM(%s)" % TLR.format(r=cf[key]), fmt=NUM, bold=key == "cf_ncf")
         for x in TL:
             put(f"{x}{cf['cf_cum']}", f"=SUM($J{cf['cf_ncf']}:{x}{cf['cf_ncf']})", fmt=NUM)
     for key in ("ex_cash", "ex_proc", "ex_rp", "ex_rpost", "ex_allin", "ex_price", "ex_xp", "ex_xpost", "ex_hcap",
-                "ex_rev", "ex_opex", "ex_eb", "ex_npv"):
+                "ex_rev", "ex_opex", "ex_eb", "ex_eb1", "ex_npv"):
         put(f"H{R[key]}", f"=SUM(E{R[key]}:G{R[key]})", fmt=NUM, bold=key in BOLD_EX)
-    hf = f"H{R['f_sdd']}:H{R['f_rec']}"
-    put(f"H{R['ex_rmoic']}", f'=SUMIF({hf},">0")/-SUMIF({hf},"<0")', fmt=MULT)
     for x in TL:
         put(f"{x}{R['cf_yr']}", f"={x}{R['t_yr']}", fmt=INT, bold=True)
 

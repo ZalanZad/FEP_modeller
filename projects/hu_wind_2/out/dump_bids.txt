@@ -72,7 +72,7 @@ Owner's costs, engineering, PM, construction insurance | EUR k | 2,160.0 | 2,520
 Land purchase and easements | EUR k | 810.0 | 945.0 | 945.0 | 2,700.0
 Substation and 132 kV bay (scaled by MVA) | EUR k | 3,000.0 | 3,000.0 | 3,000.0 | 9,000.0
 Contingency (not on BESS) | EUR k | 2,458.5 | 2,843.2 | 2,843.2 | 8,145.0
-BESS (on BESS energy) | EUR k | 2,000.0 | 4,000.0 | 4,000.0 | 10,000.0
+BESS (at cost; no BESS revenue or opex modelled) | EUR k | 2,000.0 | 4,000.0 | 4,000.0 | 10,000.0
 Construction capex | EUR k | 53,628.5 | 63,708.2 | 63,708.2 | 181,045.0
 Connection fees (TSO security, direct, indirect) | EUR k | 10,706.1 | 3,976.3 | 3,976.3 | 18,658.6
 Municipal one-off | EUR k | 1,000.0 | 2,500.0 | 2,500.0 | 6,000.0
@@ -95,7 +95,7 @@ Total FEP cash out to RtB (peak exposure) | EUR k | 13,541.3 | 7,629.0 | 7,629.0
 Total proceeds to FEP at the sale | EUR k | 18,156.7 | 13,720.8 | 13,720.8 | 45,598.2
 FEP profit, pre-tax | EUR k | 4,615.4 | 6,091.8 | 6,091.8 | 16,799.0
 FEP profit, post-tax | EUR k | 4,200.0 | 5,543.5 | 5,543.5 | 15,287.1
-MOIC, pre-tax | x | 1.3408 | 1.7985 | 1.7985 | 1.5833
+MOIC, pre-tax | x | 1.3408 | 1.7985 | 1.7985 | 
 IRR, pre-tax | % | 22.57% | 35.00% | 35.00% | 
 ## COD exit (sale at COD to a buyer earning the discount rate)
 Total capex and costs to COD | EUR k | 66,227.3 | 71,342.7 | 71,342.7 | 208,912.8
@@ -109,24 +109,29 @@ Total capex and costs to COD | EUR k | 66,227.3 | 71,342.7 | 71,342.7 | 208,912.
 Total revenue over the life | EUR k | 382,397.7 | 446,130.7 | 446,130.7 | 1,274,659.1
 Total opex over the life | EUR k | -101,080.5 | -130,425.7 | -130,425.7 | -361,931.9
 Total EBITDA over the life | EUR k | 281,317.3 | 315,705.0 | 315,705.0 | 912,727.2
+First full operating year EBITDA | EUR k | 9,125.2 | 10,208.3 | 10,208.3 | 29,541.9
 Project IRR, pre-tax | % | 11.95% | 12.70% | 12.70% | 
 NPV at the discount rate, at the first year end | EUR k | 23,130.9 | 28,970.4 | 28,970.4 | 81,071.8
 ## Annual cash flow per project (EUR k) | Total
 ## Detailed calculations: claims, waterfall, dated flows, timelines, checks – expand the group | Bora | Iváncsa | Dunaújváros | Total
 ## RtB exit: FEP claims at the sale (interest to the freeze, act/365, capitalised 31-Dec) | Bora | Iváncsa | Dunaújváros | Total
 Interest accrual end (earlier of freeze and sale) | date | 30-Jun-2029 | 30-Jun-2029 | 30-Jun-2029 | 
-Accrual factor in the end year, cash rate | x | 1.0595 | 1.0595 | 1.0595 | 
-Accrual factor in the end year, devex rate | x | 1.0992 | 1.0992 | 1.0992 | 
-Days to the first 31-Dec from bid submission | days | 63.0 | 63.0 | 63.0 | 
-Accrual factor from bid submission | x | 1.3566 | 1.3566 | 1.3566 | 
-Days to the first 31-Dec from performance security posting | days | 351.0 | 351.0 | 351.0 | 
-Accrual factor from performance security posting | x | 1.3236 | 1.3236 | 1.3236 | 
-Days to the first 31-Dec from TSO security payment | days | 351.0 | 351.0 | 351.0 | 
-Accrual factor from TSO security payment | x | 1.3236 | 1.3236 | 1.3236 | 
-Days to the first 31-Dec from connection agreement (HCSSZ) | days | 92.0 | 92.0 | 92.0 | 
-Accrual factor from connection agreement (HCSSZ) | x | 1.0916 | 1.0916 | 1.0916 | 
-Days to the first 31-Dec from devex payment (average) | days | 1.0 | 1.0 | 1.0 | 
-Accrual factor from devex payment (average) | x | 1.3197 | 1.3197 | 1.3197 | 
+Start of the accrual end year | date | 01-Jan-2029 | 01-Jan-2029 | 01-Jan-2029 | 
+From bid submission: factor in the payment year (if before the end year) | x | 1.0207 | 1.0207 | 1.0207 | 
+From bid submission: factor in the end year (to the accrual end) | x | 1.0595 | 1.0595 | 1.0595 | 
+From bid submission: accrual factor (whole years in between at 1 + rate) | x | 1.3566 | 1.3566 | 1.3566 | 
+From performance security posting: factor in the payment year (if before the end year) | x | 1.1154 | 1.1154 | 1.1154 | 
+From performance security posting: factor in the end year (to the accrual end) | x | 1.0595 | 1.0595 | 1.0595 | 
+From performance security posting: accrual factor (whole years in between at 1 + rate) | x | 1.3236 | 1.3236 | 1.3236 | 
+From TSO security payment: factor in the payment year (if before the end year) | x | 1.1154 | 1.1154 | 1.1154 | 
+From TSO security payment: factor in the end year (to the accrual end) | x | 1.0595 | 1.0595 | 1.0595 | 
+From TSO security payment: accrual factor (whole years in between at 1 + rate) | x | 1.3236 | 1.3236 | 1.3236 | 
+From connection agreement (HCSSZ): factor in the payment year (if before the end year) | x | 1.0302 | 1.0302 | 1.0302 | 
+From connection agreement (HCSSZ): factor in the end year (to the accrual end) | x | 1.0595 | 1.0595 | 1.0595 | 
+From connection agreement (HCSSZ): accrual factor (whole years in between at 1 + rate) | x | 1.0916 | 1.0916 | 1.0916 | 
+From devex payment (average): factor in the payment year (if before the end year) | x | 1.0005 | 1.0005 | 1.0005 | 
+From devex payment (average): factor in the end year (to the accrual end) | x | 1.0992 | 1.0992 | 1.0992 | 
+From devex payment (average): accrual factor (whole years in between at 1 + rate) | x | 1.3197 | 1.3197 | 1.3197 | 
 Claim: participation fee (not reimbursed) | EUR k | 2.9307 | 2.9307 | 2.9307 | 8.7922
 Claim: bid security (cash) | EUR k | 138.5 | 177.9 | 177.9 | 494.3
 Claim: performance security payable (cash) | EUR k | 502.8 | 645.7 | 645.7 | 1,794.3
@@ -166,7 +171,6 @@ CIT on the gain | EUR k | -3,458.5 | -4,137.7 | -4,137.7 | -11,733.8
 FEP profit, post-tax | EUR k | 34,968.9 | 41,836.6 | 41,836.6 | 118,642.2
 ## Checks (0 = OK) | Bora | Iváncsa | Dunaújváros | Total
 RtB waterfall closes (proceeds = all amounts paid out) | flag | 0.0 | 0.0 | 0.0 | 0.0
-Claim lines paid before the accrual end year | flag | 0.0 | 0.0 | 0.0 | 0.0
 Turbine route is EU or CN | flag | 0.0 | 0.0 | 0.0 | 0.0
 Devex breakdown = DEVEX line | flag | 0.0 | 0.0 | 0.0 | 0.0
 Construction capex spread in full (timeline = capex) | flag | 0.0 | 0.0 | 0.0 | 0.0
@@ -227,7 +231,7 @@ Land purchase and easements | EUR k/MW | 15.0 |  |
 On-site substation and 132 kV bay (lump sum) | EUR k | 12,000.0 |  | 
 Source basis of the lump sums | MVA | 200.0 |  | 
 Capex contingency (not on BESS) | % | 5.00% |  | 
-BESS capex | EUR k/MWh | 100.0 |  | 
+BESS capex (at cost; no BESS revenue or opex modelled) | EUR k/MWh | 100.0 |  | 
 ## Generation (hours and PPA price: case table on the Dashboard)
 Curtailment | % | 2.00% |  | 
 Clipping | % | 4.00% |  | 
