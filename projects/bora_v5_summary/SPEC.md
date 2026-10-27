@@ -568,3 +568,38 @@ J:N). Keep that sheet untouched. Output: `projects/hu_wind_2/out/HU_Wind_bid_dep
    IRR; lint clean on the new sheets; LibreOffice recalc with no errors.
 5. **Layout (user, 27-Oct-2026):** no separate sheets – the inputs, RtB exit, HTM/COD (annual timeline in X:BG) and
    checks blocks (Master_Check) sit on `Bid_Cash` below the user's rows 1–78, which stay untouched.
+
+## 22. Thirteenth round (user, 27-Oct-2026): streamlined two-sheet workbook, Bora with a low bid
+
+The user wants the HU wind workbook streamlined: first sheet = main inputs + executive values (and the calculations below
+them), second sheet = the other inputs; Bora included with a **low bid**. Base: our `projects/hu_wind_2/build.py`
+(verified), not the externally modified copy `reference/HU_Wind_bid_deposits_fees_RTB_COD_HTM_20261027.xlsx` (kept for
+reference; its extra post-tax rows are adopted in the lean form below). Output `projects/hu_wind_2/out/HU_Wind_bids.xlsx`.
+
+1. **Sheet `Dashboard`** (Bora | Iváncsa | Dunaújváros | Total, EUR k, house styles):
+   - *Key inputs* (blue): MVA; overbuild; BESS share; hours; wind built below the bid (10 %); municipal one-off k€/MVA;
+     community €/MWh; partial, PB multiple, brownfield, shared; turbine route (EU / CN) and the turbine price it implies
+     (link to Inputs); RtB premium k€/MVA; FEP share of distributable; DSA on/off.
+     Bora's low bid: 100 MVA, overbuild **20 %**, BESS **10 %** × 4 h, built −10 %, municipal **20**, community **0**,
+     partial 1, PB 1.0x, brownfield 0, shared 1, **CN turbine** (500 k€/MW), premium 150, FEP share 70 %, DSA 1.
+     Iváncsa / Dunaújváros: the user's values (50 MVA, 41 % / 40 % × 4 h, 50 / 3, partial 0, shared 0, EU turbine, premium
+     150, FEP share 100 %, DSA 0).
+   - *Executive values* (links): points; cash to RtB (deposits, fees, devex, signing); RtB exit: FEP profit pre-tax,
+     CIT on the gain (9 %), FEP profit post-tax, IRR, MOIC, k€/MVA; build: wind built MW, all-in cost € m, k€/MW built,
+     k€/MVA, first full year EBITDA and GWh, project IRR pre-tax, NPV at 8 %; COD exit: price € m, k€/MW built, k€/MVA,
+     FEP profit pre- and post-tax (CIT on the gain), IRR, MOIC.
+   - *Below:* the calculation blocks of §21 in order, per project column: deposits and fees (HUF rates → EUR k, with
+     the deductions and dates), devex, RtB claims table (interest to the freeze), RtB waterfall, capex and all-in cost,
+     annual EBITDA timeline to the right (2026–2061; three stacked sub-blocks, same rows), COD exit, checks + Master_Check.
+2. **Sheet `Inputs`** (blue, with sources): FX, benchmarks, bid/PB rates, participation fee, TSO HUF/MVA, per-project
+   indirect fee HUF/MVA and direct fee HUF per point (Bora 73,071,306 / 508,345,804 shared by 2 bids → 254,172,902;
+   the others 19,826,680 / 460,000,000), signing + DD (Bora 200, others 150), devex incl. contingency (Bora 1,568.9 =
+   the Bora model's scaled Devex_FEP total at 100 MVA; others 1,000), dates per project (Bora: the Bora model's; others:
+   the user's sheet), claim terms (12 % cash lines incl. cash-posted bonds, 20 % devex with the 2× floor, freeze
+   30-Jun-2029, sale 30-Sep-2029, sale costs 250), capex per MW (turbine EU 850 / CN 500, installation 80, foundations 90,
+   BoP 70 + 60, owner's 40, land 15, contingency 5 %, substation 12,000 × MVA ÷ 200, BESS 100 k€/MWh, municipal at COD),
+   generation (2,500 h, 2 %, clipping 4 %, 0.3 %/yr), PPA 90 + 1 %, opex (as §21.1), life 30, discount 8 %, CIT 9 % on
+   exit gains only, band tables.
+3. Lean: no scenario selectors, no tables/sparklines, no macros; one formula per row; nothing shown twice; short notes.
+   Verification: LibreOffice recalc, no errors, Master_Check 0; lint clean; `check.py` recomputes the Bora RtB waterfall
+   and the three HTM IRRs and COD prices; the Iváncsa/Dunaújváros results equal the §21 build (same inputs).
