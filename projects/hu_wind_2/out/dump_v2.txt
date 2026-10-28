@@ -1,0 +1,492 @@
+#### Dashboard: label | unit | Bora | Iváncsa | Dunaújváros | Total
+## HU wind projects
+Master check (0 = OK; checks at the end of the detail) | flag |  |  |  | 0.0
+Key inputs: the bids |  | Bora | Iváncsa | Dunaújváros | Total
+Net connection capacity | MVA | 50.0 | 50.0 | 50.0 | 150.0
+Overbuild (ÖSZ-3) | % | 0.00% | 40.00% | 40.00% | 
+BESS power, share of MVA (ÖSZ-4) | % | 0.00% | 20.00% | 20.00% | 
+BESS duration | h | 4.0 | 4.0 | 4.0 | 
+Wind built below the bid | % | 0.00% | 0.00% | 0.00% | 
+Municipal one-off (ÖSZ-1), at COD | EUR k/MVA | 20.0 | 50.0 | 50.0 | 
+Community contribution (ÖSZ-2) | EUR/MWh | 0.0 | 3.0 | 3.0 | 
+Partial award accepted (ÖSZ-5) | flag | 1.0 | 1.0 | 1.0 | 
+Performance security multiple (ÖSZ-6) | x | 1.0 | 1.0 | 1.0 | 
+Brownfield site (ÖSZ-7) | flag | 0.0 | 0.0 | 0.0 | 
+Shared connection (ÖSZ-8) | flag | 1.0 | 1.0 | 1.0 | 
+Turbine route (EU or CN; EU scores ÖSZ-9) | text | CN | CN | CN | 
+RtB premium | EUR k/MVA | 150.0 | 150.0 | 150.0 | 
+FEP share of distributable proceeds | % | 70.00% | 100.00% | 100.00% | 
+Developer success fee (DSA) on | flag | 1.0 | 0.0 | 0.0 | 
+JV with a developer (1 = yes; claims and DSA apply) | flag | 1.0 | 0.0 | 0.0 | 
+Net P50 hours (project wind study) | h/yr | 2,500.0 | 2,500.0 | 2,500.0 | 
+Case: turbine price, PPA, yield, O&M |  | Base | Low | High | Live
+Case selected (Base, Low or High) | case |  |  |  | Base
+Turbine supply incl. transport, EU route | EUR k/MW | 850.0 | 950.0 | 800.0 | 850.0
+Turbine supply incl. transport, CN route | EUR k/MW | 500.0 | 600.0 | 480.0 | 500.0
+PPA price in the COD year | EUR/MWh | 90.0 | 90.0 | 100.0 | 90.0
+Net P50 hours (not used: project P50 in row 21) | h/yr | 2,500.0 | 2,460.0 | 2,600.0 | 2,500.0
+O&M full-service contract | EUR k/MW/yr | 12.0 | 12.0 | 10.0 | 12.0
+Bid points and capacity |  | Bora | Iváncsa | Dunaújváros | Total
+Points – municipal one-off | points | 4.0 | 20.0 | 20.0 | 
+Points – community contribution | points | 0.0 | 15.0 | 15.0 | 
+Points – overbuild | points | 0.0 | 9.0 | 9.0 | 
+Points – BESS | points | 0.0 | 7.5000 | 7.5000 | 
+Points – partial award | points | 5.0 | 5.0 | 5.0 | 
+Points – performance security | points | 0.0 | 0.0 | 0.0 | 
+Points – brownfield | points | 0.0 | 0.0 | 0.0 | 
+Points – shared connection | points | 5.0 | 5.0 | 5.0 | 
+Points – EU turbines | points | 0.0 | 0.0 | 0.0 | 
+Points – EU transformers | points | 0.0 | 0.0 | 0.0 | 
+Points total | points | 14.0 | 61.5 | 61.5 | 
+Wind committed in the bid | MW | 50.0 | 70.0 | 70.0 | 190.0
+BESS energy | MWh | 0.0 | 40.0 | 40.0 | 80.0
+Wind built (committed less the build shortfall) | MW | 50.0 | 70.0 | 70.0 | 190.0
+Guarantees, securities and connection fees, DEVEX (HUF) |  | Bora | Iváncsa | Dunaújváros | Total
+Participation fee | HUF | 3,000,000.0 | 3,000,000.0 | 3,000,000.0 | 9,000,000.0
+Bid security | HUF | 101,500,000.0 | 182,100,000.0 | 182,100,000.0 | 465,700,000.0
+Performance security payable (bid security deducted) | HUF | 406,000,000.0 | 728,400,000.0 | 728,400,000.0 | 1,862,800,000.0
+TSO connection-request security | HUF | 225,000,000.0 | 225,000,000.0 | 225,000,000.0 | 675,000,000.0
+Direct connection fee (per point ÷ bids sharing it) | HUF | 254,172,902.0 | 460,000,000.0 | 460,000,000.0 | 1,174,172,902.0
+Indirect connection fee, payable (TSO security deducted) | HUF | 3,428,565,300.0 | 766,334,000.0 | 766,334,000.0 | 4,961,233,300.0
+DEVEX – development (devex items excl. land) | HUF | 255,901,068.0 | 255,901,068.0 | 255,901,068.0 | 767,703,203.9
+DEVEX – land (reservation and purchase) | HUF | 39,347,625.0 | 39,347,625.0 | 39,347,625.0 | 118,042,875.0
+Signing fee and DD | HUF | 36,500,000.0 | 54,750,000.0 | 54,750,000.0 | 146,000,000.0
+Total cash to RtB (incl. signing and DD) | HUF | 4,749,986,895.0 | 2,714,832,693.0 | 2,714,832,693.0 | 10,179,652,280.9
+Guarantees, securities and connection fees, DEVEX (EUR k) |  | Bora | Iváncsa | Dunaújváros | Total
+Participation fee | EUR k | 8.2192 | 8.2192 | 8.2192 | 24.7
+Bid security | EUR k | 278.1 | 498.9 | 498.9 | 1,275.9
+Performance security payable (bid security deducted) | EUR k | 1,112.3 | 1,995.6 | 1,995.6 | 5,103.6
+TSO connection-request security | EUR k | 616.4 | 616.4 | 616.4 | 1,849.3
+Direct connection fee (per point ÷ bids sharing it) | EUR k | 696.4 | 1,260.3 | 1,260.3 | 3,216.9
+Indirect connection fee, payable (TSO security deducted) | EUR k | 9,393.3 | 2,099.5 | 2,099.5 | 13,592.4
+DEVEX – development (devex items excl. land) | EUR k | 701.1 | 701.1 | 701.1 | 2,103.3
+DEVEX – land (reservation and purchase) | EUR k | 107.8 | 107.8 | 107.8 | 323.4
+Signing fee and DD | EUR k | 100.0 | 150.0 | 150.0 | 400.0
+Total cash to RtB (incl. signing and DD) | EUR k | 13,013.7 | 7,437.9 | 7,437.9 | 27,889.5
+Cash to RtB by nature: sunk, returned, or borne by the buyer (EUR k) |  | Bora | Iváncsa | Dunaújváros | Total
+Sunk fees and devex (signing and DD, participation fee, land, development devex) | EUR k | 917.1 | 967.1 | 967.1 | 2,851.4
+Securities, returned (bid, performance, TSO connection request) | EUR k | 2,006.8 | 3,111.0 | 3,111.0 | 8,228.8
+Grid connection fees (direct + indirect, payable at HCSSZ) | EUR k | 10,089.7 | 3,359.8 | 3,359.8 | 16,809.3
+Total cash to RtB (= total above) | EUR k | 13,013.7 | 7,437.9 | 7,437.9 | 27,889.5
+Grid connection fees, share of the total | % | 77.53% | 45.17% | 45.17% | 60.27%
+FEP exposure if the buyer pays the grid connection fees | EUR k | 2,924.0 | 4,078.1 | 4,078.1 | 11,080.1
+Capex breakdown to COD |  | Bora | Iváncsa | Dunaújváros | Total
+Turbines (route price, live case) | EUR k | 25,000.0 | 35,000.0 | 35,000.0 | 95,000.0
+Installation and erection | EUR k | 4,000.0 | 5,600.0 | 5,600.0 | 15,200.0
+Foundations | EUR k | 4,500.0 | 6,300.0 | 6,300.0 | 17,100.0
+Balance of plant – civil | EUR k | 3,500.0 | 4,900.0 | 4,900.0 | 13,300.0
+Balance of plant – electrical | EUR k | 3,000.0 | 4,200.0 | 4,200.0 | 11,400.0
+Owner's costs, engineering, PM, construction insurance | EUR k | 2,000.0 | 2,800.0 | 2,800.0 | 7,600.0
+Land purchase and easements | EUR k | 750.0 | 1,050.0 | 1,050.0 | 2,850.0
+Substation and 132 kV bay (scaled by MVA) | EUR k | 3,000.0 | 3,000.0 | 3,000.0 | 9,000.0
+Contingency (not on BESS) | EUR k | 2,287.5 | 3,142.5 | 3,142.5 | 8,572.5
+BESS (on BESS energy) | EUR k | 0.0 | 4,000.0 | 4,000.0 | 8,000.0
+Construction capex | EUR k | 48,037.5 | 69,992.5 | 69,992.5 | 188,022.5
+Connection fees (TSO security, direct, indirect) | EUR k | 10,706.1 | 3,976.3 | 3,976.3 | 18,658.6
+Municipal one-off | EUR k | 1,000.0 | 2,500.0 | 2,500.0 | 6,000.0
+Land (devex land items) | EUR k | 107.8 | 107.8 | 107.8 | 323.4
+Development (devex excl. land, participation fee, signing and DD) | EUR k | 809.3 | 859.3 | 859.3 | 2,528.0
+All-in cost to COD (securities excluded: returned) | EUR k | 60,660.8 | 77,435.9 | 77,435.9 | 215,532.5
+All-in cost per MW built | EUR k/MW | 1,213.2 | 1,106.2 | 1,106.2 | 1,134.4
+All-in cost per MVA | EUR k/MVA | 1,213.2 | 1,548.7 | 1,548.7 | 1,436.9
+Devex breakdown (BORA_Devex 02-Oct-26 items × the scale; tender fee and securities above) |  | Bora | Iváncsa | Dunaújváros | Total
+Land | EUR k | 107.8 | 107.8 | 107.8 | 323.4
+Development devex (incl. contingency) | EUR k | 701.1 | 701.1 | 701.1 | 2,103.3
+Devex total (= DEVEX lines above; devex items × scale) | EUR k | 808.9 | 808.9 | 808.9 | 2,426.7
+Returns RTB COD HTM |  | Bora | Iváncsa | Dunaújváros | Total
+## RTB exit, Case A: buyer pays the grid connection fees (FEP does not pre-fund)
+Grid connection fees paid by the buyer (not FEP cash) | EUR k | 10,089.7 | 3,359.8 | 3,359.8 | 16,809.3
+Total FEP cash out to RtB (peak exposure) | EUR k | 2,839.6 | 3,993.7 | 3,993.7 | 10,827.0
+Total proceeds to FEP at the sale | EUR k | 7,264.6 | 10,361.0 | 10,361.0 | 27,986.5
+FEP profit, pre-tax | EUR k | 4,425.0 | 6,367.3 | 6,367.3 | 17,159.5
+FEP profit, post-tax | EUR k | 4,425.0 | 6,367.3 | 6,367.3 | 17,159.5
+MOIC, pre-tax | x | 2.5583 | 2.5943 | 2.5943 | 2.5849
+IRR, pre-tax | % | 80.53% | 78.53% | 78.53% | 
+## RTB exit, Case B: FEP pre-funds the grid connection fees, buyer reimburses them at the sale
+Total FEP cash out to RtB (peak exposure) | EUR k | 13,013.7 | 7,437.9 | 7,437.9 | 27,889.5
+Total proceeds to FEP at the sale | EUR k | 17,634.6 | 13,720.8 | 13,720.8 | 45,076.1
+FEP profit, pre-tax | EUR k | 4,620.9 | 6,282.9 | 6,282.9 | 17,186.7
+FEP profit, post-tax | EUR k | 4,620.9 | 6,282.9 | 6,282.9 | 17,186.7
+MOIC, pre-tax | x | 1.3551 | 1.8447 | 1.8447 | 1.6162
+IRR, pre-tax | % | 24.54% | 36.47% | 36.47% | 
+## COD exit
+Construction capex | EUR k | 48,037.5 | 69,992.5 | 69,992.5 | 188,022.5
+Connection fees (direct, indirect; the TSO security is credited against the indirect fee) | EUR k | 10,706.1 | 3,976.3 | 3,976.3 | 18,658.6
+Municipal one-off | EUR k | 1,000.0 | 2,500.0 | 2,500.0 | 6,000.0
+Land | EUR k | 107.8 | 107.8 | 107.8 | 323.4
+Development (devex excl. land, participation fee, signing and DD) | EUR k | 809.3 | 859.3 | 859.3 | 2,528.0
+Bid security: returned at COD (cash out and back; net 0) | EUR k | 0.0 | 0.0 | 0.0 | 0.0
+Performance security: returned at COD (cash out and back; net 0) | EUR k | 0.0 | 0.0 | 0.0 | 0.0
+RtB exit price forgone (150 k€/MVA × MVA, at the Case B sale date) | EUR k | 7,500.0 | 7,500.0 | 7,500.0 | 22,500.0
+Total costs to COD, incl. the RtB exit price forgone | EUR k | 68,160.8 | 84,935.9 | 84,935.9 | 238,032.5
+Sale price at COD | EUR k | 96,860.0 | 130,416.0 | 130,416.0 | 357,692.0
+FEP profit, pre-tax | EUR k | 28,699.2 | 45,480.1 | 45,480.1 | 119,659.5
+FEP profit, post-tax | EUR k | 28,699.2 | 45,480.1 | 45,480.1 | 119,659.5
+MOIC, pre-tax | x | 1.5076 | 1.6745 | 1.6745 | 
+IRR, pre-tax | % | 23.39% | 33.54% | 33.54% | 
+## Hold to maturity (EBITDA only, no debt, no tax)
+Total capex and costs to COD | EUR k | 60,660.8 | 77,435.9 | 77,435.9 | 215,532.5
+Total revenue over the life | EUR k | 354,072.0 | 495,700.8 | 495,700.8 | 1,345,473.5
+Total opex over the life | EUR k | -93,722.7 | -144,723.0 | -144,723.0 | -383,168.6
+Total EBITDA over the life | EUR k | 260,349.3 | 350,977.8 | 350,977.8 | 962,304.9
+Project IRR, pre-tax | % | 12.08% | 13.06% | 13.06% | 
+NPV at the discount rate, at the first year end | EUR k | 21,914.2 | 33,795.4 | 33,795.4 | 89,505.1
+Annual cash flow per project (EUR k) |  |  |  |  | Total
+## Year
+## Bora
+Spending (capex, fees, securities, devex), net | EUR k |  |  |  | -60,660.8
+Revenue | EUR k |  |  |  | 354,072.0
+Opex | EUR k |  |  |  | -93,722.7
+EBITDA | EUR k |  |  |  | 260,349.3
+Net cash flow | EUR k |  |  |  | 199,688.5
+## Cumulative net cash flow
+## Iváncsa
+Spending (capex, fees, securities, devex), net | EUR k |  |  |  | -77,435.9
+Revenue | EUR k |  |  |  | 495,700.8
+Opex | EUR k |  |  |  | -144,723.0
+EBITDA | EUR k |  |  |  | 350,977.8
+Net cash flow | EUR k |  |  |  | 273,541.9
+## Cumulative net cash flow
+## Dunaújváros
+Spending (capex, fees, securities, devex), net | EUR k |  |  |  | -77,435.9
+Revenue | EUR k |  |  |  | 495,700.8
+Opex | EUR k |  |  |  | -144,723.0
+EBITDA | EUR k |  |  |  | 350,977.8
+Net cash flow | EUR k |  |  |  | 273,541.9
+## Cumulative net cash flow
+Detailed calculations: claims, waterfall, dated flows, timelines, checks – expand the group |  | Bora | Iváncsa | Dunaújváros | Total
+RtB exit, Case B: FEP claims at the sale (interest to the freeze, act/365, capitalised 31-Dec) |  | Bora | Iváncsa | Dunaújváros | Total
+Interest accrual end (earlier of freeze and sale) | date | 30-Jun-2029 | 30-Jun-2029 | 30-Jun-2029 | 
+Accrual factor in the end year, cash rate | x | 1.0595 | 1.0595 | 1.0595 | 
+Accrual factor in the end year, devex rate | x | 1.0992 | 1.0992 | 1.0992 | 
+Days to the first 31-Dec from bid submission | days | 63.0 | 63.0 | 63.0 | 
+Accrual factor from bid submission | x | 1.3566 | 1.3566 | 1.3566 | 
+Days to the first 31-Dec from performance security posting | days | 351.0 | 351.0 | 351.0 | 
+Accrual factor from performance security posting | x | 1.3236 | 1.3236 | 1.3236 | 
+Days to the first 31-Dec from TSO security payment | days | 351.0 | 351.0 | 351.0 | 
+Accrual factor from TSO security payment | x | 1.3236 | 1.3236 | 1.3236 | 
+Days to the first 31-Dec from connection agreement (HCSSZ) | days | 92.0 | 92.0 | 92.0 | 
+Accrual factor from connection agreement (HCSSZ) | x | 1.0916 | 1.0916 | 1.0916 | 
+Days to the first 31-Dec from land payment (amount-weighted) | days | 241.8 | 241.8 | 241.8 | 
+Accrual factor from land payment (amount-weighted) | x | 1.2448 | 1.2448 | 1.2448 | 
+Days to the first 31-Dec from development devex payment (amount-weighted) | days | 38.9 | 38.9 | 38.9 | 
+Accrual factor from development devex payment (amount-weighted) | x | 1.3471 | 1.3471 | 1.3471 | 
+Claim on FEP's shareholder loan (JV only): participation fee (not reimbursed) | EUR k | 2.9307 | 0.0 | 0.0 | 2.9307
+Claim on FEP's shareholder loan (JV only): bid security (cash) | EUR k | 99.2 | 0.0 | 0.0 | 99.2
+Claim on FEP's shareholder loan (JV only): performance security payable (cash) | EUR k | 359.9 | 0.0 | 0.0 | 359.9
+Claim on FEP's shareholder loan (JV only): TSO connection-request security | EUR k | 199.5 | 0.0 | 0.0 | 199.5
+Claim on FEP's shareholder loan (JV only): direct connection fee | EUR k | 63.8 | 0.0 | 0.0 | 63.8
+Claim on FEP's shareholder loan (JV only): indirect connection fee, payable | EUR k | 860.0 | 0.0 | 0.0 | 860.0
+Claim on FEP's shareholder loan (JV only): land, MAX(20 % accrued, 1× principal) | EUR k | 107.8 | 0.0 | 0.0 | 107.8
+Claim on FEP's shareholder loan (JV only): development devex, MAX(20 % accrued, 1× principal) | EUR k | 701.1 | 0.0 | 0.0 | 701.1
+Total FEP claims on its shareholder loans (JV only) | EUR k | 2,394.1 | 0.0 | 0.0 | 2,394.1
+Developer success fee due (DSA, capped) | EUR k | 364.6 | 0.0 | 0.0 | 364.6
+RtB exit, Case B: waterfall at the sale |  | Bora | Iváncsa | Dunaújváros | Total
+RtB premium | EUR k | 7,500.0 | 7,500.0 | 7,500.0 | 22,500.0
+Buyer reimburses securities and connection fees at cost | EUR k | 12,096.5 | 6,470.8 | 6,470.8 | 25,038.1
+Total proceeds | EUR k | 19,596.5 | 13,970.8 | 13,970.8 | 47,538.1
+Less sale costs | EUR k | -250.0 | -250.0 | -250.0 | -750.0
+Less securities and fees repaid to FEP | EUR k | -12,096.5 | -6,470.8 | -6,470.8 | -25,038.1
+Less FEP claims at 12 % on FEP's shareholder loan (JV only) | EUR k | -1,585.2 | 0.0 | 0.0 | -1,585.2
+Less FEP land and devex return on FEP's shareholder loan (JV only) | EUR k | -808.9 | 0.0 | 0.0 | -808.9
+Less developer success fee (DSA) | EUR k | -364.6 | 0.0 | 0.0 | -364.6
+Distributable proceeds | EUR k | 4,491.3 | 7,250.0 | 7,250.0 | 18,991.3
+FEP share of distributable | EUR k | 3,143.9 | 7,250.0 | 7,250.0 | 17,643.9
+Developer share of distributable | EUR k | 1,347.4 | 0.0 | 0.0 | 1,347.4
+FEP cash flows, dated, Case B (outlays, then receipts at the sale) |  | Bora | Iváncsa | Dunaújváros | Total
+Signing fee and DD | EUR k | -100.0 | -150.0 | -150.0 | -400.0
+Participation fee | EUR k | -8.2192 | -8.2192 | -8.2192 | -24.7
+Bid security | EUR k | -278.1 | -498.9 | -498.9 | -1,275.9
+Performance security payable | EUR k | -1,112.3 | -1,995.6 | -1,995.6 | -5,103.6
+TSO connection-request security | EUR k | -616.4 | -616.4 | -616.4 | -1,849.3
+Direct connection fee | EUR k | -696.4 | -1,260.3 | -1,260.3 | -3,216.9
+Indirect connection fee, payable | EUR k | -9,393.3 | -2,099.5 | -2,099.5 | -13,592.4
+Land | EUR k | -107.8 | -107.8 | -107.8 | -323.4
+Development devex | EUR k | -701.1 | -701.1 | -701.1 | -2,103.3
+FEP receipts at the sale (repaid, claims, share) | EUR k | 17,634.6 | 13,720.8 | 13,720.8 | 45,076.1
+FEP profit, pre-tax | EUR k | 4,620.9 | 6,282.9 | 6,282.9 | 17,186.7
+CIT: exempt (participation exemption, total) | EUR k | 0.0 | 0.0 | 0.0 | 0.0
+FEP profit, post-tax | EUR k | 4,620.9 | 6,282.9 | 6,282.9 | 17,186.7
+RtB exit, Case A: buyer pays the grid connection fees directly (FEP does not pre-fund them) |  | Bora | Iváncsa | Dunaújváros | Total
+Grid connection fees paid by the buyer at HCSSZ (direct + indirect, payable) | EUR k | 10,089.7 | 3,359.8 | 3,359.8 | 16,809.3
+Case A devex – land: items paid by sale A (devex file, unscaled) | HUF | 66,190,500.0 | 66,190,500.0 | 66,190,500.0 | 
+Case A devex – land: amount-weighted payment date | date | 13-Feb-2027 | 13-Feb-2027 | 13-Feb-2027 | 
+Case A devex – land (× scale) | EUR k | 45.3 | 45.3 | 45.3 | 136.0
+Case A devex – development: items paid by sale A (devex file, unscaled) | HUF | 991,604,271.9 | 991,604,271.9 | 991,604,271.9 | 
+Case A devex – development: amount-weighted payment date | date | 10-Nov-2027 | 10-Nov-2027 | 10-Nov-2027 | 
+Case A devex – development (× scale) | EUR k | 679.2 | 679.2 | 679.2 | 2,037.5
+FEP cash out to RtB, Case A (peak exposure) | EUR k | 2,839.6 | 3,993.7 | 3,993.7 | 10,827.0
+Case A: interest accrual end (earlier of freeze and sale A) | date | 30-Sep-2028 | 30-Sep-2028 | 30-Sep-2028 | 
+Case A: start of the accrual end year | date | 01-Jan-2028 | 01-Jan-2028 | 01-Jan-2028 | 
+Case A, from bid submission: factor in the payment year (if before the end year) | x | 1.0207 | 1.0207 | 1.0207 | 
+Case A, from bid submission: factor in the end year (to the accrual end) | x | 1.0901 | 1.0901 | 1.0901 | 
+Case A, from bid submission: accrual factor | x | 1.2462 | 1.2462 | 1.2462 | 
+Case A, from performance security posting: factor in the payment year (if before the end year) | x | 1.1154 | 1.1154 | 1.1154 | 
+Case A, from performance security posting: factor in the end year (to the accrual end) | x | 1.0901 | 1.0901 | 1.0901 | 
+Case A, from performance security posting: accrual factor | x | 1.2159 | 1.2159 | 1.2159 | 
+Case A, from TSO security payment: factor in the payment year (if before the end year) | x | 1.1154 | 1.1154 | 1.1154 | 
+Case A, from TSO security payment: factor in the end year (to the accrual end) | x | 1.0901 | 1.0901 | 1.0901 | 
+Case A, from TSO security payment: accrual factor | x | 1.2159 | 1.2159 | 1.2159 | 
+Case A, from land payment (amount-weighted): factor in the payment year (if before the end year) | x | 1.1764 | 1.1764 | 1.1764 | 
+Case A, from land payment (amount-weighted): factor in the end year (to the accrual end) | x | 1.1501 | 1.1501 | 1.1501 | 
+Case A, from land payment (amount-weighted): accrual factor | x | 1.3531 | 1.3531 | 1.3531 | 
+Case A, from development devex payment (amount-weighted): factor in the payment year (if before the end year) | x | 1.0282 | 1.0282 | 1.0282 | 
+Case A, from development devex payment (amount-weighted): factor in the end year (to the accrual end) | x | 1.1501 | 1.1501 | 1.1501 | 
+Case A, from development devex payment (amount-weighted): accrual factor | x | 1.1826 | 1.1826 | 1.1826 | 
+Case A: claim on FEP's shareholder loan (JV only): participation fee (not reimbursed) | EUR k | 2.0234 | 0.0 | 0.0 | 2.0234
+Case A: claim on FEP's shareholder loan (JV only): bid security (cash) | EUR k | 68.5 | 0.0 | 0.0 | 68.5
+Case A: claim on FEP's shareholder loan (JV only): performance security payable (cash) | EUR k | 240.1 | 0.0 | 0.0 | 240.1
+Case A: claim on FEP's shareholder loan (JV only): TSO connection-request security | EUR k | 133.1 | 0.0 | 0.0 | 133.1
+Case A: claim on FEP's shareholder loan (JV only): land, MAX(20 % accrued, 1× principal) | EUR k | 45.3 | 0.0 | 0.0 | 45.3
+Case A: claim on FEP's shareholder loan (JV only): development devex, MAX(20 % accrued, 1× principal) | EUR k | 679.2 | 0.0 | 0.0 | 679.2
+Case A: developer success fee due (DSA to sale A, capped) | EUR k | 239.6 | 0.0 | 0.0 | 239.6
+Total FEP claims on its shareholder loans, Case A (JV only; no connection-fee claims) | EUR k | 1,168.2 | 0.0 | 0.0 | 1,168.2
+## Waterfall at the sale, Case A
+RtB premium | EUR k | 7,500.0 | 7,500.0 | 7,500.0 | 22,500.0
+Buyer reimburses securities at cost (no connection fees to reimburse) | EUR k | 2,006.8 | 3,111.0 | 3,111.0 | 8,228.8
+Total proceeds | EUR k | 9,506.8 | 10,611.0 | 10,611.0 | 30,728.8
+Less sale costs | EUR k | -250.0 | -250.0 | -250.0 | -750.0
+Less securities repaid to FEP | EUR k | -2,006.8 | -3,111.0 | -3,111.0 | -8,228.8
+Less FEP claims at 12 % on FEP's shareholder loan (JV only) | EUR k | -443.7 | 0.0 | 0.0 | -443.7
+Less FEP land and devex return on FEP's shareholder loan (JV only) | EUR k | -724.5 | 0.0 | 0.0 | -724.5
+Less developer success fee (DSA) | EUR k | -239.6 | 0.0 | 0.0 | -239.6
+Distributable proceeds | EUR k | 5,842.2 | 7,250.0 | 7,250.0 | 20,342.2
+FEP share of distributable | EUR k | 4,089.6 | 7,250.0 | 7,250.0 | 18,589.6
+Developer share of distributable | EUR k | 1,752.7 | 0.0 | 0.0 | 1,752.7
+FEP cash flows, dated, Case A (no connection-fee outlays; sale A) |  | Bora | Iváncsa | Dunaújváros | Total
+Signing fee and DD | EUR k | -100.0 | -150.0 | -150.0 | -400.0
+Participation fee | EUR k | -8.2192 | -8.2192 | -8.2192 | -24.7
+Bid security | EUR k | -278.1 | -498.9 | -498.9 | -1,275.9
+Performance security payable | EUR k | -1,112.3 | -1,995.6 | -1,995.6 | -5,103.6
+TSO connection-request security | EUR k | -616.4 | -616.4 | -616.4 | -1,849.3
+Land | EUR k | -45.3 | -45.3 | -45.3 | -136.0
+Development devex | EUR k | -679.2 | -679.2 | -679.2 | -2,037.5
+FEP receipts at the sale (repaid, claims, share) | EUR k | 7,264.6 | 10,361.0 | 10,361.0 | 27,986.5
+FEP profit, pre-tax | EUR k | 4,425.0 | 6,367.3 | 6,367.3 | 17,159.5
+CIT: exempt (participation exemption, total) | EUR k | 0.0 | 0.0 | 0.0 | 0.0
+FEP profit, post-tax | EUR k | 4,425.0 | 6,367.3 | 6,367.3 | 17,159.5
+MOIC, pre-tax | x | 2.5583 | 2.5943 | 2.5943 | 2.5849
+IRR, pre-tax | % | 80.53% | 78.53% | 78.53% | 
+Memo: pre-tax profit vs Case B (connection-fee claims no longer earned, FEP share) | EUR k | -195.9 | 84.4 | 84.4 | -27.1
+Annual timeline |  |  |  |  | Total
+## Year
+## Year end
+Bora: annual cash flow (EUR k) |  | Value |  |  | Total
+## Years from the COD year
+Construction months by year end (value: construction period) | months | 24.0 |  |  | 
+Construction share of the year (NTP to COD) | % |  |  |  | 100.00%
+Months operated by year end (value: operating life) | months | 360.0 |  |  | 
+Operating share of the year (COD to end of life) | % |  |  |  | 3000.00%
+## COD year flag
+FEP outlays at their dates (signing, fee, securities, fees, devex) | EUR k |  |  |  | -13,013.7
+Performance security released (bid security included) | EUR k |  |  |  | 1,390.4
+Construction capex (straight-line NTP to COD) | EUR k |  |  |  | -48,037.5
+Municipal one-off at COD | EUR k |  |  |  | -1,000.0
+Investment cash flow | EUR k |  |  |  | -60,660.8
+## Degradation factor (from the first full year)
+Net generation | GWh |  |  |  | 3,383.6
+## PPA price
+Revenue | EUR k |  |  |  | 354,072.0
+## Opex index (COD year = 1)
+O&M, BoP, lease, insurance, management, property tax | EUR k |  |  |  | -55,564.4
+Administration, audit, compliance | EUR k |  |  |  | -1,666.9
+Balancing and grid charges | EUR k |  |  |  | -24,930.1
+MEKH supervisory fee | EUR k |  |  |  | -354.1
+Opex contingency | EUR k |  |  |  | -4,125.8
+Community contribution | EUR k |  |  |  | 0.0
+HIPA local business tax | EUR k |  |  |  | -7,081.4
+Total opex | EUR k |  |  |  | -93,722.7
+EBITDA | EUR k |  |  |  | 260,349.3
+Unlevered pre-tax cash flow | EUR k |  |  |  | 199,688.5
+## Discount factor to COD (buyer's rate)
+EBITDA valued at COD (total = COD price) | EUR k |  |  |  | 96,860.0
+RtB exit price forgone (premium × MVA, at the Case B sale; replaces the JV buy-out) | EUR k |  |  |  | -7,500.0
+COD exit: FEP cash flow (to COD, price and securities at COD) | EUR k |  |  |  | 28,699.2
+Iváncsa: annual cash flow (EUR k) |  |  | Value |  | Total
+## Years from the COD year
+Construction months by year end (value: construction period) | months |  | 24.0 |  | 
+Construction share of the year (NTP to COD) | % |  |  |  | 100.00%
+Months operated by year end (value: operating life) | months |  | 360.0 |  | 
+Operating share of the year (COD to end of life) | % |  |  |  | 3000.00%
+## COD year flag
+FEP outlays at their dates (signing, fee, securities, fees, devex) | EUR k |  |  |  | -7,437.9
+Performance security released (bid security included) | EUR k |  |  |  | 2,494.5
+Construction capex (straight-line NTP to COD) | EUR k |  |  |  | -69,992.5
+Municipal one-off at COD | EUR k |  |  |  | -2,500.0
+Investment cash flow | EUR k |  |  |  | -77,435.9
+## Degradation factor (from the first full year)
+Net generation | GWh |  |  |  | 4,737.1
+## PPA price
+Revenue | EUR k |  |  |  | 495,700.8
+## Opex index (COD year = 1)
+O&M, BoP, lease, insurance, management, property tax | EUR k |  |  |  | -77,790.1
+Administration, audit, compliance | EUR k |  |  |  | -1,666.9
+Balancing and grid charges | EUR k |  |  |  | -34,902.1
+MEKH supervisory fee | EUR k |  |  |  | -495.7
+Opex contingency | EUR k |  |  |  | -5,742.7
+Community contribution | EUR k |  |  |  | -14,211.3
+HIPA local business tax | EUR k |  |  |  | -9,914.0
+Total opex | EUR k |  |  |  | -144,723.0
+EBITDA | EUR k |  |  |  | 350,977.8
+Unlevered pre-tax cash flow | EUR k |  |  |  | 273,541.9
+## Discount factor to COD (buyer's rate)
+EBITDA valued at COD (total = COD price) | EUR k |  |  |  | 130,416.0
+RtB exit price forgone (premium × MVA, at the Case B sale; replaces the JV buy-out) | EUR k |  |  |  | -7,500.0
+COD exit: FEP cash flow (to COD, price and securities at COD) | EUR k |  |  |  | 45,480.1
+Dunaújváros: annual cash flow (EUR k) |  |  |  | Value | Total
+## Years from the COD year
+Construction months by year end (value: construction period) | months |  |  | 24.0 | 
+Construction share of the year (NTP to COD) | % |  |  |  | 100.00%
+Months operated by year end (value: operating life) | months |  |  | 360.0 | 
+Operating share of the year (COD to end of life) | % |  |  |  | 3000.00%
+## COD year flag
+FEP outlays at their dates (signing, fee, securities, fees, devex) | EUR k |  |  |  | -7,437.9
+Performance security released (bid security included) | EUR k |  |  |  | 2,494.5
+Construction capex (straight-line NTP to COD) | EUR k |  |  |  | -69,992.5
+Municipal one-off at COD | EUR k |  |  |  | -2,500.0
+Investment cash flow | EUR k |  |  |  | -77,435.9
+## Degradation factor (from the first full year)
+Net generation | GWh |  |  |  | 4,737.1
+## PPA price
+Revenue | EUR k |  |  |  | 495,700.8
+## Opex index (COD year = 1)
+O&M, BoP, lease, insurance, management, property tax | EUR k |  |  |  | -77,790.1
+Administration, audit, compliance | EUR k |  |  |  | -1,666.9
+Balancing and grid charges | EUR k |  |  |  | -34,902.1
+MEKH supervisory fee | EUR k |  |  |  | -495.7
+Opex contingency | EUR k |  |  |  | -5,742.7
+Community contribution | EUR k |  |  |  | -14,211.3
+HIPA local business tax | EUR k |  |  |  | -9,914.0
+Total opex | EUR k |  |  |  | -144,723.0
+EBITDA | EUR k |  |  |  | 350,977.8
+Unlevered pre-tax cash flow | EUR k |  |  |  | 273,541.9
+## Discount factor to COD (buyer's rate)
+EBITDA valued at COD (total = COD price) | EUR k |  |  |  | 130,416.0
+RtB exit price forgone (premium × MVA, at the Case B sale; replaces the JV buy-out) | EUR k |  |  |  | -7,500.0
+COD exit: FEP cash flow (to COD, price and securities at COD) | EUR k |  |  |  | 45,480.1
+COD exit: tax on the gain (price and profit: totals of the cash-flow blocks above) |  | Bora | Iváncsa | Dunaújváros | Total
+CIT: exempt (participation exemption, total) | EUR k | 0.0 | 0.0 | 0.0 | 0.0
+FEP profit, post-tax | EUR k | 28,699.2 | 45,480.1 | 45,480.1 | 119,659.5
+Checks (0 = OK) |  | Bora | Iváncsa | Dunaújváros | Total
+Case B waterfall closes (proceeds = all amounts paid out) | flag | 0.0 | 0.0 | 0.0 | 0.0
+Claim lines paid before the accrual end year | flag | 0.0 | 0.0 | 0.0 | 0.0
+Turbine route is EU or CN | flag | 0.0 | 0.0 | 0.0 | 0.0
+Devex items × scale = project devex (land + development) | flag | 0.0 | 0.0 | 0.0 | 0.0
+Construction capex spread in full (timeline = capex) | flag | 0.0 | 0.0 | 0.0 | 0.0
+Investment cash flows = all-in cost to COD | flag | 0.0 | 0.0 | 0.0 | 0.0
+Operating life inside the timeline | flag | 0.0 | 0.0 | 0.0 | 0.0
+Sale date A before the HCSSZ date (Case A exits before the connection fees) | flag | 0.0 | 0.0 | 0.0 | 0.0
+COD cost stack = timeline flows (investment flows + RtB price forgone) | flag | 0.0 | 0.0 | 0.0 | 0.0
+Case A waterfall closes (proceeds = all amounts paid out) | flag | 0.0 | 0.0 | 0.0 | 0.0
+Master check | flag |  |  |  | 0.0
+#### Inputs: label | unit | Bora | Iváncsa | Dunaújváros
+## HU wind bids – other inputs (blue) with sources
+Inputs |  | Bora | Iváncsa | Dunaújváros
+## Tender and grid (all projects; value in column E)
+FX rate | HUF/EUR | 365.0 |  | 
+Security base: benchmark investment, wind | HUF/MW | 406,000,000.0 |  | 
+Security base: benchmark investment, BESS | HUF/MWh | 200,000,000.0 |  | 
+Bid security, share of base | % | 0.50% |  | 
+Performance security, minimum share of base | % | 2.50% |  | 
+Participation fee per bid | HUF | 3,000,000.0 |  | 
+TSO connection-request security | HUF/MVA | 4,500,000.0 |  | 
+## Per project: fees, devex, dates
+Indirect connection fee | HUF/MVA | 73,071,306.0 | 19,826,680.0 | 19,826,680.0
+Direct connection fee per connection point | HUF | 508,345,804.0 | 460,000,000.0 | 460,000,000.0
+Bids sharing the connection point | count | 2.0 | 1.0 | 1.0
+Signing fee and DD | EUR k | 100.0 | 150.0 | 150.0
+Devex scale (bid MVA ÷ 200 MVA of the devex file) | x | 0.2500 | 0.2500 | 0.2500
+EU transformers ≥ 80 % (ÖSZ-9) | flag | 0.0 | 0.0 | 0.0
+Signing fee and DD paid | date | 31-Jul-2026 | 31-Jul-2026 | 31-Jul-2026
+Bid submission: fee paid, bid security posted | date | 30-Oct-2026 | 30-Oct-2026 | 30-Oct-2026
+Performance security posted | date | 15-Jan-2027 | 15-Jan-2027 | 15-Jan-2027
+TSO security paid | date | 15-Jan-2027 | 15-Jan-2027 | 15-Jan-2027
+Connection agreement (HCSSZ): fees paid | date | 01-Oct-2028 | 01-Oct-2028 | 01-Oct-2028
+Notice to proceed | date | 30-Jun-2029 | 30-Jun-2029 | 30-Jun-2029
+COD | date | 30-Jun-2031 | 30-Jun-2031 | 30-Jun-2031
+Performance security released | date | 31-Mar-2033 | 31-Mar-2033 | 31-Mar-2033
+DSA accrual start | date | 30-Oct-2026 | 30-Oct-2026 | 30-Oct-2026
+## RtB exit terms (all projects; value in column E)
+Claim rate, cash lines (incl. cash-posted securities) | % | 12.00% |  | 
+Claim rate, devex | % | 20.00% |  | 
+Devex minimum return multiple | x | 2.0 |  | 
+Interest freeze date | date | 30-Jun-2029 |  | 
+Sale date, Case B (RtB exit after HCSSZ) | date | 30-Sep-2029 |  | 
+Sale date, Case A (before HCSSZ) | date | 30-Sep-2028 |  | 
+Sale costs per project | EUR k | 250.0 |  | 
+Developer success fee (on committed MW, 30/360) | EUR k/MW/yr | 2.5000 |  | 
+Developer success fee cap | EUR k/MW | 10.0 |  | 
+Corporate income tax on exit gains | % | 15.00% |  | 
+Share deal, participation exemption on the share gain (1 = on); claims taxed as interest | flag | 1.0 |  | 
+## Capex (per MW of wind built unless stated; turbines: case table on the Dashboard)
+Turbine installation and erection | EUR k/MW | 80.0 |  | 
+Foundations | EUR k/MW | 90.0 |  | 
+Balance of plant – civil | EUR k/MW | 70.0 |  | 
+Balance of plant – electrical | EUR k/MW | 60.0 |  | 
+Owner's costs, engineering, PM, construction insurance | EUR k/MW | 40.0 |  | 
+Land purchase and easements | EUR k/MW | 15.0 |  | 
+On-site substation and 132 kV bay (lump sum) | EUR k | 12,000.0 |  | 
+Source basis of the lump sums | MVA | 200.0 |  | 
+Capex contingency (not on BESS) | % | 5.00% |  | 
+BESS capex | EUR k/MWh | 100.0 |  | 
+## Generation (hours and PPA price: case table on the Dashboard)
+Curtailment | % | 2.00% |  | 
+Clipping | % | 4.00% |  | 
+Degradation | % p.a. | 0.30% |  | 
+PPA escalation | % p.a. | 1.00% |  | 
+## Opex (COD-year prices; O&M contract: case table on the Dashboard)
+Balance of plant maintenance | EUR k/MW/yr | 3.0 |  | 
+Land lease | EUR k/MW/yr | 3.0 |  | 
+Operational insurance | EUR k/MW/yr | 2.5000 |  | 
+Asset and commercial management | EUR k/MW/yr | 1.5000 |  | 
+Property tax | EUR k/MW/yr | 3.0 |  | 
+Administration, audit, compliance (at the source basis) | EUR k/yr | 150.0 |  | 
+Balancing cost | EUR/MWh | 4.0 |  | 
+Grid use-of-system charges | EUR/MWh | 1.0 |  | 
+MEKH supervisory fee | % of rev. | 0.10% |  | 
+HIPA local business tax | % of rev. | 2.00% |  | 
+Opex contingency (not on community, HIPA) | % | 5.00% |  | 
+Opex escalation | % p.a. | 2.50% |  | 
+## Valuation, timeline and constants
+Operating life from COD | years | 30.0 |  | 
+Discount rate (buyer's pre-tax return at COD) | % | 8.00% |  | 
+First year of the annual timeline | year | 2,026.0 |  | 
+Thousand | x | 1,000.0 |  | 
+Days in a year (act/365) | days | 365.0 |  | 
+Months in a year | months | 12.0 |  | 
+Check tolerance | EUR k | 0.0010 |  | 
+## Devex items (BORA_Devex 02-Oct-26; all projects × the scale): HUF | date | class
+Capacity allocation process - Awarding – Land reservation fee | HUF | 20,590,500.0 | 13-Feb-2027 | Land
+Capacity allocation process - Awarding – Land purchase price | HUF | 45,600,000.0 | 13-Feb-2027 | Land
+Grid connection plan – Design fee | HUF | 59,142,857.1 | 11-Aug-2028 | Devex
+Grid connection plan – Administrative fee | HUF | 750,544.0 | 11-Aug-2028 | Devex
+Land contracting (additional land) – Legal fee, agent fee | HUF | 65,580,000.0 | 01-Oct-2026 | Devex
+Wind measurement – Met Masts | HUF | 147,260,000.0 | 01-Mar-2027 | Devex
+Wind measurement – Design fee | HUF | 3,600,000.0 | 01-Jan-2027 | Devex
+Wind measurement – EYA | HUF | 1,665,000.0 | 28-Jun-2028 | Devex
+Land reclassification – Administrative fee | HUF | 960,000.0 | 25-Dec-2027 | Devex
+Land reclassification – Report fee | HUF | 8,000,000.0 | 28-Jul-2027 | Devex
+Zoning plan modification – Design fee | HUF | 50,000,000.0 | 23-Feb-2028 | Devex
+Municipality donation – Donation | HUF | 35,000,000.0 | 23-Feb-2028 | Devex
+Environmental assessment – Bird-bat monitoring | HUF | 14,832,000.0 | 30-Dec-2027 | Devex
+Environmental assessment – Administrative fee | HUF | 40,000.0 | 28-Apr-2028 | Devex
+Environmental assessment – Assessment fee | HUF | 32,610,000.0 | 29-Mar-2028 | Devex
+Other project development – Geotechnical assessment fee | HUF | 8,000,000.0 | 28-Jul-2027 | Devex
+Other project development – Archaeological | HUF | 8,000,000.0 | 28-Jun-2027 | Devex
+Other project development – Topography | HUF | 8,000,000.0 | 28-Jun-2027 | Devex
+Building permit - Turbines – Administrative fee | HUF | 4,590,000.0 | 28-Jan-2028 | Devex
+Building permit - Turbines – Design fee | HUF | 138,000,000.0 | 28-Jan-2028 | Devex
+Cable right – Administrative fee | HUF | 45,000,000.0 | 28-Jan-2028 | Devex
+Cable right – Design fee | HUF | 74,896,683.7 | 28-Jan-2028 | Devex
+Cable right – Compensation | HUF | 15,000,000.0 | 29-Nov-2027 | Devex
+Building permit - Substation, switching station – Administrative fee | HUF | 6,000,000.0 | 28-Jan-2028 | Devex
+Building permit - Substation, switching station – Design fee | HUF | 45,178,571.4 | 28-Jan-2028 | Devex
+Building permit - BESS – Administrative fee | HUF | 4,590,000.0 | 28-Jan-2028 | Devex
+Building permit - BESS – Design fee | HUF | 70,000,000.0 | 28-Jan-2028 | Devex
+HEPURA permit – Administrative fee | HUF | 20,000,000.0 | 08-Jan-2029 | Devex
+HEPURA permit – Report fee | HUF | 12,000,000.0 | 09-Nov-2028 | Devex
+Legal costs – Legal costs | HUF | 7,400,000.0 | 31-Dec-2027 | Devex
+Financial costs – Financial costs | HUF | 29,600,000.0 | 31-Dec-2027 | Devex
+RtB – Land purchase price | HUF | 91,200,000.0 | 24-Mar-2029 | Land
+Contingency – Contingency | HUF | 107,908,615.6 | 31-Dec-2027 | Devex
+Band tables for the points (ÖSZ, Kiírás Annex 4) – expand the group |  | Values → |  | 

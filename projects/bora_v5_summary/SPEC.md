@@ -703,6 +703,9 @@ user's flagged file `reference/HU_Wind_bids_271026_flagged.xlsx` with the §25.1
    development (devex excl. land; plus participation fee, signing and DD); **RtB exit price 150 k€/MVA × MVA, deducted
    (charged at the Case B RtB sale date: the value FEP gives up by not selling at RtB – for Bora it replaces the
    developer JV buy-out row, which it already contains)**; total; sale price at COD; FEP profit; MOIC; IRR.
+   The bid security and the performance security are shown as own rows at 0 in the cost total, "returned at COD
+   (cash out and back; net 0)" (their timing stays in the dated COD flows); the TSO security sits inside the
+   connection fees (credited against the indirect fee), as its label says (user, 28-Oct-2026).
 4. **Nothing hidden:** remove all row/column grouping and hiding on both sheets.
 5. Verification: recalc no errors, Master_Check 0 (add checks: devex items × scale = project devex; COD cost stack =
    timeline flows), lint clean on the changed rows, Python recomputation of the Iváncsa COD exit and both RtB cases.
