@@ -17,9 +17,9 @@
 18 | RtB premium | EUR k/MVA | 150 | 150 | 150 |  |  | 
 19 | FEP share of distributable proceeds | % | 0.700000 | 1 | 1 |  |  | 
 20 | Developer success fee (DSA) on | flag | 1 | 0 | 0 |  |  | 
-21 | JV with a developer (1 = yes; claims and DSA apply) | flag | 1 | 0 | 0 |  |  | 
+21 | JV with a developer (1 = yes; shareholder-loan claims apply) | flag | 1 | 0 | 0 |  |  | 
 22 | Net P50 hours (project wind study) | h/yr | 2500 | 2500 | 2500 |  |  | 
-24 | Case: turbine price, PPA, yield, O&M |  | Base | Low | High | Live |  | 
+24 | Case: turbine price, PPA, O&M |  | Base | Low | High | Live |  | 
 25 | Case selected (Base, Low or High) | case |  |  |  | Base |  | 
 26 | Turbine supply incl. transport, EU route | EUR k/MW | 850 | 950 | 800 | 850 | Bora Dashboard H8 / Inputs G162 | =INDEX(E26:G26,MATCH(Dash_Case,$E$24:$G$24,0))
 27 | Turbine supply incl. transport, CN route | EUR k/MW | 500 | 600 | 480 | 500 | Bora Inputs H162 | =INDEX(E27:G27,MATCH(Dash_Case,$E$24:$G$24,0))
@@ -64,12 +64,12 @@
 69 | Signing fee and DD | EUR k | 100 | 150 | 150 | 400 | 31-Jul-2026 | =E57/FX/Thousand
 70 | Total cash to RtB (incl. signing and DD) | EUR k | 13,565.72 | 7,437.90 | 7,437.90 | 28,441.51 |  | =SUM(E61:E69)
 72 | Cash to RtB by nature: sunk, returned, or borne by the buyer (EUR k) |  | Bora | Iváncsa | Dunaújváros | Total | Who bears it | 
-73 | Sunk fees and devex (signing and DD, participation fee, land, development devex) | EUR k | 917.12 | 967.12 | 967.12 | 2,851.36 | FEP – sunk; recovered only via the claims at the sale | =E61+SUM(E67:E69)
-74 | Securities, returned (bid, performance, TSO connection request) | EUR k | 2,558.90 | 3,110.96 | 3,110.96 | 8,780.82 | FEP – cash out, returned or reimbursed at the sale | =SUM(E62:E64)
+73 | Sunk fees and devex (signing and DD, participation fee, development devex) | EUR k | 809.32 | 859.32 | 859.32 | 2,527.95 | FEP – sunk; recovered only via the claims at the sale | =E61+E67+E69
+74 | Securities and land, returned or reimbursed at cost (bid, performance, TSO; land) | EUR k | 2,666.71 | 3,218.76 | 3,218.76 | 9,104.23 | FEP – cash out, returned or reimbursed at the sale | =SUM(E62:E64)+E68
 75 | Grid connection fees (direct + indirect, payable at HCSSZ) | EUR k | 10,089.69 | 3,359.82 | 3,359.82 | 16,809.33 | Buyer at RtB; FEP pays only if no buyer is found | =E65+E66
-76 | Total cash to RtB (= total above) | EUR k | 13,565.72 | 7,437.90 | 7,437.90 | 28,441.51 | Case A: FEP pre-funds everything | =SUM(E73:E75)
+76 | Total cash to RtB (= total above) | EUR k | 13,565.72 | 7,437.90 | 7,437.90 | 28,441.51 | Case B: FEP pre-funds everything | =SUM(E73:E75)
 77 | Grid connection fees, share of the total | % | 0.743764 | 0.451716 | 0.451716 | 0.591014 |  | =E75/E76
-78 | FEP exposure if the buyer pays the grid connection fees | EUR k | 3,476.02 | 4,078.08 | 4,078.08 | 11,632.18 | Case B: FEP funds sunk fees, devex and securities only | =E76-E75
+78 | FEP exposure if the buyer pays the grid connection fees | EUR k | 3,476.02 | 4,078.08 | 4,078.08 | 11,632.18 | Case A: FEP funds sunk fees, devex and securities only; the Case A detail counts the devex paid by sale A | =E76-E75
 80 | Capex breakdown to COD |  | Bora | Iváncsa | Dunaújváros | Total |  | 
 81 | Turbines (route price, live case) | EUR k | 27000 | 31500 | 31500 | 90000 |  | =IF(E17="EU",Case_EU,Case_CN)*E46
 82 | Installation and erection | EUR k | 4320 | 5040 | 5040 | 14400 |  | =Capex_Install*E46
@@ -80,7 +80,7 @@
 87 | Land purchase and easements | EUR k | 0 | 0 | 0 | 0 |  | =Capex_Land*E46
 88 | Substation and 132 kV bay (scaled by MVA) | EUR k | 3000 | 3000 | 3000 | 9000 |  | =Subs_Lump*E6/Lump_Basis
 89 | Contingency (not on BESS) | EUR k | 2418 | 2796 | 2796 | 8010 |  | =SUM(E81:E88)*Capex_Cont
-90 | BESS (on BESS energy) | EUR k | 2000 | 4000 | 4000 | 10000 |  | =BESS_Capex*E45
+90 | BESS (on BESS energy; points only, no BESS revenue or opex modelled) | EUR k | 2000 | 4000 | 4000 | 10000 |  | =BESS_Capex*E45
 91 | Construction capex | EUR k | 52778 | 62716 | 62716 | 178210 |  | =SUM(E81:E90)
 92 | Connection fees (TSO security, direct, indirect) | EUR k | 10,706.13 | 3,976.26 | 3,976.26 | 18,658.65 |  | =E64+E65+E66
 93 | TSO connection-request security (returned) | EUR k | 0 | 0 | 0 | 0 |  | =0
@@ -100,20 +100,20 @@
 109 | RTB exit, Case A: buyer pays the grid connection fees (FEP does not pre-fund) |  |  |  |  |  |  | 
 110 | Grid connection fees paid by the buyer (not FEP cash) | EUR k | 10,089.69 | 3,359.82 | 3,359.82 | 16,809.33 |  | =E217
 111 | Total FEP cash out to RtB (peak exposure) | EUR k | 3,391.64 | 3,993.70 | 3,993.70 | 11,379.03 |  | =E224
-112 | Total proceeds to FEP at the sale | EUR k | 7,865.20 | 10,406.29 | 10,406.29 | 28,677.79 |  | =E294
-113 | FEP profit, post-tax | EUR k | 4,279.96 | 6,412.60 | 6,412.60 | 17,105.16 |  | =E282
-114 | MOIC, pre-tax | x | 2.318997 | 2.605681 | 2.605681 | 2.520232 |  | =E283
-115 | IRR, pre-tax | % | 0.683902 | 0.789921 | 0.789921 |  |  | =E284
-116 | MOIC, post-tax | x | 2.193769 | 2.605681 | 2.605681 | 2.478069 |  | =E299
-117 | IRR, post-tax | % | 0.655344 | 0.789921 | 0.789921 |  |  | =E300
+112 | Total proceeds to FEP at the sale | EUR k | 8,068.96 | 10,406.29 | 10,406.29 | 28,881.55 |  | =E296
+113 | FEP profit, post-tax | EUR k | 4,483.71 | 6,412.60 | 6,412.60 | 17,308.91 |  | =E284
+114 | MOIC, pre-tax | x | 2.379073 | 2.605681 | 2.605681 | 2.538138 |  | =E285
+115 | IRR, pre-tax | % | 0.710305 | 0.789921 | 0.789921 | 0.766962 |  | =E286
+116 | MOIC, post-tax | x | 2.250600 | 2.605681 | 2.605681 | 2.495676 |  | =E301
+117 | IRR, post-tax | % | 0.681941 | 0.789921 | 0.789921 | 0.758811 |  | =E302
 118 | RTB exit, Case B: FEP pre-funds the grid connection fees, buyer reimburses them at the sale |  |  |  |  |  |  | 
 119 | Total FEP cash out to RtB (peak exposure) | EUR k | 13,565.72 | 7,437.90 | 7,437.90 | 28,441.51 |  | =E70
-120 | Total proceeds to FEP at the sale | EUR k | 18,298.07 | 13,828.58 | 13,828.58 | 45,955.23 |  | =E348
-121 | FEP profit, post-tax | EUR k | 4,345.89 | 6,390.68 | 6,390.68 | 17,127.26 |  | =E335
-122 | MOIC, pre-tax | x | 1.348847 | 1.859205 | 1.859205 | 1.615780 |  | =E336
-123 | IRR, pre-tax | % | 0.229959 | 0.369819 | 0.369819 |  |  | =E337
-124 | MOIC, post-tax | x | 1.311485 | 1.859205 | 1.859205 | 1.594119 |  | =E353
-125 | IRR, post-tax | % | 0.210844 | 0.369819 | 0.369819 |  |  | =E354
+120 | Total proceeds to FEP at the sale | EUR k | 18,508.40 | 13,828.58 | 13,828.58 | 46,165.56 |  | =E352
+121 | FEP profit, post-tax | EUR k | 4,556.22 | 6,390.68 | 6,390.68 | 17,337.59 |  | =E339
+122 | MOIC, pre-tax | x | 1.364351 | 1.859205 | 1.859205 | 1.623175 |  | =E340
+123 | IRR, pre-tax | % | 0.239329 | 0.369819 | 0.369819 | 0.322624 |  | =E341
+124 | MOIC, post-tax | x | 1.326560 | 1.859205 | 1.859205 | 1.601415 |  | =E357
+125 | IRR, post-tax | % | 0.220265 | 0.369819 | 0.369819 | 0.315647 |  | =E358
 126 | COD exit (as the RtB buyer: pays the RtB price, securities and fees at the Case B sale, builds, sells at COD) |  |  |  |  |  |  | 
 127 | Construction capex | EUR k | 52778 | 62716 | 62716 | 178210 |  | =E91
 128 | Connection fees (direct, indirect; the TSO security is credited against the indirect fee) | EUR k | 10,706.13 | 3,976.26 | 3,976.26 | 18,658.65 |  | =E92
@@ -122,50 +122,50 @@
 131 | Development devex: 0 (FEP's cost, replaced by the RtB premium paid at the sale) | EUR k | 0 | 0 | 0 | 0 |  | =0
 132 | RtB premium paid to FEP at the sale (150 k€/MVA × MVA) | EUR k | 7500 | 7500 | 7500 | 22500 |  | =E98
 133 | Total costs to COD (= all-in cost to COD for a buyer) | EUR k | 72,091.93 | 76,800.06 | 76,800.06 | 225,692.05 |  | =SUM(E127:E132)
-134 | Sale price at COD | EUR k | 104,654.65 | 117,317.07 | 117,317.07 | 339,288.79 |  | =$H$399
-135 | Buyer profit (sale price at COD less the costs above) | EUR k | 32,562.72 | 40,517.01 | 40,517.01 | 113,596.74 |  | =E518
-136 | MOIC, pre-tax | x | 1.544164 | 1.662957 | 1.662957 |  |  | =SUMIF($J$401:$AS$401,">0")/-SUMIF($J$401:$AS$401,"<0")
-137 | IRR, pre-tax | % | #NAME? | #NAME? | #NAME? |  |  | =XIRR(_xlfn._xlws.FILTER($J$401:$AS$401,$J$401:$AS$401<>0),_xlfn._xlws.FILTER($J$358:$AS$358,$J$401:$AS$401<>0))
-138 | Hold to maturity (as the RtB buyer; EBITDA, CIT 15 %, optional 60 % debt) |  |  |  |  |  |  | 
+134 | Sale price at COD | EUR k | 104,654.65 | 117,317.07 | 117,317.07 | 339,288.79 |  | =$H$403
+135 | Buyer profit (sale price at COD less the costs above) | EUR k | 32,562.72 | 40,517.01 | 40,517.01 | 113,596.74 |  | =E519
+136 | MOIC, pre-tax | x | 1.544164 | 1.662957 | 1.662957 |  |  | =SUMIF($J$404:$AS$404,">0")/-SUMIF($J$404:$AS$404,"<0")
+137 | IRR, pre-tax | % | 0.313749 | 0.394818 | 0.394818 |  |  | =XIRR($J$404:$AS$404,$J$362:$AS$362)
+138 | Hold to maturity (as the RtB buyer; EBITDA, CIT, optional debt) |  |  |  |  |  |  | 
 139 | Total capex and costs to COD (= all-in cost to COD for a buyer) | EUR k | 72,091.93 | 76,800.06 | 76,800.06 | 225,692.05 |  | =E99
-140 | Total revenue over the life | EUR k | 382,397.73 | 446,130.69 | 446,130.69 | 1,274,659.10 |  | =$H$375
-141 | Total opex over the life | EUR k | -101,080.47 | -130,425.70 | -130,425.70 | -361,931.86 |  | =$H$384
-142 | Total EBITDA over the life | EUR k | 281,317.26 | 315,704.99 | 315,704.99 | 912,727.24 |  | =$H$385
-143 | Project IRR, pre-tax | % | #NAME? | #NAME? | #NAME? |  |  | =XIRR(_xlfn._xlws.FILTER($J$386:$AS$386,$J$386:$AS$386<>0),_xlfn._xlws.FILTER($J$358:$AS$358,$J$386:$AS$386<>0))
-144 | NPV at the discount rate, at the first year end | EUR k | 19,561.25 | 25,408.54 | 25,408.54 | 70,378.34 |  | =XNPV(Discount_Rate,$J$386:$AS$386,$J$358:$AS$358)
-145 | CIT over the life, unlevered | EUR k | -31,383.80 | -35,835.74 | -35,835.74 | -103,055.28 |  | =$H$388
-146 | Project IRR, post-tax | % | #NAME? | #NAME? | #NAME? |  |  | =XIRR(_xlfn._xlws.FILTER($J$389:$AS$389,$J$389:$AS$389<>0),_xlfn._xlws.FILTER($J$358:$AS$358,$J$389:$AS$389<>0))
-147 | Debt drawn at COD (60 %) | EUR k | 43,255.16 | 46,080.04 | 46,080.04 | 135,415.23 |  | =$H$390
-148 | Equity IRR, post-tax (60 % debt) | % | #NAME? | #NAME? | #NAME? |  |  | =XIRR(_xlfn._xlws.FILTER($J$396:$AS$396,$J$396:$AS$396<>0),_xlfn._xlws.FILTER($J$358:$AS$358,$J$396:$AS$396<>0))
-149 | Minimum DSCR | x | 2.189726 | 2.299453 | 2.299453 |  |  | =$H$397
+140 | Total revenue over the life | EUR k | 382,397.73 | 446,130.69 | 446,130.69 | 1,274,659.10 |  | =$H$379
+141 | Total opex over the life | EUR k | -101,080.47 | -130,425.70 | -130,425.70 | -361,931.86 |  | =$H$388
+142 | Total EBITDA over the life | EUR k | 281,317.26 | 315,704.99 | 315,704.99 | 912,727.24 |  | =$H$389
+143 | Project IRR, pre-tax | % | 0.112567 | 0.119924 | 0.119924 |  |  | =XIRR($J$390:$AS$390,$J$362:$AS$362)
+144 | NPV at the discount rate, at the first year end | EUR k | 19,561.25 | 25,408.54 | 25,408.54 | 70,378.34 |  | =XNPV(Discount_Rate,$J$390:$AS$390,$J$362:$AS$362)
+145 | CIT over the life, unlevered | EUR k | -31,383.80 | -35,835.74 | -35,835.74 | -103,055.28 |  | =$H$392
+146 | Project IRR, post-tax | % | 0.101338 | 0.107877 | 0.107877 |  |  | =XIRR($J$393:$AS$393,$J$362:$AS$362)
+147 | Debt drawn at COD (gearing × all-in cost) | EUR k | 43,255.16 | 46,080.04 | 46,080.04 | 135,415.23 |  | =$H$394
+148 | Equity IRR, post-tax (geared) | % | 0.129340 | 0.140065 | 0.140065 |  |  | =XIRR($J$400:$AS$400,$J$362:$AS$362)
+149 | Minimum DSCR | x | 2.189726 | 2.299453 | 2.299453 |  |  | =$H$401
 154 | Annual cash flow per project (EUR k) |  |  |  |  | Total |  | 
-155 | Year | year |  |  |  |  | 2026 | =J357
+155 | Year | year |  |  |  |  | 2026 | =J361
 157 | Bora |  |  |  |  |  |  | 
-158 | Spending (RtB purchase, capex, fees, securities), net | EUR k |  |  |  | -72,091.93 | 0 | =J371
-159 | Revenue | EUR k |  |  |  | 382,397.73 | 0 | =J375
-160 | Opex | EUR k |  |  |  | -101,080.47 | 0 | =J384
-161 | EBITDA | EUR k |  |  |  | 281,317.26 | 0 | =J385
-162 | Net cash flow | EUR k |  |  |  | 209,225.33 | 0 | =J386
-163 | Net cash flow, post-tax | EUR k |  |  |  | 177,841.53 | 0 | =J389
-164 | Equity cash flow, post-tax (60 % debt) | EUR k |  |  |  | 161,475.33 | 0 | =J396
+158 | Spending (RtB purchase, capex, fees, securities), net | EUR k |  |  |  | -72,091.93 | 0 | =J375
+159 | Revenue | EUR k |  |  |  | 382,397.73 | 0 | =J379
+160 | Opex | EUR k |  |  |  | -101,080.47 | 0 | =J388
+161 | EBITDA | EUR k |  |  |  | 281,317.26 | 0 | =J389
+162 | Net cash flow | EUR k |  |  |  | 209,225.33 | 0 | =J390
+163 | Net cash flow, post-tax | EUR k |  |  |  | 177,841.53 | 0 | =J393
+164 | Equity cash flow, post-tax (geared) | EUR k |  |  |  | 161,475.33 | 0 | =J400
 165 | Cumulative net cash flow | EUR k |  |  |  |  | 0 | =SUM($J162:J162)
 167 | Iváncsa |  |  |  |  |  |  | 
-168 | Spending (capex, fees, securities, devex), net | EUR k |  |  |  | -76,800.06 | 0 | =J423
-169 | Revenue | EUR k |  |  |  | 446,130.69 | 0 | =J427
-170 | Opex | EUR k |  |  |  | -130,425.70 | 0 | =J436
-171 | EBITDA | EUR k |  |  |  | 315,704.99 | 0 | =J437
-172 | Net cash flow | EUR k |  |  |  | 238,904.93 | 0 | =J438
-173 | Net cash flow, post-tax | EUR k |  |  |  | 203,069.19 | 0 | =J441
-174 | Equity cash flow, post-tax (60 % debt) | EUR k |  |  |  | 185,634.16 | 0 | =J448
+168 | Spending (RtB purchase, capex, fees, securities), net | EUR k |  |  |  | -76,800.06 | 0 | =J426
+169 | Revenue | EUR k |  |  |  | 446,130.69 | 0 | =J430
+170 | Opex | EUR k |  |  |  | -130,425.70 | 0 | =J439
+171 | EBITDA | EUR k |  |  |  | 315,704.99 | 0 | =J440
+172 | Net cash flow | EUR k |  |  |  | 238,904.93 | 0 | =J441
+173 | Net cash flow, post-tax | EUR k |  |  |  | 203,069.19 | 0 | =J444
+174 | Equity cash flow, post-tax (geared) | EUR k |  |  |  | 185,634.16 | 0 | =J451
 175 | Cumulative net cash flow | EUR k |  |  |  |  | 0 | =SUM($J172:J172)
 177 | Dunaújváros |  |  |  |  |  |  | 
-178 | Spending (capex, fees, securities, devex), net | EUR k |  |  |  | -76,800.06 | 0 | =J475
-179 | Revenue | EUR k |  |  |  | 446,130.69 | 0 | =J479
-180 | Opex | EUR k |  |  |  | -130,425.70 | 0 | =J488
-181 | EBITDA | EUR k |  |  |  | 315,704.99 | 0 | =J489
-182 | Net cash flow | EUR k |  |  |  | 238,904.93 | 0 | =J490
-183 | Net cash flow, post-tax | EUR k |  |  |  | 203,069.19 | 0 | =J493
-184 | Equity cash flow, post-tax (60 % debt) | EUR k |  |  |  | 185,634.16 | 0 | =J500
+178 | Spending (RtB purchase, capex, fees, securities), net | EUR k |  |  |  | -76,800.06 | 0 | =J477
+179 | Revenue | EUR k |  |  |  | 446,130.69 | 0 | =J481
+180 | Opex | EUR k |  |  |  | -130,425.70 | 0 | =J490
+181 | EBITDA | EUR k |  |  |  | 315,704.99 | 0 | =J491
+182 | Net cash flow | EUR k |  |  |  | 238,904.93 | 0 | =J492
+183 | Net cash flow, post-tax | EUR k |  |  |  | 203,069.19 | 0 | =J495
+184 | Equity cash flow, post-tax (geared) | EUR k |  |  |  | 185,634.16 | 0 | =J502
 185 | Cumulative net cash flow | EUR k |  |  |  |  | 0 | =SUM($J182:J182)
 187 | Detailed calculations: claims, waterfall, dated flows, timelines, checks – expand the group |  | Bora | Iváncsa | Dunaújváros | Total |  | 
 189 | RtB exit, Case B: FEP claims at the sale (interest to the freeze, act/365, capitalised 31-Dec) |  | Bora | Iváncsa | Dunaújváros | Total |  | 
@@ -229,282 +229,284 @@
 248 | Total FEP claims on its shareholder loans, Case A (JV only; no connection-fee claims) | EUR k | 1,290.72 | 0 | 0 | 1,290.72 |  | =SUM(E242:E247)
 249 | Case A: developer success fee due (DSA to sale A, capped) | EUR k | 287.50 | 0 | 0 | 287.50 |  | =E20*MIN(DSA_Rate*YEARFRAC(Inputs!E$28,Sale_Date_A),DSA_Cap)*E44
 250 | Waterfall at the sale, Case A |  |  |  |  |  |  | 
-251 | RtB premium | EUR k | 7500 | 7500 | 7500 | 22500 |  | =E18*E6
+251 | RtB premium | EUR k | 7500 | 7500 | 7500 | 22500 |  | =E98
 252 | Buyer reimburses securities at cost (no connection fees to reimburse) | EUR k | 2,558.90 | 3,110.96 | 3,110.96 | 8,780.82 |  | =SUM(E62:E64)
 253 | Buyer pays the land at cost (on top of the premium) | EUR k | 45.34 | 45.34 | 45.34 | 136.01 |  | =E220
 254 | Total proceeds | EUR k | 10,104.24 | 10,656.29 | 10,656.29 | 31,416.83 |  | =SUM(E251:E253)
 255 | Less sale costs | EUR k | -250 | -250 | -250 | -750 |  | =-MIN(E254,Sale_Costs)
 256 | Less securities repaid to FEP | EUR k | -2,558.90 | -3,110.96 | -3,110.96 | -8,780.82 |  | =-MIN(SUM(E254:E255),E252)
 257 | Less land repaid to FEP at cost | EUR k | -45.34 | -45.34 | -45.34 | -136.01 |  | =-MIN(SUM(E254:E256),E253)
-258 | Less FEP claims at 12 % on FEP's shareholder loan (JV only) | EUR k | -566.20 | 0 | 0 | -566.20 |  | =-MIN(SUM(E254:E257),SUM(E242:E245))
-259 | Less FEP land and devex return on FEP's shareholder loan (JV only) | EUR k | -724.52 | 0 | 0 | -724.52 |  | =-MIN(SUM(E254:E258),SUM(E246:E247))
-260 | Less developer success fee (DSA) | EUR k | -287.50 | 0 | 0 | -287.50 |  | =-MIN(SUM(E254:E259),E249)
-261 | Distributable proceeds | EUR k | 5,671.78 | 7250 | 7250 | 20,171.78 |  | =SUM(E254:E260)
-262 | FEP share of distributable | EUR k | 3,970.25 | 7250 | 7250 | 18,470.25 |  | =E261*E19
-263 | Developer share of distributable | EUR k | 1,701.54 | 0 | 0 | 1,701.54 |  | =E261-E262
-264 | FEP profit, Case A (at sale A): what the buyer pays, less deductions |  | Bora | Iváncsa | Dunaújváros | Total | Date: Bora | 
-265 | RtB premium paid by the buyer (150 k EUR/MVA × MVA) | EUR k | 7500 | 7500 | 7500 | 22500 |  | =E251
-266 | Land: 0 (bought by the RtB buyer at cost; FEP's land outlay is repaid, not deducted) | EUR k | 0 | 0 | 0 | 0 |  | =0
-267 | Bid security: 0 (paid back to FEP at the sale) | EUR k | 0 | 0 | 0 | 0 |  | =0
-268 | Performance security: 0 (paid back to FEP at the sale) | EUR k | 0 | 0 | 0 | 0 |  | =0
-269 | Less: sale costs | EUR k | -250 | -250 | -250 | -750 |  | =E255
-270 | Less: developer success fee (DSA) | EUR k | -287.50 | 0 | 0 | -287.50 |  | =E260
-271 | Less: developer share of distributable proceeds | EUR k | -1,701.54 | 0 | 0 | -1,701.54 |  | =-E263
-272 | FEP claims at 12 % on FEP's shareholder loan (interest, JV only) | EUR k | 566.20 | 0 | 0 | 566.20 |  | =-E258
-273 | FEP land and devex return on FEP's shareholder loan (JV only) | EUR k | 724.52 | 0 | 0 | 724.52 |  | =-E259
-274 | FEP share of distributable proceeds | EUR k | 3,970.25 | 7250 | 7250 | 18,470.25 |  | =E262
-275 | FEP receipts at sale A (claims + return + FEP share) | EUR k | 5,260.96 | 7250 | 7250 | 19,760.96 |  | =SUM(E272:E274)
-276 | Less: signing fee and DD, Exit fees | EUR k | -100 | -150 | -150 | -400 |  | =-E69
-277 | Less: participation fee (not reimbursed) | EUR k | -8.219178 | -8.219178 | -8.219178 | -24.66 |  | =-E61
-278 | Less: development devex | EUR k | -679.18 | -679.18 | -679.18 | -2,037.54 |  | =-E223
-279 | FEP profit, pre-tax | EUR k | 4,473.56 | 6,412.60 | 6,412.60 | 17,298.76 |  | =E275+SUM(E276:E278)
-280 | CIT on the exit gain (0 while the participation exemption flag is on) | EUR k | 0 | 0 | 0 | 0 |  | =-MAX(0,E279)*CIT_Rate*(1-Share_Exempt)
-281 | CIT on the interest of FEP's shareholder loans (JV only; 15 %, paid yearly as capitalised) | EUR k | -193.61 | 0 | 0 | -193.61 |  | =-E248*CIT_Rate*E$21
-282 | FEP profit, post-tax | EUR k | 4,279.96 | 6,412.60 | 6,412.60 | 17,105.16 |  | =E279+E280+E281
-283 | MOIC, pre-tax (dated cash flows below) | x | 2.318997 | 2.605681 | 2.605681 | 2.520232 |  | =SUMIF(E287:E294,">0")/-SUMIF(E287:E294,"<0")
-284 | IRR, pre-tax (dated cash flows below) | % | 0.683902 | 0.789921 | 0.789921 |  |  | =XIRR(E287:E294,J287:J294)
-285 | Memo: pre-tax profit vs Case B (connection-fee claims no longer earned, FEP share) | EUR k | -258.79 | 21.92 | 21.92 | -214.96 |  | =E279-E332
-286 | Memo: FEP dated cash flows, Case A, for MOIC and IRR (securities are paid and repaid at cost: net zero, excluded from the profit above) |  |  |  |  |  | Date: Bora | 
-287 | Signing fee and DD | EUR k | -100 | -150 | -150 | -400 | 31-Jul-2026 | =-E69
-288 | Participation fee | EUR k | -8.219178 | -8.219178 | -8.219178 | -24.66 | 30-Oct-2026 | =-E61
-289 | Bid security | EUR k | -388.49 | -498.90 | -498.90 | -1,386.30 | 30-Oct-2026 | =-E62
-290 | Performance security payable | EUR k | -1,553.97 | -1,995.62 | -1,995.62 | -5,545.21 | 15-Jan-2027 | =-E63
-291 | TSO connection-request security | EUR k | -616.44 | -616.44 | -616.44 | -1,849.32 | 15-Jan-2027 | =-E64
-292 | Land | EUR k | -45.34 | -45.34 | -45.34 | -136.01 | 13-Feb-2027 | =-E220
-293 | Development devex | EUR k | -679.18 | -679.18 | -679.18 | -2,037.54 | 10-Nov-2027 | =-E223
-294 | FEP receipts at sale A (receipts above + securities and land repaid) | EUR k | 7,865.20 | 10,406.29 | 10,406.29 | 28,677.79 | 30-Sep-2028 | =E275-E256-E257
-295 | CIT on the interest capitalised at 31-Dec-2026 | EUR k | -1.232525 | 0 | 0 | -1.232525 | 31-Dec-2026 | =-J$410*CIT_Rate*E$21
-296 | CIT on the interest capitalised at 31-Dec-2027 | EUR k | -48.93 | 0 | 0 | -48.93 | 31-Dec-2027 | =-K$410*CIT_Rate*E$21
-297 | CIT on the interest capitalised at 31-Dec-2028 | EUR k | 0 | 0 | 0 | 0 | 31-Dec-2028 | =-L$410*CIT_Rate*E$21
-298 | CIT on the rest at the sale (stub to the accrual end, devex floor top-up) | EUR k | -143.45 | 0 | 0 | -143.45 | 30-Sep-2028 | =-E248*CIT_Rate*E$21-SUM(E295:E297)
-299 | MOIC, post-tax (dated cash flows incl. the CIT rows) | x | 2.193769 | 2.605681 | 2.605681 | 2.478069 |  | =SUMIF(E287:E298,">0")/-SUMIF(E287:E298,"<0")
-300 | IRR, post-tax (dated cash flows incl. the CIT rows) | % | 0.655344 | 0.789921 | 0.789921 |  |  | =XIRR(E287:E298,J287:J298)
-302 | RtB exit, Case B: waterfall at the sale |  | Bora | Iváncsa | Dunaújváros | Total |  | 
-303 | RtB premium | EUR k | 7500 | 7500 | 7500 | 22500 |  | =E18*E6
-304 | Buyer reimburses securities and connection fees at cost | EUR k | 12,648.60 | 6,470.78 | 6,470.78 | 25,590.15 |  | =SUM(E62:E66)
-305 | Buyer pays the land at cost (on top of the premium) | EUR k | 107.80 | 107.80 | 107.80 | 323.41 |  | =E68
-306 | Total proceeds | EUR k | 20,256.40 | 14,078.58 | 14,078.58 | 48,413.56 |  | =SUM(E303:E305)
-307 | Less sale costs | EUR k | -250 | -250 | -250 | -750 |  | =-MIN(E306,Sale_Costs)
-308 | Less securities and fees repaid to FEP | EUR k | -12,648.60 | -6,470.78 | -6,470.78 | -25,590.15 |  | =-MIN(SUM(E306:E307),E304)
-309 | Less land repaid to FEP at cost | EUR k | -107.80 | -107.80 | -107.80 | -323.41 |  | =-MIN(SUM(E306:E308),E305)
-310 | Less FEP claims at 12 % on FEP's shareholder loan (JV only) | EUR k | -1,767.51 | 0 | 0 | -1,767.51 |  | =-MIN(SUM(E306:E309),SUM(E205:E210))
-311 | Less FEP land and devex return on FEP's shareholder loan (JV only) | EUR k | -808.90 | 0 | 0 | -808.90 |  | =-MIN(SUM(E306:E310),SUM(E211:E212))
-312 | Less developer success fee (DSA) | EUR k | -437.50 | 0 | 0 | -437.50 |  | =-MIN(SUM(E306:E311),E214)
-313 | Distributable proceeds | EUR k | 4,236.09 | 7250 | 7250 | 18,736.09 |  | =SUM(E306:E312)
-314 | FEP share of distributable | EUR k | 2,965.26 | 7250 | 7250 | 17,465.26 |  | =E313*E19
-315 | Developer share of distributable | EUR k | 1,270.83 | 0 | 0 | 1,270.83 |  | =E313-E314
-317 | FEP profit, Case B (at the sale): what the buyer pays, less deductions |  | Bora | Iváncsa | Dunaújváros | Total |  | 
-318 | RtB premium paid by the buyer (150 k EUR/MVA × MVA) | EUR k | 7500 | 7500 | 7500 | 22500 |  | =E303
-319 | Land: 0 (bought by the RtB buyer at cost; FEP's land outlay is repaid, not deducted) | EUR k | 0 | 0 | 0 | 0 |  | =0
-320 | Bid security: 0 (paid back to FEP at the sale) | EUR k | 0 | 0 | 0 | 0 |  | =0
-321 | Performance security: 0 (paid back to FEP at the sale) | EUR k | 0 | 0 | 0 | 0 |  | =0
-322 | Less: sale costs | EUR k | -250 | -250 | -250 | -750 |  | =E307
-323 | Less: developer success fee (DSA) | EUR k | -437.50 | 0 | 0 | -437.50 |  | =E312
-324 | Less: developer share of distributable proceeds | EUR k | -1,270.83 | 0 | 0 | -1,270.83 |  | =-E315
-325 | FEP claims at 12 % on FEP's shareholder loan (interest, JV only) | EUR k | 1,767.51 | 0 | 0 | 1,767.51 |  | =-E310
-326 | FEP land and devex return on FEP's shareholder loan (JV only) | EUR k | 808.90 | 0 | 0 | 808.90 |  | =-E311
-327 | FEP share of distributable proceeds | EUR k | 2,965.26 | 7250 | 7250 | 17,465.26 |  | =E314
-328 | FEP receipts at the sale (claims + return + FEP share) | EUR k | 5,541.67 | 7250 | 7250 | 20,041.67 |  | =SUM(E325:E327)
-329 | Less: signing fee and DD, Exit fees | EUR k | -100 | -150 | -150 | -400 |  | =-E69
-330 | Less: participation fee (not reimbursed) | EUR k | -8.219178 | -8.219178 | -8.219178 | -24.66 |  | =-E61
-331 | Less: development devex | EUR k | -701.10 | -701.10 | -701.10 | -2,103.30 |  | =-E67
-332 | FEP profit, pre-tax | EUR k | 4,732.36 | 6,390.68 | 6,390.68 | 17,513.72 |  | =E328+SUM(E329:E331)
-333 | CIT on the exit gain (0 while the participation exemption flag is on) | EUR k | 0 | 0 | 0 | 0 |  | =-MAX(0,E332)*CIT_Rate*(1-Share_Exempt)
-334 | CIT on the interest of FEP's shareholder loans (JV only; 15 %, paid yearly as capitalised) | EUR k | -386.46 | 0 | 0 | -386.46 |  | =-E213*CIT_Rate*E$21
-335 | FEP profit, post-tax | EUR k | 4,345.89 | 6,390.68 | 6,390.68 | 17,127.26 |  | =E332+E333+E334
-336 | MOIC, pre-tax (dated cash flows below) | x | 1.348847 | 1.859205 | 1.859205 | 1.615780 |  | =SUMIF(E339:E348,">0")/-SUMIF(E339:E348,"<0")
-337 | IRR, pre-tax (dated cash flows below) | % | 0.229959 | 0.369819 | 0.369819 |  |  | =XIRR(E339:E348,J339:J348)
-338 | Memo: FEP dated cash flows, Case B, for MOIC and IRR (securities and connection fees are paid and repaid at cost: net zero, excluded from the profit above) |  |  |  |  |  | Date: Bora | 
-339 | Signing fee and DD | EUR k | -100 | -150 | -150 | -400 | 31-Jul-2026 | =-E69
-340 | Participation fee | EUR k | -8.219178 | -8.219178 | -8.219178 | -24.66 | 30-Oct-2026 | =-E61
-341 | Bid security | EUR k | -388.49 | -498.90 | -498.90 | -1,386.30 | 30-Oct-2026 | =-E62
-342 | Performance security payable | EUR k | -1,553.97 | -1,995.62 | -1,995.62 | -5,545.21 | 15-Jan-2027 | =-E63
-343 | TSO connection-request security | EUR k | -616.44 | -616.44 | -616.44 | -1,849.32 | 15-Jan-2027 | =-E64
-344 | Direct connection fee | EUR k | -696.36 | -1,260.27 | -1,260.27 | -3,216.91 | 01-Oct-2028 | =-E65
-345 | Indirect connection fee, payable | EUR k | -9,393.33 | -2,099.55 | -2,099.55 | -13,592.42 | 01-Oct-2028 | =-E66
-346 | Land | EUR k | -107.80 | -107.80 | -107.80 | -323.41 | 04-May-2028 | =-E68
-347 | Development devex | EUR k | -701.10 | -701.10 | -701.10 | -2,103.30 | 23-Nov-2027 | =-E67
-348 | FEP receipts at the sale (receipts above + securities, fees and land repaid) | EUR k | 18,298.07 | 13,828.58 | 13,828.58 | 45,955.23 | 30-Sep-2029 | =E328-E308-E309
-349 | CIT on the interest capitalised at 31-Dec-2026 | EUR k | -1.232525 | 0 | 0 | -1.232525 | 31-Dec-2026 | =-J$406*CIT_Rate*E$21
-350 | CIT on the interest capitalised at 31-Dec-2027 | EUR k | -47.10 | 0 | 0 | -47.10 | 31-Dec-2027 | =-K$406*CIT_Rate*E$21
-351 | CIT on the interest capitalised at 31-Dec-2028 | EUR k | -121.14 | 0 | 0 | -121.14 | 31-Dec-2028 | =-L$406*CIT_Rate*E$21
-352 | CIT on the rest at the sale (stub to the accrual end, devex floor top-up) | EUR k | -216.99 | 0 | 0 | -216.99 | 30-Sep-2029 | =-E213*CIT_Rate*E$21-SUM(E349:E351)
-353 | MOIC, post-tax (dated cash flows incl. the CIT rows) | x | 1.311485 | 1.859205 | 1.859205 | 1.594119 |  | =SUMIF(E339:E352,">0")/-SUMIF(E339:E352,"<0")
-354 | IRR, post-tax (dated cash flows incl. the CIT rows) | % | 0.210844 | 0.369819 | 0.369819 |  |  | =XIRR(E339:E352,J339:J352)
-356 | Annual timeline |  |  |  |  | Total |  | 
-357 | Year | year |  |  |  |  | 2026 | =First_Year+COLUMN()-COLUMN($J$1)
-358 | Year end | date |  |  |  |  | 31-Dec-2026 | =DATE(J357+1,1,1)-1
-360 | Bora: annual cash flow (EUR k) |  | Value |  |  | Total |  | 
-361 | Years from the COD year | years |  |  |  |  | -5 | =J$357-YEAR(Inputs!$E$26)
-362 | Construction months by year end (value: construction period) | months | 24 |  |  |  | -30 | =DATEDIF(Inputs!$E$25,Inputs!$E$26,"m")
-363 | Construction share of the year (NTP to COD) | % |  |  |  | 1 | 0 | =MAX(0,MIN(J362,$E362)-MAX(J362-Months_In_Year,0))/$E362
-364 | Months operated by year end (value: operating life) | months | 360 |  |  |  | -54 | =Life*Months_In_Year
-365 | Operating share of the year (COD to end of life) | % |  |  |  | 30 | 0 | =MAX(0,MIN(J364,$E364)-MAX(J364-Months_In_Year,0))/Months_In_Year
-366 | COD year flag | flag |  |  |  |  | 0 | =N(J361=0)
-367 | Buyer pays at the Case B sale: RtB premium, land at cost, securities and connection fees reimbursed to FEP | EUR k |  |  |  | -20,256.40 | 0 | =-($E$98+$E$68+$E$62+$E$63+$E$92)*(J$357=YEAR(Sale_Date))
-368 | Performance security released (bid security included) | EUR k |  |  |  | 1,942.47 | 0 | =($E$62+$E$63)*(J$357=YEAR(Inputs!$E$27))
-369 | Construction capex (straight-line NTP to COD) | EUR k |  |  |  | -52778 | 0 | =-$E$91*J363
-370 | Municipal one-off at COD | EUR k |  |  |  | -1000 | 0 | =-$E$96*J366
-371 | Investment cash flow | EUR k |  |  |  | -72,091.93 | 0 | =SUM(J367:J370)
-372 | Degradation factor (from the first full year) | x |  |  |  |  | 1 | =(1-Degradation)^MAX(J361-1,0)
-373 | Net generation | GWh |  |  |  | 3,654.34 | 0 | =$E$46*$E$22*(1-Curtailment)*(1-Clipping)*J365*J372/Thousand
-374 | PPA price | EUR/MWh |  |  |  |  | 0 | =Case_PPA*(1+PPA_Esc)^J361*(J365>0)
-375 | Revenue | EUR k |  |  |  | 382,397.73 | 0 | =J373*J374
-376 | Opex index (COD year = 1) | x |  |  |  |  | 0.883854 | =(1+Opex_Esc)^J361
-377 | O&M, BoP, lease, insurance, management, property tax | EUR k |  |  |  | -60,009.51 | 0 | =-(Case_OM+SUM(Opex_Per_MW))*$E$46*J376*J365
-378 | Administration, audit, compliance | EUR k |  |  |  | -1,666.93 | 0 | =-Opex_Admin*$E$6/Lump_Basis*J376*J365
-379 | Balancing and grid charges | EUR k |  |  |  | -26,924.51 | 0 | =-J373*(Balancing+Grid_Charges)*J376
-380 | MEKH supervisory fee | EUR k |  |  |  | -382.40 | 0 | =-J375*MEKH_Fee
-381 | Opex contingency | EUR k |  |  |  | -4,449.17 | 0 | =SUM(J377:J380)*Opex_Cont
-382 | Community contribution | EUR k |  |  |  | 0 | 0 | =-J373*$E$12
-383 | HIPA local business tax | EUR k |  |  |  | -7,647.95 | 0 | =-J375*HIPA_Rate
-384 | Total opex | EUR k |  |  |  | -101,080.47 | 0 | =SUM(J377:J383)
-385 | EBITDA | EUR k |  |  |  | 281,317.26 | 0 | =J375+J384
-386 | Unlevered pre-tax cash flow | EUR k |  |  |  | 209,225.33 | 0 | =J371+J385
-387 | Tax depreciation (straight line on the all-in cost from the COD year) | EUR k |  |  |  | -72,091.93 | 0 | =-$E$99/Tax_Dep_Life*(J361>=0)*(J361<Tax_Dep_Life)
-388 | CIT, unlevered (no loss carry-forward) | EUR k |  |  |  | -31,383.80 | 0 | =-MAX(0,J385+J387)*CIT_Rate*(J365>0)
-389 | Unlevered post-tax cash flow | EUR k |  |  |  | 177,841.53 | 0 | =J386+J388
-390 | Debt drawn at COD (gearing × all-in cost; no interest during construction) | EUR k |  |  |  | 43,255.16 | 0 | =$E$99*Gearing*J366
-391 | Debt service, annuity (interest + principal; paid, shown positive) | EUR k |  |  |  | 62,509.52 | 0 | =-PMT(Debt_Rate,Debt_Tenor,$E$99*Gearing)*(J361>=1)*(J361<=Debt_Tenor)
-392 | Interest (on the opening balance) | EUR k |  |  |  | 19,254.36 | 0 | =I394*Debt_Rate*(J361>=1)
-393 | Principal repaid (annuity − interest) | EUR k |  |  |  | 43,255.16 | 0 | =J391-J392
-394 | Debt balance, closing | EUR k |  |  |  |  | 0 | =I394+J390-J393
-395 | CIT, levered (interest deductible; no loss carry-forward) | EUR k |  |  |  | -28,495.65 | 0 | =-MAX(0,J385+J387-J392)*CIT_Rate*(J365>0)
-396 | Equity cash flow, post-tax (60 % debt) | EUR k |  |  |  | 161,475.33 | 0 | =J386+J390-J391+J395
-397 | DSCR (EBITDA ÷ debt service) | x |  |  |  | 2.189726 |  | =IF(J391>0,J385/J391,"")
-398 | Discount factor to COD (buyer's rate) | x |  |  |  |  | 1.413713 | =(1+Discount_Rate)^((Inputs!$E$26-J$358)/Days_In_Year)
-399 | EBITDA valued at COD (total = COD price) | EUR k |  |  |  | 104,654.65 | 0 | =J385*J398
-400 | RtB price: 0 (now in the sale-year payment above) | EUR k |  |  |  | 0 | 0 | =0
-401 | COD exit: buyer's cash flow (to COD, price and securities at COD) | EUR k |  |  |  | 32,562.72 | 0 | =J371*(J361<=0)+J366*($H399+$E$62+$E$63)+J400
-402 | FEP shareholder loans to the JV (RtB cases): balance at 31-Dec and interest capitalised, taxed yearly |  |  |  |  |  |  | 
-403 | Case B: loan balance at 31-Dec, cash lines (12 %) | EUR k |  |  |  |  | 404.93 | =(I403*(1+Rate_Cash)+SUMPRODUCT(-$E340:$E345*$M340:$M345*(YEAR($J340:$J345)=J357)))*(J358<$E190)
-404 | Case B: loan balance at 31-Dec, land and devex (20 %) | EUR k |  |  |  |  | 0 | =(I404*(1+Rate_Devex)+SUMPRODUCT(-$E346:$E347*$M346:$M347*(YEAR($J346:$J347)=J357)))*(J358<$E190)
-405 | Case B: loans drawn in the year | EUR k |  |  |  | 13,465.72 | 396.71 | =-SUMPRODUCT($E340:$E347*(YEAR($J340:$J347)=J357))*(J358<$E190)
-406 | Case B: interest capitalised in the year (taxable at FEP) | EUR k |  |  |  | 1,129.80 | 8.216836 | =(J403+J404-I403-I404-J405)*(J358<$E190)
-407 | Case A: loan balance at 31-Dec, cash lines (12 %) | EUR k |  |  |  |  | 404.93 | =(I407*(1+Rate_Cash)+SUMPRODUCT(-$E288:$E291*$M288:$M291*(YEAR($J288:$J291)=J357)))*(J358<$E225)
-408 | Case A: loan balance at 31-Dec, land and devex (20 %) | EUR k |  |  |  |  | 0 | =(I408*(1+Rate_Devex)+SUMPRODUCT(-$E292:$E293*$M292:$M293*(YEAR($J292:$J293)=J357)))*(J358<$E225)
-409 | Case A: loans drawn in the year | EUR k |  |  |  | 3,291.64 | 396.71 | =-SUMPRODUCT($E288:$E293*(YEAR($J288:$J293)=J357))*(J358<$E225)
-410 | Case A: interest capitalised in the year (taxable at FEP) | EUR k |  |  |  | 334.41 | 8.216836 | =(J407+J408-I407-I408-J409)*(J358<$E225)
-412 | Iváncsa: annual cash flow (EUR k) |  |  | Value |  | Total |  | 
-413 | Years from the COD year | years |  |  |  |  | -5 | =J$357-YEAR(Inputs!$F$26)
-414 | Construction months by year end (value: construction period) | months |  | 24 |  |  | -30 | =(J$357+1-YEAR(Inputs!$F$25))*Months_In_Year-MONTH(Inputs!$F$25)
-415 | Construction share of the year (NTP to COD) | % |  |  |  | 1 | 0 | =MAX(0,MIN(J414,$F414)-MAX(J414-Months_In_Year,0))/$F414
-416 | Months operated by year end (value: operating life) | months |  | 360 |  |  | -54 | =(J$357+1-YEAR(Inputs!$F$26))*Months_In_Year-MONTH(Inputs!$F$26)
-417 | Operating share of the year (COD to end of life) | % |  |  |  | 30 | 0 | =MAX(0,MIN(J416,$F416)-MAX(J416-Months_In_Year,0))/Months_In_Year
-418 | COD year flag | flag |  |  |  |  | 0 | =N(J413=0)
-419 | Buyer pays at the Case B sale: RtB premium, land at cost, securities and connection fees reimbursed to FEP | EUR k |  |  |  | -14,078.58 | 0 | =-($F$98+$F$68+$F$62+$F$63+$F$92)*(J$357=YEAR(Sale_Date))
-420 | Performance security released (bid security included) | EUR k |  |  |  | 2,494.52 | 0 | =($F$62+$F$63)*(J$357=YEAR(Inputs!$F$27))
-421 | Construction capex (straight-line NTP to COD) | EUR k |  |  |  | -62716 | 0 | =-$F$91*J415
-422 | Municipal one-off at COD | EUR k |  |  |  | -2500 | 0 | =-$F$96*J418
-423 | Investment cash flow | EUR k |  |  |  | -76,800.06 | 0 | =SUM(J419:J422)
-424 | Degradation factor (from the first full year) | x |  |  |  |  | 1 | =(1-Degradation)^MAX(J413-1,0)
-425 | Net generation | GWh |  |  |  | 4,263.40 | 0 | =$F$46*$F$22*(1-Curtailment)*(1-Clipping)*J417*J424/Thousand
-426 | PPA price | EUR/MWh |  |  |  |  | 0 | =Case_PPA*(1+PPA_Esc)^J413*(J417>0)
-427 | Revenue | EUR k |  |  |  | 446,130.69 | 0 | =J425*J426
-428 | Opex index (COD year = 1) | x |  |  |  |  | 0.883854 | =(1+Opex_Esc)^J413
-429 | O&M, BoP, lease, insurance, management, property tax | EUR k |  |  |  | -70,011.09 | 0 | =-(Case_OM+SUM(Opex_Per_MW))*$F$46*J428*J417
-430 | Administration, audit, compliance | EUR k |  |  |  | -1,666.93 | 0 | =-Opex_Admin*$F$6/Lump_Basis*J428*J417
-431 | Balancing and grid charges | EUR k |  |  |  | -31,411.93 | 0 | =-J425*(Balancing+Grid_Charges)*J428
-432 | MEKH supervisory fee | EUR k |  |  |  | -446.13 | 0 | =-J427*MEKH_Fee
-433 | Opex contingency | EUR k |  |  |  | -5,176.80 | 0 | =SUM(J429:J432)*Opex_Cont
-434 | Community contribution | EUR k |  |  |  | -12,790.20 | 0 | =-J425*$F$12
-435 | HIPA local business tax | EUR k |  |  |  | -8,922.61 | 0 | =-J427*HIPA_Rate
-436 | Total opex | EUR k |  |  |  | -130,425.70 | 0 | =SUM(J429:J435)
-437 | EBITDA | EUR k |  |  |  | 315,704.99 | 0 | =J427+J436
-438 | Unlevered pre-tax cash flow | EUR k |  |  |  | 238,904.93 | 0 | =J423+J437
-439 | Tax depreciation (straight line on the all-in cost from the COD year) | EUR k |  |  |  | -76,800.06 | 0 | =-$F$99/Tax_Dep_Life*(J413>=0)*(J413<Tax_Dep_Life)
-440 | CIT, unlevered (no loss carry-forward) | EUR k |  |  |  | -35,835.74 | 0 | =-MAX(0,J437+J439)*CIT_Rate*(J417>0)
-441 | Unlevered post-tax cash flow | EUR k |  |  |  | 203,069.19 | 0 | =J438+J440
-442 | Debt drawn at COD (gearing × all-in cost; no interest during construction) | EUR k |  |  |  | 46,080.04 | 0 | =$F$99*Gearing*J418
-443 | Debt service, annuity (interest + principal; paid, shown positive) | EUR k |  |  |  | 66,591.84 | 0 | =-PMT(Debt_Rate,Debt_Tenor,$F$99*Gearing)*(J413>=1)*(J413<=Debt_Tenor)
-444 | Interest (on the opening balance) | EUR k |  |  |  | 20,511.81 | 0 | =I446*Debt_Rate*(J413>=1)
-445 | Principal repaid (annuity − interest) | EUR k |  |  |  | 46,080.04 | 0 | =J443-J444
-446 | Debt balance, closing | EUR k |  |  |  |  | 0 | =I446+J442-J445
-447 | CIT, levered (interest deductible; no loss carry-forward) | EUR k |  |  |  | -32,758.97 | 0 | =-MAX(0,J437+J439-J444)*CIT_Rate*(J417>0)
-448 | Equity cash flow, post-tax (60 % debt) | EUR k |  |  |  | 185,634.16 | 0 | =J438+J442-J443+J447
-449 | DSCR (EBITDA ÷ debt service) | x |  |  |  | 2.299453 |  | =IF(J443>0,J437/J443,"")
-450 | Discount factor to COD (buyer's rate) | x |  |  |  |  | 1.413713 | =(1+Discount_Rate)^((Inputs!$F$26-J$358)/Days_In_Year)
-451 | EBITDA valued at COD (total = COD price) | EUR k |  |  |  | 117,317.07 | 0 | =J437*J450
-452 | RtB price: 0 (now in the sale-year payment above) | EUR k |  |  |  | 0 | 0 | =0
-453 | COD exit: buyer's cash flow (to COD, price and securities at COD) | EUR k |  |  |  | 40,517.01 | 0 | =J423*(J413<=0)+J418*($H451+$F$62+$F$63)+J452
-454 | FEP shareholder loans to the JV (RtB cases): balance at 31-Dec and interest capitalised, taxed yearly |  |  |  |  |  |  | 
-455 | Case B: loan balance at 31-Dec, cash lines (12 %) | EUR k |  |  |  |  | 517.63 | =(I455*(1+Rate_Cash)+SUMPRODUCT(-$F340:$F345*$N340:$N345*(YEAR($K340:$K345)=J357)))*(J358<$F190)
-456 | Case B: loan balance at 31-Dec, land and devex (20 %) | EUR k |  |  |  |  | 0 | =(I456*(1+Rate_Devex)+SUMPRODUCT(-$F346:$F347*$N346:$N347*(YEAR($K346:$K347)=J357)))*(J358<$F190)
-457 | Case B: loans drawn in the year | EUR k |  |  |  | 7,287.90 | 507.12 | =-SUMPRODUCT($F340:$F347*(YEAR($K340:$K347)=J357))*(J358<$F190)
-458 | Case B: interest capitalised in the year (taxable at FEP) | EUR k |  |  |  | 1,067.28 | 10.50 | =(J455+J456-I455-I456-J457)*(J358<$F190)
-459 | Case A: loan balance at 31-Dec, cash lines (12 %) | EUR k |  |  |  |  | 517.63 | =(I459*(1+Rate_Cash)+SUMPRODUCT(-$F288:$F291*$N288:$N291*(YEAR($K288:$K291)=J357)))*(J358<$F225)
-460 | Case A: loan balance at 31-Dec, land and devex (20 %) | EUR k |  |  |  |  | 0 | =(I460*(1+Rate_Devex)+SUMPRODUCT(-$F292:$F293*$N292:$N293*(YEAR($K292:$K293)=J357)))*(J358<$F225)
-461 | Case A: loans drawn in the year | EUR k |  |  |  | 3,843.70 | 507.12 | =-SUMPRODUCT($F288:$F293*(YEAR($K288:$K293)=J357))*(J358<$F225)
-462 | Case A: interest capitalised in the year (taxable at FEP) | EUR k |  |  |  | 401.19 | 10.50 | =(J459+J460-I459-I460-J461)*(J358<$F225)
-464 | Dunaújváros: annual cash flow (EUR k) |  |  |  | Value | Total |  | 
-465 | Years from the COD year | years |  |  |  |  | -5 | =J$357-YEAR(Inputs!$G$26)
-466 | Construction months by year end (value: construction period) | months |  |  | 24 |  | -30 | =(J$357+1-YEAR(Inputs!$G$25))*Months_In_Year-MONTH(Inputs!$G$25)
-467 | Construction share of the year (NTP to COD) | % |  |  |  | 1 | 0 | =MAX(0,MIN(J466,$G466)-MAX(J466-Months_In_Year,0))/$G466
-468 | Months operated by year end (value: operating life) | months |  |  | 360 |  | -54 | =(J$357+1-YEAR(Inputs!$G$26))*Months_In_Year-MONTH(Inputs!$G$26)
-469 | Operating share of the year (COD to end of life) | % |  |  |  | 30 | 0 | =MAX(0,MIN(J468,$G468)-MAX(J468-Months_In_Year,0))/Months_In_Year
-470 | COD year flag | flag |  |  |  |  | 0 | =N(J465=0)
-471 | Buyer pays at the Case B sale: RtB premium, land at cost, securities and connection fees reimbursed to FEP | EUR k |  |  |  | -14,078.58 | 0 | =-($G$98+$G$68+$G$62+$G$63+$G$92)*(J$357=YEAR(Sale_Date))
-472 | Performance security released (bid security included) | EUR k |  |  |  | 2,494.52 | 0 | =($G$62+$G$63)*(J$357=YEAR(Inputs!$G$27))
-473 | Construction capex (straight-line NTP to COD) | EUR k |  |  |  | -62716 | 0 | =-$G$91*J467
-474 | Municipal one-off at COD | EUR k |  |  |  | -2500 | 0 | =-$G$96*J470
-475 | Investment cash flow | EUR k |  |  |  | -76,800.06 | 0 | =SUM(J471:J474)
-476 | Degradation factor (from the first full year) | x |  |  |  |  | 1 | =(1-Degradation)^MAX(J465-1,0)
-477 | Net generation | GWh |  |  |  | 4,263.40 | 0 | =$G$46*$G$22*(1-Curtailment)*(1-Clipping)*J469*J476/Thousand
-478 | PPA price | EUR/MWh |  |  |  |  | 0 | =Case_PPA*(1+PPA_Esc)^J465*(J469>0)
-479 | Revenue | EUR k |  |  |  | 446,130.69 | 0 | =J477*J478
-480 | Opex index (COD year = 1) | x |  |  |  |  | 0.883854 | =(1+Opex_Esc)^J465
-481 | O&M, BoP, lease, insurance, management, property tax | EUR k |  |  |  | -70,011.09 | 0 | =-(Case_OM+SUM(Opex_Per_MW))*$G$46*J480*J469
-482 | Administration, audit, compliance | EUR k |  |  |  | -1,666.93 | 0 | =-Opex_Admin*$G$6/Lump_Basis*J480*J469
-483 | Balancing and grid charges | EUR k |  |  |  | -31,411.93 | 0 | =-J477*(Balancing+Grid_Charges)*J480
-484 | MEKH supervisory fee | EUR k |  |  |  | -446.13 | 0 | =-J479*MEKH_Fee
-485 | Opex contingency | EUR k |  |  |  | -5,176.80 | 0 | =SUM(J481:J484)*Opex_Cont
-486 | Community contribution | EUR k |  |  |  | -12,790.20 | 0 | =-J477*$G$12
-487 | HIPA local business tax | EUR k |  |  |  | -8,922.61 | 0 | =-J479*HIPA_Rate
-488 | Total opex | EUR k |  |  |  | -130,425.70 | 0 | =SUM(J481:J487)
-489 | EBITDA | EUR k |  |  |  | 315,704.99 | 0 | =J479+J488
-490 | Unlevered pre-tax cash flow | EUR k |  |  |  | 238,904.93 | 0 | =J475+J489
-491 | Tax depreciation (straight line on the all-in cost from the COD year) | EUR k |  |  |  | -76,800.06 | 0 | =-$G$99/Tax_Dep_Life*(J465>=0)*(J465<Tax_Dep_Life)
-492 | CIT, unlevered (no loss carry-forward) | EUR k |  |  |  | -35,835.74 | 0 | =-MAX(0,J489+J491)*CIT_Rate*(J469>0)
-493 | Unlevered post-tax cash flow | EUR k |  |  |  | 203,069.19 | 0 | =J490+J492
-494 | Debt drawn at COD (gearing × all-in cost; no interest during construction) | EUR k |  |  |  | 46,080.04 | 0 | =$G$99*Gearing*J470
-495 | Debt service, annuity (interest + principal; paid, shown positive) | EUR k |  |  |  | 66,591.84 | 0 | =-PMT(Debt_Rate,Debt_Tenor,$G$99*Gearing)*(J465>=1)*(J465<=Debt_Tenor)
-496 | Interest (on the opening balance) | EUR k |  |  |  | 20,511.81 | 0 | =I498*Debt_Rate*(J465>=1)
-497 | Principal repaid (annuity − interest) | EUR k |  |  |  | 46,080.04 | 0 | =J495-J496
-498 | Debt balance, closing | EUR k |  |  |  |  | 0 | =I498+J494-J497
-499 | CIT, levered (interest deductible; no loss carry-forward) | EUR k |  |  |  | -32,758.97 | 0 | =-MAX(0,J489+J491-J496)*CIT_Rate*(J469>0)
-500 | Equity cash flow, post-tax (60 % debt) | EUR k |  |  |  | 185,634.16 | 0 | =J490+J494-J495+J499
-501 | DSCR (EBITDA ÷ debt service) | x |  |  |  | 2.299453 |  | =IF(J495>0,J489/J495,"")
-502 | Discount factor to COD (buyer's rate) | x |  |  |  |  | 1.413713 | =(1+Discount_Rate)^((Inputs!$G$26-J$358)/Days_In_Year)
-503 | EBITDA valued at COD (total = COD price) | EUR k |  |  |  | 117,317.07 | 0 | =J489*J502
-504 | RtB price: 0 (now in the sale-year payment above) | EUR k |  |  |  | 0 | 0 | =0
-505 | COD exit: buyer's cash flow (to COD, price and securities at COD) | EUR k |  |  |  | 40,517.01 | 0 | =J475*(J465<=0)+J470*($H503+$G$62+$G$63)+J504
-506 | FEP shareholder loans to the JV (RtB cases): balance at 31-Dec and interest capitalised, taxed yearly |  |  |  |  |  |  | 
-507 | Case B: loan balance at 31-Dec, cash lines (12 %) | EUR k |  |  |  |  | 517.63 | =(I507*(1+Rate_Cash)+SUMPRODUCT(-$G340:$G345*$O340:$O345*(YEAR($L340:$L345)=J357)))*(J358<$G190)
-508 | Case B: loan balance at 31-Dec, land and devex (20 %) | EUR k |  |  |  |  | 0 | =(I508*(1+Rate_Devex)+SUMPRODUCT(-$G346:$G347*$O346:$O347*(YEAR($L346:$L347)=J357)))*(J358<$G190)
-509 | Case B: loans drawn in the year | EUR k |  |  |  | 7,287.90 | 507.12 | =-SUMPRODUCT($G340:$G347*(YEAR($L340:$L347)=J357))*(J358<$G190)
-510 | Case B: interest capitalised in the year (taxable at FEP) | EUR k |  |  |  | 1,067.28 | 10.50 | =(J507+J508-I507-I508-J509)*(J358<$G190)
-511 | Case A: loan balance at 31-Dec, cash lines (12 %) | EUR k |  |  |  |  | 517.63 | =(I511*(1+Rate_Cash)+SUMPRODUCT(-$G288:$G291*$O288:$O291*(YEAR($L288:$L291)=J357)))*(J358<$G225)
-512 | Case A: loan balance at 31-Dec, land and devex (20 %) | EUR k |  |  |  |  | 0 | =(I512*(1+Rate_Devex)+SUMPRODUCT(-$G292:$G293*$O292:$O293*(YEAR($L292:$L293)=J357)))*(J358<$G225)
-513 | Case A: loans drawn in the year | EUR k |  |  |  | 3,843.70 | 507.12 | =-SUMPRODUCT($G288:$G293*(YEAR($L288:$L293)=J357))*(J358<$G225)
-514 | Case A: interest capitalised in the year (taxable at FEP) | EUR k |  |  |  | 401.19 | 10.50 | =(J511+J512-I511-I512-J513)*(J358<$G225)
-516 | COD exit: tax on the gain (price and profit: totals of the cash-flow blocks above) | EUR k | Bora | Iváncsa | Dunaújváros | Total |  | 
-517 | CIT on the exit gain (0 while the participation exemption flag is on) | EUR k | 0 | 0 | 0 | 0 |  | =-MAX(0,$H$401)*CIT_Rate*(1-Share_Exempt)
-518 | Buyer profit, post-tax | EUR k | 32,562.72 | 40,517.01 | 40,517.01 | 113,596.74 |  | =$H$401+E517
-520 | Checks (0 = OK) |  | Bora | Iváncsa | Dunaújváros | Total |  | 
-521 | Case B waterfall closes (proceeds = all amounts paid out) | flag | 0 | 0 | 0 | 0 |  | =N(ABS(E306+E307+E312-E315-E348)>Tolerance)
-522 | Claim lines paid before the accrual end year | flag | 0 | 0 | 0 | 0 |  | =N(MAX(YEAR(Inputs!E$21),YEAR(Inputs!E$22),YEAR(Inputs!E$23),YEAR(Inputs!E$24),YEAR($J$55),YEAR($J$56))>=YEAR(E190))
-523 | Turbine route is EU or CN | flag | 0 | 0 | 0 | 0 |  | =N(AND(E17<>"EU",E17<>"CN"))
-524 | Devex items × scale = project devex (land + development) | flag | 0 | 0 | 0 | 0 |  | =(ABS(SUM(Devex_HUF)/FX/Thousand*Inputs!E$18-E68-E67)>Tolerance)*1
-525 | Construction capex spread in full (timeline = capex) | flag | 0 | 0 | 0 | 0 |  | =N(ABS(E91+$H$369)>Tolerance)
-526 | Investment cash flows = all-in cost to COD for a buyer (RtB price, capex, fees, municipal, land) | flag | 0 | 0 | 0 | 0 |  | =N(ABS(E99+$H$371)>Tolerance)
-527 | Operating life inside the timeline | flag | 0 | 0 | 0 | 0 |  | =N(ABS($H$365-Life)>Tolerance)
-528 | Sale date A before the HCSSZ date (Case A exits before the connection fees) | flag | 0 | 0 | 0 | 0 |  | =N(Sale_Date_A>=Inputs!E$24)
-529 | COD cost stack = timeline investment flows | flag | 0 | 0 | 0 | 0 |  | =N(ABS(E133+$H$371+$H$400)>Tolerance)
-530 | Case A waterfall closes (proceeds = all amounts paid out) | flag | 0 | 0 | 0 | 0 |  | =N(ABS(E254+E255+E260-E263-E294)>Tolerance)
-531 | Debt repaid by the end of the tenor (closing balance in the last timeline year = 0) | flag | 0 | 0 | 0 | 0 |  | =N(ABS($AS$394)>Tolerance)
-532 | RtB loan CIT: the rest taxed at the sale is ≤ 0 (yearly schedule does not over-accrue), Case B + Case A | flag | 0 | 0 | 0 | 0 |  | =N(E352>Tolerance)+N(E298>Tolerance)
-533 | Master check | flag |  |  |  | 0 |  | =SUM(H521:H532)
-535 | ***END*** |  |  |  |  |  |  | 
+258 | Less development devex repaid to FEP (loan principal, JV only) | EUR k | -679.18 | 0 | 0 | -679.18 |  | =-MIN(SUM(E254:E257),E223*E$21)
+259 | Less FEP claims at 12 % on FEP's shareholder loan (JV only) | EUR k | -566.20 | 0 | 0 | -566.20 |  | =-MIN(SUM(E254:E258),SUM(E242:E245))
+260 | Less FEP land and devex return on FEP's shareholder loan (JV only) | EUR k | -724.52 | 0 | 0 | -724.52 |  | =-MIN(SUM(E254:E259),SUM(E246:E247))
+261 | Less developer success fee (DSA) | EUR k | -287.50 | 0 | 0 | -287.50 |  | =-MIN(SUM(E254:E260),E249)
+262 | Distributable proceeds | EUR k | 4,992.60 | 7250 | 7250 | 19,492.60 |  | =SUM(E254:E261)
+263 | FEP share of distributable | EUR k | 3,494.82 | 7250 | 7250 | 17,994.82 |  | =E262*E19
+264 | Developer share of distributable | EUR k | 1,497.78 | 0 | 0 | 1,497.78 |  | =E262-E263
+265 | FEP profit, Case A (at sale A): what the buyer pays, less deductions |  | Bora | Iváncsa | Dunaújváros | Total | Date: Bora | 
+266 | RtB premium paid by the buyer (150 k EUR/MVA × MVA) | EUR k | 7500 | 7500 | 7500 | 22500 |  | =E98
+267 | Land: 0 (bought by the RtB buyer at cost; FEP's land outlay is repaid, not deducted) | EUR k | 0 | 0 | 0 | 0 |  | =0
+268 | Bid security: 0 (paid back to FEP at the sale) | EUR k | 0 | 0 | 0 | 0 |  | =0
+269 | Performance security: 0 (paid back to FEP at the sale) | EUR k | 0 | 0 | 0 | 0 |  | =0
+270 | Less: sale costs | EUR k | -250 | -250 | -250 | -750 |  | =E255
+271 | Less: developer success fee (DSA) | EUR k | -287.50 | 0 | 0 | -287.50 |  | =E261
+272 | Less: developer share of distributable proceeds | EUR k | -1,497.78 | 0 | 0 | -1,497.78 |  | =-E264
+273 | Development devex repaid to FEP (loan principal, JV only) | EUR k | 679.18 | 0 | 0 | 679.18 |  | =-E258
+274 | FEP claims at 12 % on FEP's shareholder loan (interest, JV only) | EUR k | 566.20 | 0 | 0 | 566.20 |  | =-E259
+275 | FEP land and devex return on FEP's shareholder loan (JV only) | EUR k | 724.52 | 0 | 0 | 724.52 |  | =-E260
+276 | FEP share of distributable proceeds | EUR k | 3,494.82 | 7250 | 7250 | 17,994.82 |  | =E263
+277 | FEP receipts at sale A (devex repaid + claims + return + FEP share) | EUR k | 5,464.72 | 7250 | 7250 | 19,964.72 |  | =SUM(E273:E276)
+278 | Less: signing fee and DD, Exit fees | EUR k | -100 | -150 | -150 | -400 |  | =-E69
+279 | Less: participation fee (not reimbursed) | EUR k | -8.219178 | -8.219178 | -8.219178 | -24.66 |  | =-E61
+280 | Less: development devex | EUR k | -679.18 | -679.18 | -679.18 | -2,037.54 |  | =-E223
+281 | FEP profit, pre-tax | EUR k | 4,677.32 | 6,412.60 | 6,412.60 | 17,502.52 |  | =E277+SUM(E278:E280)
+282 | CIT on the exit gain (0 while the participation exemption flag is on) | EUR k | 0 | 0 | 0 | 0 |  | =-MAX(0,E281)*CIT_Rate*(1-Share_Exempt)
+283 | CIT on the interest of FEP's shareholder loans (JV only; paid yearly as capitalised) | EUR k | -193.61 | 0 | 0 | -193.61 |  | =-E248*CIT_Rate*E$21
+284 | FEP profit, post-tax | EUR k | 4,483.71 | 6,412.60 | 6,412.60 | 17,308.91 |  | =E281+E282+E283
+285 | MOIC, pre-tax (dated cash flows below) | x | 2.379073 | 2.605681 | 2.605681 | 2.538138 |  | =SUMIF(E289:E296,">0")/-SUMIF(E289:E296,"<0")
+286 | IRR, pre-tax (dated cash flows below) | % | 0.710305 | 0.789921 | 0.789921 | 0.766962 |  | =XIRR(E289:E296,J289:J296)
+287 | Memo: pre-tax profit vs Case B (connection-fee claims no longer earned, FEP share) | EUR k | -265.37 | 21.92 | 21.92 | -221.53 |  | =E281-E336
+288 | Memo: FEP dated cash flows, Case A, for MOIC and IRR (securities are paid and repaid at cost: net zero, excluded from the profit above) |  |  |  |  |  | Date: Bora | 
+289 | Signing fee and DD | EUR k | -100 | -150 | -150 | -400 | 31-Jul-2026 | =-E69
+290 | Participation fee | EUR k | -8.219178 | -8.219178 | -8.219178 | -24.66 | 30-Oct-2026 | =-E61
+291 | Bid security | EUR k | -388.49 | -498.90 | -498.90 | -1,386.30 | 30-Oct-2026 | =-E62
+292 | Performance security payable | EUR k | -1,553.97 | -1,995.62 | -1,995.62 | -5,545.21 | 15-Jan-2027 | =-E63
+293 | TSO connection-request security | EUR k | -616.44 | -616.44 | -616.44 | -1,849.32 | 15-Jan-2027 | =-E64
+294 | Land | EUR k | -45.34 | -45.34 | -45.34 | -136.01 | 13-Feb-2027 | =-E220
+295 | Development devex | EUR k | -679.18 | -679.18 | -679.18 | -2,037.54 | 10-Nov-2027 | =-E223
+296 | FEP receipts at sale A (receipts above + securities and land repaid) | EUR k | 8,068.96 | 10,406.29 | 10,406.29 | 28,881.55 | 30-Sep-2028 | =E277-E256-E257
+297 | CIT on the interest capitalised at 31-Dec-2026 | EUR k | -1.232525 | 0 | 0 | -1.232525 | 31-Dec-2026 | =-J$413*CIT_Rate*E$21
+298 | CIT on the interest capitalised at 31-Dec-2027 | EUR k | -48.93 | 0 | 0 | -48.93 | 31-Dec-2027 | =-K$413*CIT_Rate*E$21
+299 | CIT on the interest capitalised at 31-Dec-2028 | EUR k | 0 | 0 | 0 | 0 | 31-Dec-2028 | =-L$413*CIT_Rate*E$21
+300 | CIT on the rest at the sale (stub to the accrual end, devex floor top-up) | EUR k | -143.45 | 0 | 0 | -143.45 | 30-Sep-2028 | =-E248*CIT_Rate*E$21-SUM(E297:E299)
+301 | MOIC, post-tax (dated cash flows incl. the CIT rows) | x | 2.250600 | 2.605681 | 2.605681 | 2.495676 |  | =SUMIF(E289:E300,">0")/-SUMIF(E289:E300,"<0")
+302 | IRR, post-tax (dated cash flows incl. the CIT rows) | % | 0.681941 | 0.789921 | 0.789921 | 0.758811 |  | =XIRR(E289:E300,J289:J300)
+304 | RtB exit, Case B: waterfall at the sale |  | Bora | Iváncsa | Dunaújváros | Total |  | 
+305 | RtB premium | EUR k | 7500 | 7500 | 7500 | 22500 |  | =E98
+306 | Buyer reimburses securities and connection fees at cost | EUR k | 12,648.60 | 6,470.78 | 6,470.78 | 25,590.15 |  | =SUM(E62:E66)
+307 | Buyer pays the land at cost (on top of the premium) | EUR k | 107.80 | 107.80 | 107.80 | 323.41 |  | =E68
+308 | Total proceeds | EUR k | 20,256.40 | 14,078.58 | 14,078.58 | 48,413.56 |  | =SUM(E305:E307)
+309 | Less sale costs | EUR k | -250 | -250 | -250 | -750 |  | =-MIN(E308,Sale_Costs)
+310 | Less securities and fees repaid to FEP | EUR k | -12,648.60 | -6,470.78 | -6,470.78 | -25,590.15 |  | =-MIN(SUM(E308:E309),E306)
+311 | Less land repaid to FEP at cost | EUR k | -107.80 | -107.80 | -107.80 | -323.41 |  | =-MIN(SUM(E308:E310),E307)
+312 | Less development devex repaid to FEP (loan principal, JV only) | EUR k | -701.10 | 0 | 0 | -701.10 |  | =-MIN(SUM(E308:E311),E67*E$21)
+313 | Less FEP claims at 12 % on FEP's shareholder loan (JV only) | EUR k | -1,767.51 | 0 | 0 | -1,767.51 |  | =-MIN(SUM(E308:E312),SUM(E205:E210))
+314 | Less FEP land and devex return on FEP's shareholder loan (JV only) | EUR k | -808.90 | 0 | 0 | -808.90 |  | =-MIN(SUM(E308:E313),SUM(E211:E212))
+315 | Less developer success fee (DSA) | EUR k | -437.50 | 0 | 0 | -437.50 |  | =-MIN(SUM(E308:E314),E214)
+316 | Distributable proceeds | EUR k | 3,534.99 | 7250 | 7250 | 18,034.99 |  | =SUM(E308:E315)
+317 | FEP share of distributable | EUR k | 2,474.49 | 7250 | 7250 | 16,974.49 |  | =E316*E19
+318 | Developer share of distributable | EUR k | 1,060.50 | 0 | 0 | 1,060.50 |  | =E316-E317
+320 | FEP profit, Case B (at the sale): what the buyer pays, less deductions |  | Bora | Iváncsa | Dunaújváros | Total |  | 
+321 | RtB premium paid by the buyer (150 k EUR/MVA × MVA) | EUR k | 7500 | 7500 | 7500 | 22500 |  | =E98
+322 | Land: 0 (bought by the RtB buyer at cost; FEP's land outlay is repaid, not deducted) | EUR k | 0 | 0 | 0 | 0 |  | =0
+323 | Bid security: 0 (paid back to FEP at the sale) | EUR k | 0 | 0 | 0 | 0 |  | =0
+324 | Performance security: 0 (paid back to FEP at the sale) | EUR k | 0 | 0 | 0 | 0 |  | =0
+325 | Less: sale costs | EUR k | -250 | -250 | -250 | -750 |  | =E309
+326 | Less: developer success fee (DSA) | EUR k | -437.50 | 0 | 0 | -437.50 |  | =E315
+327 | Less: developer share of distributable proceeds | EUR k | -1,060.50 | 0 | 0 | -1,060.50 |  | =-E318
+328 | Development devex repaid to FEP (loan principal, JV only) | EUR k | 701.10 | 0 | 0 | 701.10 |  | =-E312
+329 | FEP claims at 12 % on FEP's shareholder loan (interest, JV only) | EUR k | 1,767.51 | 0 | 0 | 1,767.51 |  | =-E313
+330 | FEP land and devex return on FEP's shareholder loan (JV only) | EUR k | 808.90 | 0 | 0 | 808.90 |  | =-E314
+331 | FEP share of distributable proceeds | EUR k | 2,474.49 | 7250 | 7250 | 16,974.49 |  | =E317
+332 | FEP receipts at the sale (devex repaid + claims + return + FEP share) | EUR k | 5,752.00 | 7250 | 7250 | 20,252.00 |  | =SUM(E328:E331)
+333 | Less: signing fee and DD, Exit fees | EUR k | -100 | -150 | -150 | -400 |  | =-E69
+334 | Less: participation fee (not reimbursed) | EUR k | -8.219178 | -8.219178 | -8.219178 | -24.66 |  | =-E61
+335 | Less: development devex | EUR k | -701.10 | -701.10 | -701.10 | -2,103.30 |  | =-E67
+336 | FEP profit, pre-tax | EUR k | 4,942.69 | 6,390.68 | 6,390.68 | 17,724.05 |  | =E332+SUM(E333:E335)
+337 | CIT on the exit gain (0 while the participation exemption flag is on) | EUR k | 0 | 0 | 0 | 0 |  | =-MAX(0,E336)*CIT_Rate*(1-Share_Exempt)
+338 | CIT on the interest of FEP's shareholder loans (JV only; paid yearly as capitalised) | EUR k | -386.46 | 0 | 0 | -386.46 |  | =-E213*CIT_Rate*E$21
+339 | FEP profit, post-tax | EUR k | 4,556.22 | 6,390.68 | 6,390.68 | 17,337.59 |  | =E336+E337+E338
+340 | MOIC, pre-tax (dated cash flows below) | x | 1.364351 | 1.859205 | 1.859205 | 1.623175 |  | =SUMIF(E343:E352,">0")/-SUMIF(E343:E352,"<0")
+341 | IRR, pre-tax (dated cash flows below) | % | 0.239329 | 0.369819 | 0.369819 | 0.322624 |  | =XIRR(E343:E352,J343:J352)
+342 | Memo: FEP dated cash flows, Case B, for MOIC and IRR (securities and connection fees are paid and repaid at cost: net zero, excluded from the profit above) |  |  |  |  |  | Date: Bora | 
+343 | Signing fee and DD | EUR k | -100 | -150 | -150 | -400 | 31-Jul-2026 | =-E69
+344 | Participation fee | EUR k | -8.219178 | -8.219178 | -8.219178 | -24.66 | 30-Oct-2026 | =-E61
+345 | Bid security | EUR k | -388.49 | -498.90 | -498.90 | -1,386.30 | 30-Oct-2026 | =-E62
+346 | Performance security payable | EUR k | -1,553.97 | -1,995.62 | -1,995.62 | -5,545.21 | 15-Jan-2027 | =-E63
+347 | TSO connection-request security | EUR k | -616.44 | -616.44 | -616.44 | -1,849.32 | 15-Jan-2027 | =-E64
+348 | Direct connection fee | EUR k | -696.36 | -1,260.27 | -1,260.27 | -3,216.91 | 01-Oct-2028 | =-E65
+349 | Indirect connection fee, payable | EUR k | -9,393.33 | -2,099.55 | -2,099.55 | -13,592.42 | 01-Oct-2028 | =-E66
+350 | Land | EUR k | -107.80 | -107.80 | -107.80 | -323.41 | 04-May-2028 | =-E68
+351 | Development devex | EUR k | -701.10 | -701.10 | -701.10 | -2,103.30 | 23-Nov-2027 | =-E67
+352 | FEP receipts at the sale (receipts above + securities, fees and land repaid) | EUR k | 18,508.40 | 13,828.58 | 13,828.58 | 46,165.56 | 30-Sep-2029 | =E332-E310-E311
+353 | CIT on the interest capitalised at 31-Dec-2026 | EUR k | -1.232525 | 0 | 0 | -1.232525 | 31-Dec-2026 | =-J$409*CIT_Rate*E$21
+354 | CIT on the interest capitalised at 31-Dec-2027 | EUR k | -47.10 | 0 | 0 | -47.10 | 31-Dec-2027 | =-K$409*CIT_Rate*E$21
+355 | CIT on the interest capitalised at 31-Dec-2028 | EUR k | -121.14 | 0 | 0 | -121.14 | 31-Dec-2028 | =-L$409*CIT_Rate*E$21
+356 | CIT on the rest at the sale (stub to the accrual end, devex floor top-up) | EUR k | -216.99 | 0 | 0 | -216.99 | 30-Sep-2029 | =-E213*CIT_Rate*E$21-SUM(E353:E355)
+357 | MOIC, post-tax (dated cash flows incl. the CIT rows) | x | 1.326560 | 1.859205 | 1.859205 | 1.601415 |  | =SUMIF(E343:E356,">0")/-SUMIF(E343:E356,"<0")
+358 | IRR, post-tax (dated cash flows incl. the CIT rows) | % | 0.220265 | 0.369819 | 0.369819 | 0.315647 |  | =XIRR(E343:E356,J343:J356)
+360 | Annual timeline |  |  |  |  | Total |  | 
+361 | Year | year |  |  |  |  | 2026 | =First_Year+COLUMN()-COLUMN($J$1)
+362 | Year end | date |  |  |  |  | 31-Dec-2026 | =DATE(J361+1,1,1)-1
+364 | Bora: annual cash flow (EUR k) |  | Value |  |  | Total |  | 
+365 | Years from the COD year | years |  |  |  |  | -5 | =J$361-YEAR(Inputs!$E$26)
+366 | Construction months by year end (value: construction period) | months | 24 |  |  |  | -30 | =DATEDIF(Inputs!$E$25,Inputs!$E$26,"m")
+367 | Construction share of the year (NTP to COD) | % |  |  |  | 1 | 0 | =MAX(0,MIN(J366,$E366)-MAX(J366-Months_In_Year,0))/$E366
+368 | Months operated by year end (value: operating life) | months | 360 |  |  |  | -54 | =Life*Months_In_Year
+369 | Operating share of the year (COD to end of life) | % |  |  |  | 30 | 0 | =MAX(0,MIN(J368,$E368)-MAX(J368-Months_In_Year,0))/Months_In_Year
+370 | COD year flag | flag |  |  |  |  | 0 | =N(J365=0)
+371 | Buyer pays at the Case B sale: RtB premium, land at cost, securities and connection fees reimbursed to FEP | EUR k |  |  |  | -20,256.40 | 0 | =-($E$98+$E$68+$E$62+$E$63+$E$92)*(J$361=YEAR(Sale_Date))
+372 | Performance security released (bid security included) | EUR k |  |  |  | 1,942.47 | 0 | =($E$62+$E$63)*(J$361=YEAR(Inputs!$E$27))
+373 | Construction capex (straight-line NTP to COD) | EUR k |  |  |  | -52778 | 0 | =-$E$91*J367
+374 | Municipal one-off at COD | EUR k |  |  |  | -1000 | 0 | =-$E$96*J370
+375 | Investment cash flow | EUR k |  |  |  | -72,091.93 | 0 | =SUM(J371:J374)
+376 | Degradation factor (from the first full year) | x |  |  |  |  | 1 | =(1-Degradation)^MAX(J365-1,0)
+377 | Net generation | GWh |  |  |  | 3,654.34 | 0 | =$E$46*$E$22*(1-Curtailment)*(1-Clipping)*J369*J376/Thousand
+378 | PPA price | EUR/MWh |  |  |  |  | 0 | =Case_PPA*(1+PPA_Esc)^J365*(J369>0)
+379 | Revenue | EUR k |  |  |  | 382,397.73 | 0 | =J377*J378
+380 | Opex index (COD year = 1) | x |  |  |  |  | 0.883854 | =(1+Opex_Esc)^J365
+381 | O&M, BoP, lease, insurance, management, property tax | EUR k |  |  |  | -60,009.51 | 0 | =-(Case_OM+SUM(Opex_Per_MW))*$E$46*J380*J369
+382 | Administration, audit, compliance | EUR k |  |  |  | -1,666.93 | 0 | =-Opex_Admin*$E$6/Lump_Basis*J380*J369
+383 | Balancing and grid charges | EUR k |  |  |  | -26,924.51 | 0 | =-J377*(Balancing+Grid_Charges)*J380
+384 | MEKH supervisory fee | EUR k |  |  |  | -382.40 | 0 | =-J379*MEKH_Fee
+385 | Opex contingency | EUR k |  |  |  | -4,449.17 | 0 | =SUM(J381:J384)*Opex_Cont
+386 | Community contribution | EUR k |  |  |  | 0 | 0 | =-J377*$E$12
+387 | HIPA local business tax | EUR k |  |  |  | -7,647.95 | 0 | =-J379*HIPA_Rate
+388 | Total opex | EUR k |  |  |  | -101,080.47 | 0 | =SUM(J381:J387)
+389 | EBITDA | EUR k |  |  |  | 281,317.26 | 0 | =J379+J388
+390 | Unlevered pre-tax cash flow | EUR k |  |  |  | 209,225.33 | 0 | =J375+J389
+391 | Tax depreciation (straight line on the all-in cost from the COD year) | EUR k |  |  |  | -72,091.93 | 0 | =-$E$99/Tax_Dep_Life*(J365>=0)*(J365<Tax_Dep_Life)
+392 | CIT, unlevered (no loss carry-forward) | EUR k |  |  |  | -31,383.80 | 0 | =-MAX(0,J389+J391)*CIT_Rate*(J369>0)
+393 | Unlevered post-tax cash flow | EUR k |  |  |  | 177,841.53 | 0 | =J390+J392
+394 | Debt drawn at COD (gearing × all-in cost; no interest during construction) | EUR k |  |  |  | 43,255.16 | 0 | =$E$99*Gearing*J370
+395 | Debt service, annuity (interest + principal) | EUR k |  |  |  | -62,509.52 | 0 | =PMT(Debt_Rate,Debt_Tenor,$E$99*Gearing)*(J365>=1)*(J365<=Debt_Tenor)
+396 | Interest (on the opening balance) | EUR k |  |  |  | -19,254.36 | 0 | =-I398*Debt_Rate*(J365>=1)
+397 | Principal repaid (annuity − interest) | EUR k |  |  |  | -43,255.16 | 0 | =J395-J396
+398 | Debt balance, closing | EUR k |  |  |  |  | 0 | =I398+J394+J397
+399 | CIT, levered (interest deductible; no loss carry-forward) | EUR k |  |  |  | -28,495.65 | 0 | =-MAX(0,J389+J391+J396)*CIT_Rate*(J369>0)
+400 | Equity cash flow, post-tax (geared) | EUR k |  |  |  | 161,475.33 | 0 | =J390+J394+J395+J399
+401 | DSCR (EBITDA ÷ debt service) | x |  |  |  | 2.189726 |  | =IF(J395<0,-J389/J395,"")
+402 | Discount factor to COD (buyer's rate) | x |  |  |  |  | 1.413713 | =(1+Discount_Rate)^((Inputs!$E$26-J$362)/Days_In_Year)
+403 | EBITDA valued at COD (total = COD price) | EUR k |  |  |  | 104,654.65 | 0 | =J389*J402
+404 | COD exit: buyer's cash flow (to COD, price and securities at COD) | EUR k |  |  |  | 32,562.72 | 0 | =J375*(J365<=0)+J370*($H403+$E$62+$E$63)
+405 | FEP shareholder loans to the JV (RtB cases): balance at 31-Dec and interest capitalised, taxed yearly |  |  |  |  |  |  | 
+406 | Case B: loan balance at 31-Dec, cash lines | EUR k |  |  |  |  | 404.93 | =(I406*(1+Rate_Cash)-SUMPRODUCT($E344:$E349*$M344:$M349*(YEAR($J344:$J349)=J361)))*(J362<$E190)*$E21
+407 | Case B: loan balance at 31-Dec, land and devex | EUR k |  |  |  |  | 0 | =(I407*(1+Rate_Devex)-SUMPRODUCT($E350:$E351*$M350:$M351*(YEAR($J350:$J351)=J361)))*(J362<$E190)*$E21
+408 | Case B: loans drawn in the year | EUR k |  |  |  | 13,465.72 | 396.71 | =-SUMPRODUCT($E344:$E351*(YEAR($J344:$J351)=J361))*(J362<$E190)*$E21
+409 | Case B: interest capitalised in the year (taxable at FEP) | EUR k |  |  |  | 1,129.80 | 8.216836 | =(J406+J407-I406-I407-J408)*(J362<$E190)*$E21
+410 | Case A: loan balance at 31-Dec, cash lines | EUR k |  |  |  |  | 404.93 | =(I410*(1+Rate_Cash)-SUMPRODUCT($E290:$E293*$M290:$M293*(YEAR($J290:$J293)=J361)))*(J362<$E225)*$E21
+411 | Case A: loan balance at 31-Dec, land and devex | EUR k |  |  |  |  | 0 | =(I411*(1+Rate_Devex)-SUMPRODUCT($E294:$E295*$M294:$M295*(YEAR($J294:$J295)=J361)))*(J362<$E225)*$E21
+412 | Case A: loans drawn in the year | EUR k |  |  |  | 3,291.64 | 396.71 | =-SUMPRODUCT($E290:$E295*(YEAR($J290:$J295)=J361))*(J362<$E225)*$E21
+413 | Case A: interest capitalised in the year (taxable at FEP) | EUR k |  |  |  | 334.41 | 8.216836 | =(J410+J411-I410-I411-J412)*(J362<$E225)*$E21
+415 | Iváncsa: annual cash flow (EUR k) |  |  | Value |  | Total |  | 
+416 | Years from the COD year | years |  |  |  |  | -5 | =J$361-YEAR(Inputs!$F$26)
+417 | Construction months by year end (value: construction period) | months |  | 24 |  |  | -30 | =(J$361+1-YEAR(Inputs!$F$25))*Months_In_Year-MONTH(Inputs!$F$25)
+418 | Construction share of the year (NTP to COD) | % |  |  |  | 1 | 0 | =MAX(0,MIN(J417,$F417)-MAX(J417-Months_In_Year,0))/$F417
+419 | Months operated by year end (value: operating life) | months |  | 360 |  |  | -54 | =(J$361+1-YEAR(Inputs!$F$26))*Months_In_Year-MONTH(Inputs!$F$26)
+420 | Operating share of the year (COD to end of life) | % |  |  |  | 30 | 0 | =MAX(0,MIN(J419,$F419)-MAX(J419-Months_In_Year,0))/Months_In_Year
+421 | COD year flag | flag |  |  |  |  | 0 | =N(J416=0)
+422 | Buyer pays at the Case B sale: RtB premium, land at cost, securities and connection fees reimbursed to FEP | EUR k |  |  |  | -14,078.58 | 0 | =-($F$98+$F$68+$F$62+$F$63+$F$92)*(J$361=YEAR(Sale_Date))
+423 | Performance security released (bid security included) | EUR k |  |  |  | 2,494.52 | 0 | =($F$62+$F$63)*(J$361=YEAR(Inputs!$F$27))
+424 | Construction capex (straight-line NTP to COD) | EUR k |  |  |  | -62716 | 0 | =-$F$91*J418
+425 | Municipal one-off at COD | EUR k |  |  |  | -2500 | 0 | =-$F$96*J421
+426 | Investment cash flow | EUR k |  |  |  | -76,800.06 | 0 | =SUM(J422:J425)
+427 | Degradation factor (from the first full year) | x |  |  |  |  | 1 | =(1-Degradation)^MAX(J416-1,0)
+428 | Net generation | GWh |  |  |  | 4,263.40 | 0 | =$F$46*$F$22*(1-Curtailment)*(1-Clipping)*J420*J427/Thousand
+429 | PPA price | EUR/MWh |  |  |  |  | 0 | =Case_PPA*(1+PPA_Esc)^J416*(J420>0)
+430 | Revenue | EUR k |  |  |  | 446,130.69 | 0 | =J428*J429
+431 | Opex index (COD year = 1) | x |  |  |  |  | 0.883854 | =(1+Opex_Esc)^J416
+432 | O&M, BoP, lease, insurance, management, property tax | EUR k |  |  |  | -70,011.09 | 0 | =-(Case_OM+SUM(Opex_Per_MW))*$F$46*J431*J420
+433 | Administration, audit, compliance | EUR k |  |  |  | -1,666.93 | 0 | =-Opex_Admin*$F$6/Lump_Basis*J431*J420
+434 | Balancing and grid charges | EUR k |  |  |  | -31,411.93 | 0 | =-J428*(Balancing+Grid_Charges)*J431
+435 | MEKH supervisory fee | EUR k |  |  |  | -446.13 | 0 | =-J430*MEKH_Fee
+436 | Opex contingency | EUR k |  |  |  | -5,176.80 | 0 | =SUM(J432:J435)*Opex_Cont
+437 | Community contribution | EUR k |  |  |  | -12,790.20 | 0 | =-J428*$F$12
+438 | HIPA local business tax | EUR k |  |  |  | -8,922.61 | 0 | =-J430*HIPA_Rate
+439 | Total opex | EUR k |  |  |  | -130,425.70 | 0 | =SUM(J432:J438)
+440 | EBITDA | EUR k |  |  |  | 315,704.99 | 0 | =J430+J439
+441 | Unlevered pre-tax cash flow | EUR k |  |  |  | 238,904.93 | 0 | =J426+J440
+442 | Tax depreciation (straight line on the all-in cost from the COD year) | EUR k |  |  |  | -76,800.06 | 0 | =-$F$99/Tax_Dep_Life*(J416>=0)*(J416<Tax_Dep_Life)
+443 | CIT, unlevered (no loss carry-forward) | EUR k |  |  |  | -35,835.74 | 0 | =-MAX(0,J440+J442)*CIT_Rate*(J420>0)
+444 | Unlevered post-tax cash flow | EUR k |  |  |  | 203,069.19 | 0 | =J441+J443
+445 | Debt drawn at COD (gearing × all-in cost; no interest during construction) | EUR k |  |  |  | 46,080.04 | 0 | =$F$99*Gearing*J421
+446 | Debt service, annuity (interest + principal) | EUR k |  |  |  | -66,591.84 | 0 | =PMT(Debt_Rate,Debt_Tenor,$F$99*Gearing)*(J416>=1)*(J416<=Debt_Tenor)
+447 | Interest (on the opening balance) | EUR k |  |  |  | -20,511.81 | 0 | =-I449*Debt_Rate*(J416>=1)
+448 | Principal repaid (annuity − interest) | EUR k |  |  |  | -46,080.04 | 0 | =J446-J447
+449 | Debt balance, closing | EUR k |  |  |  |  | 0 | =I449+J445+J448
+450 | CIT, levered (interest deductible; no loss carry-forward) | EUR k |  |  |  | -32,758.97 | 0 | =-MAX(0,J440+J442+J447)*CIT_Rate*(J420>0)
+451 | Equity cash flow, post-tax (geared) | EUR k |  |  |  | 185,634.16 | 0 | =J441+J445+J446+J450
+452 | DSCR (EBITDA ÷ debt service) | x |  |  |  | 2.299453 |  | =IF(J446<0,-J440/J446,"")
+453 | Discount factor to COD (buyer's rate) | x |  |  |  |  | 1.413713 | =(1+Discount_Rate)^((Inputs!$F$26-J$362)/Days_In_Year)
+454 | EBITDA valued at COD (total = COD price) | EUR k |  |  |  | 117,317.07 | 0 | =J440*J453
+455 | COD exit: buyer's cash flow (to COD, price and securities at COD) | EUR k |  |  |  | 40,517.01 | 0 | =J426*(J416<=0)+J421*($H454+$F$62+$F$63)
+456 | FEP shareholder loans to the JV (RtB cases): balance at 31-Dec and interest capitalised, taxed yearly |  |  |  |  |  |  | 
+457 | Case B: loan balance at 31-Dec, cash lines | EUR k |  |  |  |  | 0 | =(I457*(1+Rate_Cash)-SUMPRODUCT($F344:$F349*$N344:$N349*(YEAR($K344:$K349)=J361)))*(J362<$F190)*$F21
+458 | Case B: loan balance at 31-Dec, land and devex | EUR k |  |  |  |  | 0 | =(I458*(1+Rate_Devex)-SUMPRODUCT($F350:$F351*$N350:$N351*(YEAR($K350:$K351)=J361)))*(J362<$F190)*$F21
+459 | Case B: loans drawn in the year | EUR k |  |  |  | 0 | 0 | =-SUMPRODUCT($F344:$F351*(YEAR($K344:$K351)=J361))*(J362<$F190)*$F21
+460 | Case B: interest capitalised in the year (taxable at FEP) | EUR k |  |  |  | 0 | 0 | =(J457+J458-I457-I458-J459)*(J362<$F190)*$F21
+461 | Case A: loan balance at 31-Dec, cash lines | EUR k |  |  |  |  | 0 | =(I461*(1+Rate_Cash)-SUMPRODUCT($F290:$F293*$N290:$N293*(YEAR($K290:$K293)=J361)))*(J362<$F225)*$F21
+462 | Case A: loan balance at 31-Dec, land and devex | EUR k |  |  |  |  | 0 | =(I462*(1+Rate_Devex)-SUMPRODUCT($F294:$F295*$N294:$N295*(YEAR($K294:$K295)=J361)))*(J362<$F225)*$F21
+463 | Case A: loans drawn in the year | EUR k |  |  |  | 0 | 0 | =-SUMPRODUCT($F290:$F295*(YEAR($K290:$K295)=J361))*(J362<$F225)*$F21
+464 | Case A: interest capitalised in the year (taxable at FEP) | EUR k |  |  |  | 0 | 0 | =(J461+J462-I461-I462-J463)*(J362<$F225)*$F21
+466 | Dunaújváros: annual cash flow (EUR k) |  |  |  | Value | Total |  | 
+467 | Years from the COD year | years |  |  |  |  | -5 | =J$361-YEAR(Inputs!$G$26)
+468 | Construction months by year end (value: construction period) | months |  |  | 24 |  | -30 | =(J$361+1-YEAR(Inputs!$G$25))*Months_In_Year-MONTH(Inputs!$G$25)
+469 | Construction share of the year (NTP to COD) | % |  |  |  | 1 | 0 | =MAX(0,MIN(J468,$G468)-MAX(J468-Months_In_Year,0))/$G468
+470 | Months operated by year end (value: operating life) | months |  |  | 360 |  | -54 | =(J$361+1-YEAR(Inputs!$G$26))*Months_In_Year-MONTH(Inputs!$G$26)
+471 | Operating share of the year (COD to end of life) | % |  |  |  | 30 | 0 | =MAX(0,MIN(J470,$G470)-MAX(J470-Months_In_Year,0))/Months_In_Year
+472 | COD year flag | flag |  |  |  |  | 0 | =N(J467=0)
+473 | Buyer pays at the Case B sale: RtB premium, land at cost, securities and connection fees reimbursed to FEP | EUR k |  |  |  | -14,078.58 | 0 | =-($G$98+$G$68+$G$62+$G$63+$G$92)*(J$361=YEAR(Sale_Date))
+474 | Performance security released (bid security included) | EUR k |  |  |  | 2,494.52 | 0 | =($G$62+$G$63)*(J$361=YEAR(Inputs!$G$27))
+475 | Construction capex (straight-line NTP to COD) | EUR k |  |  |  | -62716 | 0 | =-$G$91*J469
+476 | Municipal one-off at COD | EUR k |  |  |  | -2500 | 0 | =-$G$96*J472
+477 | Investment cash flow | EUR k |  |  |  | -76,800.06 | 0 | =SUM(J473:J476)
+478 | Degradation factor (from the first full year) | x |  |  |  |  | 1 | =(1-Degradation)^MAX(J467-1,0)
+479 | Net generation | GWh |  |  |  | 4,263.40 | 0 | =$G$46*$G$22*(1-Curtailment)*(1-Clipping)*J471*J478/Thousand
+480 | PPA price | EUR/MWh |  |  |  |  | 0 | =Case_PPA*(1+PPA_Esc)^J467*(J471>0)
+481 | Revenue | EUR k |  |  |  | 446,130.69 | 0 | =J479*J480
+482 | Opex index (COD year = 1) | x |  |  |  |  | 0.883854 | =(1+Opex_Esc)^J467
+483 | O&M, BoP, lease, insurance, management, property tax | EUR k |  |  |  | -70,011.09 | 0 | =-(Case_OM+SUM(Opex_Per_MW))*$G$46*J482*J471
+484 | Administration, audit, compliance | EUR k |  |  |  | -1,666.93 | 0 | =-Opex_Admin*$G$6/Lump_Basis*J482*J471
+485 | Balancing and grid charges | EUR k |  |  |  | -31,411.93 | 0 | =-J479*(Balancing+Grid_Charges)*J482
+486 | MEKH supervisory fee | EUR k |  |  |  | -446.13 | 0 | =-J481*MEKH_Fee
+487 | Opex contingency | EUR k |  |  |  | -5,176.80 | 0 | =SUM(J483:J486)*Opex_Cont
+488 | Community contribution | EUR k |  |  |  | -12,790.20 | 0 | =-J479*$G$12
+489 | HIPA local business tax | EUR k |  |  |  | -8,922.61 | 0 | =-J481*HIPA_Rate
+490 | Total opex | EUR k |  |  |  | -130,425.70 | 0 | =SUM(J483:J489)
+491 | EBITDA | EUR k |  |  |  | 315,704.99 | 0 | =J481+J490
+492 | Unlevered pre-tax cash flow | EUR k |  |  |  | 238,904.93 | 0 | =J477+J491
+493 | Tax depreciation (straight line on the all-in cost from the COD year) | EUR k |  |  |  | -76,800.06 | 0 | =-$G$99/Tax_Dep_Life*(J467>=0)*(J467<Tax_Dep_Life)
+494 | CIT, unlevered (no loss carry-forward) | EUR k |  |  |  | -35,835.74 | 0 | =-MAX(0,J491+J493)*CIT_Rate*(J471>0)
+495 | Unlevered post-tax cash flow | EUR k |  |  |  | 203,069.19 | 0 | =J492+J494
+496 | Debt drawn at COD (gearing × all-in cost; no interest during construction) | EUR k |  |  |  | 46,080.04 | 0 | =$G$99*Gearing*J472
+497 | Debt service, annuity (interest + principal) | EUR k |  |  |  | -66,591.84 | 0 | =PMT(Debt_Rate,Debt_Tenor,$G$99*Gearing)*(J467>=1)*(J467<=Debt_Tenor)
+498 | Interest (on the opening balance) | EUR k |  |  |  | -20,511.81 | 0 | =-I500*Debt_Rate*(J467>=1)
+499 | Principal repaid (annuity − interest) | EUR k |  |  |  | -46,080.04 | 0 | =J497-J498
+500 | Debt balance, closing | EUR k |  |  |  |  | 0 | =I500+J496+J499
+501 | CIT, levered (interest deductible; no loss carry-forward) | EUR k |  |  |  | -32,758.97 | 0 | =-MAX(0,J491+J493+J498)*CIT_Rate*(J471>0)
+502 | Equity cash flow, post-tax (geared) | EUR k |  |  |  | 185,634.16 | 0 | =J492+J496+J497+J501
+503 | DSCR (EBITDA ÷ debt service) | x |  |  |  | 2.299453 |  | =IF(J497<0,-J491/J497,"")
+504 | Discount factor to COD (buyer's rate) | x |  |  |  |  | 1.413713 | =(1+Discount_Rate)^((Inputs!$G$26-J$362)/Days_In_Year)
+505 | EBITDA valued at COD (total = COD price) | EUR k |  |  |  | 117,317.07 | 0 | =J491*J504
+506 | COD exit: buyer's cash flow (to COD, price and securities at COD) | EUR k |  |  |  | 40,517.01 | 0 | =J477*(J467<=0)+J472*($H505+$G$62+$G$63)
+507 | FEP shareholder loans to the JV (RtB cases): balance at 31-Dec and interest capitalised, taxed yearly |  |  |  |  |  |  | 
+508 | Case B: loan balance at 31-Dec, cash lines | EUR k |  |  |  |  | 0 | =(I508*(1+Rate_Cash)-SUMPRODUCT($G344:$G349*$O344:$O349*(YEAR($L344:$L349)=J361)))*(J362<$G190)*$G21
+509 | Case B: loan balance at 31-Dec, land and devex | EUR k |  |  |  |  | 0 | =(I509*(1+Rate_Devex)-SUMPRODUCT($G350:$G351*$O350:$O351*(YEAR($L350:$L351)=J361)))*(J362<$G190)*$G21
+510 | Case B: loans drawn in the year | EUR k |  |  |  | 0 | 0 | =-SUMPRODUCT($G344:$G351*(YEAR($L344:$L351)=J361))*(J362<$G190)*$G21
+511 | Case B: interest capitalised in the year (taxable at FEP) | EUR k |  |  |  | 0 | 0 | =(J508+J509-I508-I509-J510)*(J362<$G190)*$G21
+512 | Case A: loan balance at 31-Dec, cash lines | EUR k |  |  |  |  | 0 | =(I512*(1+Rate_Cash)-SUMPRODUCT($G290:$G293*$O290:$O293*(YEAR($L290:$L293)=J361)))*(J362<$G225)*$G21
+513 | Case A: loan balance at 31-Dec, land and devex | EUR k |  |  |  |  | 0 | =(I513*(1+Rate_Devex)-SUMPRODUCT($G294:$G295*$O294:$O295*(YEAR($L294:$L295)=J361)))*(J362<$G225)*$G21
+514 | Case A: loans drawn in the year | EUR k |  |  |  | 0 | 0 | =-SUMPRODUCT($G290:$G295*(YEAR($L290:$L295)=J361))*(J362<$G225)*$G21
+515 | Case A: interest capitalised in the year (taxable at FEP) | EUR k |  |  |  | 0 | 0 | =(J512+J513-I512-I513-J514)*(J362<$G225)*$G21
+517 | COD exit: tax on the gain (price and profit: totals of the cash-flow blocks above) | EUR k | Bora | Iváncsa | Dunaújváros | Total |  | 
+518 | CIT on the exit gain (0 while the participation exemption flag is on) | EUR k | 0 | 0 | 0 | 0 |  | =-MAX(0,$H$404)*CIT_Rate*(1-Share_Exempt)
+519 | Buyer profit, post-tax | EUR k | 32,562.72 | 40,517.01 | 40,517.01 | 113,596.74 |  | =$H$404+E518
+521 | Checks (0 = OK) |  | Bora | Iváncsa | Dunaújváros | Total |  | 
+522 | Case B dated cash flows tie to the post-tax profit | flag | 0 | 0 | 0 | 0 |  | =(ABS(SUM(E343:E356)-E339)>Tolerance)*1
+523 | Claim lines paid before the accrual end year | flag | 0 | 0 | 0 | 0 |  | =(YEAR(MAX(Inputs!E$21:E$24,$J$55:$J$56))>=YEAR(E190))*1
+524 | Turbine route is EU or CN | flag | 0 | 0 | 0 | 0 |  | =N(AND(E17<>"EU",E17<>"CN"))
+525 | Devex items × scale = project devex (land + development) | flag | 0 | 0 | 0 | 0 |  | =(ABS(SUM(Devex_HUF)/FX/Thousand*Inputs!E$18-E68-E67)>Tolerance)*1
+526 | Construction capex spread in full (timeline = capex) | flag | 0 | 0 | 0 | 0 |  | =N(ABS(E91+$H$373)>Tolerance)
+527 | Investment cash flows = all-in cost to COD for a buyer (RtB price, capex, fees, municipal, land) | flag | 0 | 0 | 0 | 0 |  | =N(ABS(E99+$H$375)>Tolerance)
+528 | Operating life inside the timeline | flag | 0 | 0 | 0 | 0 |  | =N(ABS($H$369-Life)>Tolerance)
+529 | Sale date A before the HCSSZ date (Case A exits before the connection fees) | flag | 0 | 0 | 0 | 0 |  | =N(Sale_Date_A>=Inputs!E$24)
+530 | COD cost stack = timeline investment flows | flag | 0 | 0 | 0 | 0 |  | =N(ABS(E133+$H$375)>Tolerance)
+531 | Case A dated cash flows tie to the post-tax profit | flag | 0 | 0 | 0 | 0 |  | =(ABS(SUM(E289:E300)-E284)>Tolerance)*1
+532 | Debt repaid by the end of the tenor (closing balance in the last timeline year = 0) | flag | 0 | 0 | 0 | 0 |  | =N(ABS($AS$398)>Tolerance)
+533 | RtB loan CIT: the rest taxed at the sale is ≤ 0 (yearly schedule does not over-accrue), Case B + Case A | flag | 0 | 0 | 0 | 0 |  | =N(E356>Tolerance)+N(E300>Tolerance)
+534 | No errors in the summary block | flag |  |  |  | 0 |  | =SUMPRODUCT(--ISERROR(E109:H149))
+535 | Master check | flag |  |  |  | 0 |  | =SUM(H522:H534)
+537 | ***END*** |  |  |  |  |  |  | 
 #### Inputs: row | label | D | E | F | G | H | formula (E, else J)
 2 | HU wind bids – other inputs (blue) with sources |  |  |  |  |  | 
 4 | Inputs |  | Bora | Iváncsa | Dunaújváros | Source | 
@@ -543,7 +545,7 @@
 37 | Developer success fee (on committed MW, 30/360) | EUR k/MW/yr | 2.500000 |  |  | Bora Inputs E36 | 
 38 | Developer success fee cap | EUR k/MW | 10 |  |  | Bora Inputs E37 | 
 39 | Corporate income tax (operating profit; exit gains) | % | 0.150000 |  |  | SPEC §27 (exits exempt by the flag below) | 
-40 | Share deal, participation exemption on the share gain (1 = on); claims taxed as interest | flag | 1 |  |  |  | 
+40 | Share deal, participation exemption on the share gain (1 = on); claims taxed as interest | flag | 1 |  |  | user, 27-Oct-2026 (share deal) | 
 41 | Tax and debt (hold case) |  |  |  |  |  | 
 42 | Tax depreciation life (straight line on the all-in cost to COD, from the COD year) | years | 20 |  |  | HU CIT Act Annex 2, 5 % p.a. power plants – to confirm | 
 43 | Gearing (debt ÷ all-in cost to COD) | % | 0.600000 |  |  | user, 27-Oct-2026 | 
@@ -555,7 +557,7 @@
 49 | Balance of plant – civil | EUR k/MW | 70 |  |  | Bora Inputs G165 | 
 50 | Balance of plant – electrical | EUR k/MW | 60 |  |  | Bora Inputs G166 | 
 51 | Owner's costs, engineering, PM, construction insurance | EUR k/MW | 40 |  |  | Bora Inputs G169 | 
-52 | Land purchase and easements | EUR k/MW | 0 |  |  | Land is in the devex (Inputs rows 80, 81, 110) and bought by the buyer at cost; 0 so it is not counted twice (v3) | 
+52 | Land purchase and easements | EUR k/MW | 0 |  |  | Land is in the devex (Inputs rows 85, 86, 116) and bought by the RtB buyer at cost | 
 53 | On-site substation and 132 kV bay (lump sum) | EUR k | 12000 |  |  | Bora Inputs G167 | 
 54 | Source basis of the lump sums | MVA | 200 |  |  | Bora Inputs E305 | 
 55 | Capex contingency (not on BESS) | % | 0.050000 |  |  | Bora Inputs G173 | 
