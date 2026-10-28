@@ -631,3 +631,25 @@ HUF with dates → the same in EUR k with dates, DEVEX line included, totals).
 4. Points to confirm: Bora 20 % + 10 % BESS (4 + 0 + 5 + 4.5 + 5 + 0 + 0 + 5 + 0 + 0 = 23.5); Iváncsa/Dunaújváros 40 % +
    20 % + 50 + 3 + CN (20 + 15 + 9 + 7.5 + 0 + 0 + 0 + 0 + 0 + 0 = 51.5).
 5. Verification as §22.3; check.py re-run; dump.
+
+## 24. Fifteenth round (user, 28-Oct-2026): 15 % CIT and a 60 % levered case in the HU wind bids file
+
+**Source:** `reference/HU_Wind_bids_271026.xlsx` – the user's reworked copy of HU_Wind_bids.xlsx (bids re-set, RtB
+"Case A / Case B" on who pays the connection fees, devex allocation, many label changes). It is THE base; change as
+little as possible and keep every user edit. Output `projects/hu_wind_2/out/HU_Wind_bids.xlsx`, built by
+`projects/hu_wind_2/build_lev.py` that edits the user's file through LibreOffice UNO (row insertion keeps every
+reference intact; openpyxl must not be used for inserts).
+1. **CIT 15 %:** Inputs "Corporate income tax" = 15 % (label "on exit gains and on operating profit"). Hold case gets
+   tax: per project timeline, after "Unlevered pre-tax cash flow" insert rows: "Tax depreciation (all-in cost ÷ 20 y
+   from COD)", "CIT (15 % × MAX(0, EBITDA − depreciation))", "Unlevered post-tax cash flow". No loss carry-forward
+   (state it).
+2. **Levered case, 60 % gearing, all three projects:** Inputs rows "Gearing (debt ÷ all-in cost to COD)" 60 %, "Debt
+   interest rate" 5 %, "Debt tenor (annuity from the first full year)" 15 (sources: Bora model). Timeline rows after the
+   post-tax row: "Debt drawn at COD", "Debt service (annuity: interest + principal)", "Equity cash flow (post-tax)".
+   Interest during construction ignored (state it). DSCR row = (EBITDA − CIT) ÷ debt service.
+3. **Summary (hold block, rows after "NPV at the discount rate"):** "CIT over the life", "Project IRR, post-tax",
+   "Debt at COD (60 %)", "Equity IRR, post-tax (60 % gearing)", "Minimum DSCR". Nothing else on the Dashboard changes;
+   the COD exit stays pre-tax with CIT on the gain at 15 % (already linked to the CIT input).
+4. Verification: recalc no errors, Master_Check 0 (add a check "debt fully repaid"), every other figure of the user's
+   file unchanged except those driven by CIT 9 → 15 % (list them), check.py-style Python recomputation of the Bora
+   post-tax project IRR and equity IRR.
