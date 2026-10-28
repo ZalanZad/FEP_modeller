@@ -205,7 +205,7 @@ def edit_dashboard(doc):
     # rows, CIT rows, summary; §29: devex principal rows in both waterfalls and receipts stacks, dead rows deleted.
     ops = [(a["master"], 3)] + [(b["codx"] + 1, 1 + 2 * len(LOAN_ROWS)) for b in reversed(blocks)] + \
           [(b["pre"] + 1, len(TIMELINE)) for b in reversed(blocks)] + \
-          [(q[k]["rec"] + 1, CIT_YEARS + 3) for k in "BA"] + [(q[k]["post"], 1) for k in "BA"] + \
+          [(q[k]["rec"] + 1, CIT_YEARS + 4) for k in "BA"] + [(q[k]["post"], 1) for k in "BA"] + \
           [(b["net"] + 1, len(PER_PROJECT)) for b in reversed(blocks)] + [(a["npv"] + 1, len(SUMMARY))] + \
           [(q[k]["s_irr"] + 1, 2) for k in "BA"] + [(q[k][r], 1) for k in "BA" for r in ("wf_c12", "rs_c12")] + \
           [(b.pop("dead"), -1) for b in blocks]
@@ -401,9 +401,9 @@ def edit29(d, m, R, q, Q):
         r = x["tie"]
         d.text(f"C{r}", f"Case {k} dated cash flows tie to the post-tax profit")
         for c in P:
-            d.formula(f"{c}{r}", f"=(ABS(SUM({c}{x['first']}:{c}{x['rest']})-{c}{x['post']})>Tolerance)*1")
+            d.formula(f"{c}{r}", f"=(ABS(SUM({c}{x['first']}:{c}{x['exit']})-{c}{x['post']})>Tolerance)*1")
         # 2. Portfolio IRR in the Total column (dates common to all projects) and its summary link.
-        for r, last in ((x["pre_irr"], x["rec"]), (x["irr"], x["rest"])):
+        for r, last in ((x["pre_irr"], x["rec"]), (x["irr"], x["exit"])):
             d.formula(f"H{r}", f"=XIRR(H{x['first']}:H{last},J{x['first']}:J{last})")
         for r, src in ((x["s_irr"], x["pre_irr"]), (x["s_irr_post"], x["irr"])):
             d.formula(f"H{r}", f"=H{src}")
@@ -533,7 +533,7 @@ def edit28(d, m, R, B, blocks, q):
     # 3. Dated CIT rows after the receipts row, then post-tax MOIC and IRR on the full list.
     for k, x in Q.items():
         rows = m.block(q[k]["rec"] + 1)
-        years, rest, moic, irr = rows[:CIT_YEARS], rows[CIT_YEARS], rows[CIT_YEARS + 1], rows[CIT_YEARS + 2]
+        years, rest, ex, moic, irr = rows[:CIT_YEARS], *rows[CIT_YEARS:]
         for i, r in enumerate(years):
             yc = TL[i]
             d.copy_format(x["land"], r, last="L")
@@ -550,6 +550,17 @@ def edit28(d, m, R, B, blocks, q):
             d.formula(f"{c}{rest}", f"=-{c}{x['tot']}*CIT_Rate*{c}$21-SUM({c}{years[0]}:{c}{years[-1]})")
             d.formula(f"{dc}{rest}", f"={x['sale']}")
         d.formula(f"H{rest}", f"=SUM(E{rest}:G{rest})")
+        x_cit = m(q[k]["post"] - 1)                               # §29: the profit stack's exit-CIT row, dated
+        assert d.cell(f"C{x_cit}").getString().startswith("CIT on the exit gain"), k
+        d.copy_format(x["land"], ex, last="L")
+        d.text(f"C{ex}", d.cell(f"C{x_cit}").getString())
+        d.text(f"D{ex}", "EUR k")
+        for c, dc in zip(P, dcols):
+            d.formula(f"{c}{ex}", f"={c}{x_cit}")
+            d.formula(f"{dc}{ex}", f"={x['sale']}")
+        d.formula(f"H{ex}", f"=SUM(E{ex}:G{ex})")
+        rest_ = rest
+        rest = ex                                                 # post-tax ranges run through the exit-CIT row
         pre_moic = d.find("MOIC, pre-tax (dated", x["post"], exact=False)
         pre_irr = d.find("IRR, pre-tax (dated", x["post"], exact=False)
         d.copy_format(pre_moic, moic, last="H")
@@ -563,7 +574,7 @@ def edit28(d, m, R, B, blocks, q):
         d.text(f"D{irr}", "%")
         for c, dc in zip(P, dcols):
             d.formula(f"{c}{irr}", f"=XIRR({c}{x['first']}:{c}{rest},{dc}{x['first']}:{dc}{rest})")
-        x.update(cit_years=years, rest=rest, moic=moic, irr=irr)
+        x.update(cit_years=years, rest=rest_, exit=ex, moic=moic, irr=irr)
     # 4. Profit stacks: loan CIT before "FEP profit, post-tax" (accrued claims, not the waterfall payment).
     for k, x in Q.items():
         r, post = m.block(q[k]["post"])[0], x["post"]
@@ -842,7 +853,7 @@ def recompute29(wb, base, info, yearly):
             flows = [(dt(t).date(), v) for t, v in flows]
             yl = yearly[(nm, k)]
             post_f = flows + [(datetime(2026 + i, 12, 31).date(), v) for i, v in enumerate(yl["yearly"])] + \
-                [(dt(sale).date(), yl["rest"])]
+                [(dt(sale).date(), yl["rest"]), (dt(sale).date(), post - pre + (c12 + cdev) * cit * jv)]
             moic = lambda fl: sum(v for _, v in fl if v > 0) / -sum(v for _, v in fl if v < 0)  # noqa: E731
             py = {"devex repaid": paid["dv"], "receipts": receipts, "profit pre-tax": pre, "profit post-tax": post,
                   "MOIC pre-tax": moic(flows), "IRR pre-tax": xirr(sorted(flows)), "MOIC post-tax": moic(post_f),
@@ -886,12 +897,24 @@ def scratch(info):
         for case in ("Low", "High", "Base"):
             lo.set("Dash_Case", case)
             out[case] = state()
+        g = lambda c, r: lo.get(f"Dashboard!{c}{r}")  # noqa: E731
+        lo.set("Share_Exempt", 0)                                 # exit gains taxed: the dated exit-CIT rows bite
+        ex = state() + tuple(g("H", Q[k]["tie"]) for k in "BA")
+        rtb = {nm: {k: (g(c, Q[k]["post"]), g(c, Q[k]["pre_irr"]), g(c, Q[k]["irr"])) for k in "BA"}
+               for c, nm in zip(P, NAMES)}
+        print(f"   Share_Exempt = 0: Master_Check {ex[0]} | error cells {ex[1]} | tie checks B {ex[2]}, A {ex[3]}")
+        for nm, v in rtb.items():
+            print(f"      {nm:<11} " + " | ".join(f"Case {k}: profit post-tax {p_:,.2f}, IRR pre {a:.4%} → post {b:.4%}"
+                                               for k, (p_, a, b) in v.items()))
+        ok_ex = ex == (0, 0, 0, 0) and all(b < a for v in rtb.values() for _, a, b in v.values())
+        lo.set("Share_Exempt", 1)
         cell = lo.doc.Sheets.getByName("Dashboard").getCellRangeByName(f"E{Q['B']['first']}")
         cell.setValue(cell.getValue() - 1)                        # break the first Case B dated flow by 1 k EUR
         out["broken"] = state() + (lo.get(f"Dashboard!H{Q['B']['tie']}"),)
     for k, (mc, n, *t) in out.items():
         print(f"   {k:<6} Master_Check {mc} | error cells {n}" + (f" | Case B tie check {t[0]}" if t else ""))
-    return all(out[k] == (0, 0) for k in ("Low", "High", "Base")) and out["broken"][0] == 1 and out["broken"][2] == 1
+    return all(out[k] == (0, 0) for k in ("Low", "High", "Base")) and out["broken"][0] == 1 and \
+        out["broken"][2] == 1 and ok_ex
 
 
 def dump(wb, info):
@@ -962,6 +985,8 @@ def recompute28(wb, info):
             total = -dash[f"{c}{x['tot']}"].value * cit * jv
             flows = [(dash[f"{dc}{r}"].value.date(), dash[f"{c}{r}"].value) for r in range(x["first"], x["rec"] + 1)]
             flows += [(date(2026 + i, 12, 31), v) for i, v in enumerate(yearly)] + [(sale, total - sum(yearly))]
+            pre_p = dash[f"{c}{x['pre']}"].value                         # dated exit CIT (0 while exempt)
+            flows.append((sale, -max(0, pre_p) * cit * (1 - name("Share_Exempt"))))
             pos, neg = sum(v for _, v in flows if v > 0), -sum(v for _, v in flows if v < 0)
             py = {"yearly CIT": yearly, "rest at sale": total - sum(yearly), "total loan CIT": total,
                   "MOIC post-tax": pos / neg, "IRR post-tax": xirr(sorted(flows))}
@@ -1037,7 +1062,7 @@ def verify():
            | {v for b in info["Dashboard"]["blocks"].values() for k, v in b.items()
               if k in [t[0] for t in TIMELINE] or k.startswith(("s_", "loan"))}
            | {v for x in Q.values() for k, v in x.items()
-              if k in ("rest", "moic", "irr", "loan_cit", "s_moic", "s_irr_post", "dv", "rs_dv", "tie", "pre_irr")}
+              if k in ("rest", "exit", "moic", "irr", "loan_cit", "s_moic", "s_irr_post", "dv", "rs_dv", "tie", "pre_irr")}
            | {r for x in Q.values() for r in x["cit_years"]}}
     loan_heads = {b["loanB_cash"] - 1 for b in info["Dashboard"]["blocks"].values()}
     new["Dashboard"] |= loan_heads | {r for x in Q.values() for r in range(x["first"] + 1, x["rec"])}
