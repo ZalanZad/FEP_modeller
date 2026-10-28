@@ -35,6 +35,9 @@ Working language: English (code, workbooks, decks, docs). Chat replies to the us
    recomputation of the headline outputs, then ties the deck out to the workbook. A failed check is a bug to fix,
    not one to hide.
 4. Commit on the session branch with a short imperative message, then push.
+5. **Learn (Fable, every round):** anything new and useful – a user preference, a modelling convention, a tool limitation,
+   a trick that worked – goes into `docs/LEARNINGS.md` (dated, short) in the same commit, so the repository improves in a loop.
+   Rules that bind every model are promoted to this file or `docs/MODELLING_STANDARDS.md`.
 
 ## Layout
 - `fepm/xl` workbook builder (styles, timeline, row writer), `fepm/ppt` deck builder,
@@ -43,4 +46,5 @@ Working language: English (code, workbooks, decks, docs). Chat replies to the us
 - `reference/` example models and decks that define the house standard (Project Rock, Project Alpha, Bora v4),
   plus the source documents (tender call + FAQ, Bora devex, overbuild). Read-only.
 - `docs/domain/` the rules extracted from the source documents, each with citations. Read these instead of the raw PDFs/xlsx.
+- `docs/LEARNINGS.md` the running memory of what the user taught us and what worked. Read it at the start of a session.
 - `projects/<name>/` SPEC.md, inputs, build script, outputs (`out/`).

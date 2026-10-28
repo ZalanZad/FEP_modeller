@@ -754,3 +754,35 @@ rows per project in the annual cash flow, five summary rows, one check. Nothing 
 5. Verification: recalc no errors; Master_Check 0; before/after comparison – every pre-existing cell of v3 unchanged
    except the relabelled rows and the row shifts; Python recomputation of Bora's post-tax project IRR, equity IRR and
    minimum DSCR from the recalculated EBITDA rows; dump to `out/dump_v3.txt`.
+
+## 28. Nineteenth round (user, 28-Oct-2026): CIT on the interest of FEP's shareholder loans, paid yearly
+
+**Correction by the user:** in the RtB cases the JV project (Bora) does pay CIT – not on the share gain (participation
+exemption stays) but on the **interest FEP earns on its shareholder loans to the JV** (the "claims": 12 % on cash
+lines, 20 % with the 2× floor on land and devex). The interest is taxed **every year when it is capitalised
+(31-Dec)**, at `CIT_Rate` (15 %), and the rest (the stub to the accrual end and the devex floor top-up) at the sale.
+No-JV projects (Iváncsa, Dunaújváros) have no loans and no such CIT (× the JV flag). Same file
+`out/HU_Wind_bids_v3.xlsx`, `build_v3.py` extended; edit through UNO; v3 corrections untouched; nothing hidden.
+1. **Dated memo lists (Case B rows "Memo: FEP dated cash flows", Case A likewise):** helper columns M:O "Factor to the
+   first 31-Dec" per line = `1 + rate × (DATE(YEAR(d)+1,1,1) − d) ÷ 365` (cash lines `Rate_Cash`, land and devex
+   `Rate_Devex`; only the claim lines – not the signing fee/DD and not the receipts row).
+2. **Per project annual block, after the COD-exit row, sub-heading "FEP shareholder loans to the JV (RtB cases):
+   balance at 31-Dec and interest capitalised, taxed yearly":** per case (B, then A) four rows, J:AS, one formula each:
+   loan balance at 31-Dec, cash lines = `SUMPRODUCT(−amounts, factors, (1+Rate_Cash)^(year − YEAR(dates)),
+   (YEAR(dates) ≤ year))` × (year < YEAR(accrual end of the case)); the same for the land + devex lines with
+   `Rate_Devex`; loans drawn in the year = −SUMPRODUCT(amounts, YEAR(dates) = year); interest capitalised in the year
+   = Δ(both balances) − drawn. The Case A rows use the Case A memo list and the Case A accrual end.
+3. **Dated CIT rows in each memo list (after the receipts row):** "CIT on the interest capitalised at 31-Dec-2026 /
+   -2027 / -2028" = −interest row (J, K, L) × `CIT_Rate` × JV, dated at the year end; "CIT on the rest at the sale
+   (stub to the accrual end, devex floor top-up)" = −total claims of the case × `CIT_Rate` × JV − the three yearly rows,
+   dated at the sale. The pre-tax MOIC/IRR rows keep their old ranges; new rows "MOIC, post-tax" and "IRR, post-tax"
+   on the full list.
+4. **Profit stacks (both cases):** new row before "FEP profit, post-tax": "CIT on the interest of FEP's shareholder
+   loans (JV only; 15 %, paid yearly as capitalised)" = −total claims × `CIT_Rate` × JV (accrued claims, not the
+   waterfall-limited payment); post-tax profit = pre-tax + exit CIT + this row.
+5. **Summary (Returns RTB COD HTM):** per RtB case add "MOIC, post-tax" and "IRR, post-tax" under the pre-tax rows;
+   relabel "FEP profit" → "FEP profit, post-tax".
+6. **Check:** per case, the rest taxed at the sale is ≤ 0 (the yearly schedule never over-accrues the claims):
+   `N(rest row > Tolerance)`, into Master_Check.
+7. Verification as §27.5, plus Python recomputation of Bora's yearly capitalised interest (both cases) from the memo
+   lists and of the post-tax RtB IRRs.
