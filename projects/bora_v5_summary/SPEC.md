@@ -682,3 +682,27 @@ edit through LibreOffice UNO (`build_lev.py` approach, row inserts keep referenc
 4. Verification: recalc no errors, Master_Check 0; before/after list (only the claim, Case A and new rows may change);
    Python recomputation of Iváncsa Case B (no claims) and Bora Case A (sale 30-Sep-2028) waterfalls and of the
    hold post-tax/equity IRRs.
+
+## 26. Seventeenth round (user, 28-Oct-2026): a new, unlevered, tax-exempt version with itemised devex
+
+New file `projects/hu_wind_2/out/HU_Wind_bids_v2.xlsx` (the §25 file stays as it is), built by `build_v2.py` from the
+user's flagged file `reference/HU_Wind_bids_271026_flagged.xlsx` with the §25.1–25.2 fixes (JV flag, Case A sale
+30-Sep-2028 before HCSSZ) and **without** §25.3 (no operating tax, no gearing). Edit through LibreOffice UNO.
+1. **Tax:** CIT input stays 15 %; RtB (both cases) and COD exits are **fully exempt** (share deal, participation
+   exemption on the whole gain, claims included): the CIT rows show 0 with the label "exempt (participation exemption,
+   total)". The hold case stays pre-tax EBITDA only, as in the user's file.
+2. **Devex itemised from `reference/BORA_Devex_20261002.xlsx`** (the user's upload, identical to the reference copy):
+   on Inputs, the 33 line items of rows 14–48 except the two connection-fee rows (task, item, payment date, HUF amount,
+   class Devex/Land from column L), blue, source "BORA_Devex 02-Oct-26 row n"; EUR k = HUF ÷ FX; per project a visible
+   scale factor `Devex scale (bid MVA ÷ 200 MVA of the devex file)` (Bora/Iváncsa/Dunaújváros = 50/200 = 0.25 by
+   default; the user may set 1). Project devex = Σ items × scale, split into **Land** and **Development** subtotals.
+   These replace the Iváncsa/Dunaújváros 1,000 k€ placeholder and Bora's 784.5 (state the new totals). Both RtB cases
+   and the COD case use the itemised totals (land and development lines dated at their own payment dates in the dated
+   flows: one line each, amount-weighted date).
+3. **COD case, transparent cost stack** (summary and detail): construction capex; connection fees; municipal; land;
+   development (devex excl. land; plus participation fee, signing and DD); **RtB exit price 150 k€/MVA × MVA, deducted
+   (charged at the Case B RtB sale date: the value FEP gives up by not selling at RtB – for Bora it replaces the
+   developer JV buy-out row, which it already contains)**; total; sale price at COD; FEP profit; MOIC; IRR.
+4. **Nothing hidden:** remove all row/column grouping and hiding on both sheets.
+5. Verification: recalc no errors, Master_Check 0 (add checks: devex items × scale = project devex; COD cost stack =
+   timeline flows), lint clean on the changed rows, Python recomputation of the Iváncsa COD exit and both RtB cases.
