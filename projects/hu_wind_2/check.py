@@ -8,8 +8,8 @@
 3. Independent Python recomputation from the input cells only: Iváncsa RtB claims (closed form per line), waterfall,
    FEP profit / MOIC / XIRR; Iváncsa HTM project IRR, NPV, COD price, COD-exit FEP profit / IRR. Must match to 1e-6.
 4. out/dump.txt: label | unit | Iváncsa | Dunaújváros for the new inputs, the RtB exit and the HTM results rows.
-5. §24 bids workbook (out/HU_Wind_bids.xlsx): build_lev.verify() – recalc, lint, before / after vs the user's file,
-   Bora post-tax project and equity IRR recomputed, out/dump_bids.txt.
+5. §25 bids workbook (out/HU_Wind_bids.xlsx): build_lev2.verify() – recalc, lint, before / after vs the user's file,
+   Iváncsa Case B, Bora Case A and the hold post-tax / equity IRRs recomputed, out/dump_bids.txt.
 
     python3 projects/hu_wind_2/check.py
 """
@@ -227,11 +227,11 @@ def dump(v):
     DUMP.write_text("\n".join(out) + "\n")
 
 # =====================================================================================================================
-# §24: out/HU_Wind_bids.xlsx is now the user's reworked file plus the 15 % CIT and the 60 % levered case, built and
-# verified by build_lev.py (before / after comparison, Bora post-tax and equity IRR recomputation, dump).
+# §25: out/HU_Wind_bids.xlsx is the user's flagged file plus the JV flag, Case A at sale A and §24 (CIT, 60 % levered), built and
+# verified by build_lev2.py (before / after comparison, Case A / B and hold recomputation, dump).
 def bids():
-    from build_lev import verify
-    print("\n§24 bids workbook (build_lev.verify)")
+    from build_lev2 import verify
+    print("\n§25 bids workbook (build_lev2.verify)")
     return verify()
 
 
