@@ -18,19 +18,47 @@
   "inserts": [
    [
     442,
-    1
+    2
+   ],
+   [
+    426,
+    9
    ],
    [
     422,
     11
    ],
    [
+    394,
+    9
+   ],
+   [
     390,
     11
    ],
    [
+    362,
+    9
+   ],
+   [
     358,
     11
+   ],
+   [
+    326,
+    6
+   ],
+   [
+    312,
+    1
+   ],
+   [
+    279,
+    6
+   ],
+   [
+    266,
+    1
    ],
    [
     170,
@@ -47,90 +75,176 @@
    [
     141,
     5
+   ],
+   [
+    122,
+    2
+   ],
+   [
+    116,
+    2
    ]
   ],
   "rows": {
    "allin": 99,
-   "hold": 134,
-   "year": 339,
-   "ye": 340,
-   "irr": 139,
-   "moic": 120,
-   "money": 351,
-   "chk1": 475,
-   "master": 487,
-   "npv": 140,
-   "chk_last": 485,
-   "s_cit": 141,
-   "s_irr": 142,
-   "s_debt": 143,
-   "s_eirr": 144,
-   "s_dscr": 145,
-   "check": 486
+   "hold": 138,
+   "year": 357,
+   "ye": 358,
+   "irr": 143,
+   "moic": 122,
+   "money": 369,
+   "chk1": 520,
+   "master": 533,
+   "npv": 144,
+   "chk_last": 530,
+   "s_cit": 145,
+   "s_irr": 146,
+   "s_debt": 147,
+   "s_eirr": 148,
+   "s_dscr": 149,
+   "check": 531,
+   "check28": 532
   },
   "blocks": {
    "Bora": {
-    "t": 343,
-    "op": 347,
-    "cod": 348,
-    "eb": 367,
-    "pre": 368,
-    "net": 158,
-    "dep": 369,
-    "cit": 370,
-    "post": 371,
-    "draw": 372,
-    "ds": 373,
-    "int": 374,
-    "prin": 375,
-    "bal": 376,
-    "citl": 377,
-    "eq": 378,
-    "dscr": 379,
-    "s_post": 159,
-    "s_eq": 160
+    "t": 361,
+    "op": 365,
+    "cod": 366,
+    "eb": 385,
+    "pre": 386,
+    "net": 162,
+    "codx": 401,
+    "dep": 387,
+    "cit": 388,
+    "post": 389,
+    "draw": 390,
+    "ds": 391,
+    "int": 392,
+    "prin": 393,
+    "bal": 394,
+    "citl": 395,
+    "eq": 396,
+    "dscr": 397,
+    "s_post": 163,
+    "s_eq": 164,
+    "loanB_cash": 403,
+    "loanB_dev": 404,
+    "loanB_drawn": 405,
+    "loanB_int": 406,
+    "loanA_cash": 407,
+    "loanA_dev": 408,
+    "loanA_drawn": 409,
+    "loanA_int": 410
    },
    "Iváncsa": {
-    "t": 386,
-    "op": 390,
-    "cod": 391,
-    "eb": 410,
-    "pre": 411,
-    "net": 168,
-    "dep": 412,
-    "cit": 413,
-    "post": 414,
-    "draw": 415,
-    "ds": 416,
-    "int": 417,
-    "prin": 418,
-    "bal": 419,
-    "citl": 420,
-    "eq": 421,
-    "dscr": 422,
-    "s_post": 169,
-    "s_eq": 170
+    "t": 413,
+    "op": 417,
+    "cod": 418,
+    "eb": 437,
+    "pre": 438,
+    "net": 172,
+    "codx": 453,
+    "dep": 439,
+    "cit": 440,
+    "post": 441,
+    "draw": 442,
+    "ds": 443,
+    "int": 444,
+    "prin": 445,
+    "bal": 446,
+    "citl": 447,
+    "eq": 448,
+    "dscr": 449,
+    "s_post": 173,
+    "s_eq": 174,
+    "loanB_cash": 455,
+    "loanB_dev": 456,
+    "loanB_drawn": 457,
+    "loanB_int": 458,
+    "loanA_cash": 459,
+    "loanA_dev": 460,
+    "loanA_drawn": 461,
+    "loanA_int": 462
    },
    "Dunaújváros": {
-    "t": 429,
-    "op": 433,
-    "cod": 434,
-    "eb": 453,
-    "pre": 454,
-    "net": 178,
-    "dep": 455,
-    "cit": 456,
-    "post": 457,
-    "draw": 458,
-    "ds": 459,
-    "int": 460,
-    "prin": 461,
-    "bal": 462,
-    "citl": 463,
-    "eq": 464,
-    "dscr": 465,
-    "s_post": 179,
-    "s_eq": 180
+    "t": 465,
+    "op": 469,
+    "cod": 470,
+    "eb": 489,
+    "pre": 490,
+    "net": 182,
+    "codx": 505,
+    "dep": 491,
+    "cit": 492,
+    "post": 493,
+    "draw": 494,
+    "ds": 495,
+    "int": 496,
+    "prin": 497,
+    "bal": 498,
+    "citl": 499,
+    "eq": 500,
+    "dscr": 501,
+    "s_post": 183,
+    "s_eq": 184,
+    "loanB_cash": 507,
+    "loanB_dev": 508,
+    "loanB_drawn": 509,
+    "loanB_int": 510,
+    "loanA_cash": 511,
+    "loanA_dev": 512,
+    "loanA_drawn": 513,
+    "loanA_int": 514
+   }
+  },
+  "rtb": {
+   "B": {
+    "end": 190,
+    "tot": 213,
+    "memo": 338,
+    "s_head": 118,
+    "post": 335,
+    "land": 346,
+    "rec": 348,
+    "first": 339,
+    "s_irr": 123,
+    "s_profit": 121,
+    "sale": "Sale_Date",
+    "cit_years": [
+     349,
+     350,
+     351
+    ],
+    "rest": 352,
+    "moic": 353,
+    "irr": 354,
+    "loan_cit": 334,
+    "s_moic": 124,
+    "s_irr_post": 125
+   },
+   "A": {
+    "end": 225,
+    "tot": 248,
+    "memo": 286,
+    "s_head": 109,
+    "post": 282,
+    "land": 292,
+    "rec": 294,
+    "first": 287,
+    "s_irr": 115,
+    "s_profit": 113,
+    "sale": "Sale_Date_A",
+    "cit_years": [
+     295,
+     296,
+     297
+    ],
+    "rest": 298,
+    "moic": 299,
+    "irr": 300,
+    "loan_cit": 281,
+    "s_moic": 116,
+    "s_irr_post": 117
    }
   }
  }

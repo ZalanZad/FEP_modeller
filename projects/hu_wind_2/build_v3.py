@@ -9,7 +9,12 @@ new rows formatted from a neighbouring row of the same kind, one formula per tim
              flow, debt drawn, annuity, interest, principal, closing balance, CIT levered, equity cash flow, DSCR;
              hold summary: five rows after the NPV row (heading relabelled); per-project annual summary: post-tax and
              equity cash flow rows; check "debt repaid by the end of the tenor" into Master_Check.
-The exits (RtB, COD) are not touched. Then verify(): recalc, errors, Master_Check, before / after against the
+§28 (CIT on the interest of FEP's shareholder loans to the JV, RtB cases, taxed yearly as capitalised at 31-Dec):
+             factor columns M:O on the claim lines of both dated memo lists; per project block, after the COD-exit
+             row, a loan sub-block (per case: balances cash / land+devex, drawn, interest capitalised); dated CIT rows
+             (31-Dec-2026/27/28, rest at the sale) and post-tax MOIC / IRR after each memo list; loan CIT row in both
+             profit stacks; post-tax MOIC / IRR in the summary, "FEP profit, post-tax"; check "rest ≤ 0".
+The COD exit is not touched; the user's row groups are kept as they are. Then verify(): recalc, errors, Master_Check, before / after against the
 recalculated base (out/rows_v3.json), independent Python recomputation (Bora), lint on the new rows, out/dump_v3.txt.
 
     python3 projects/hu_wind_2/build_v3.py
@@ -80,6 +85,12 @@ SUMMARY = [("s_cit", "CIT over the life, unlevered", "EUR k", "money"),
            ("s_debt", "Debt drawn at COD (60 %)", "EUR k", "money"),
            ("s_eirr", "Equity IRR, post-tax (60 % debt)", "%", "irr"),
            ("s_dscr", "Minimum DSCR", "x", "ratio")]
+# §28: FEP shareholder loans to the JV (RtB cases), CIT on the interest as capitalised at 31-Dec.
+LOAN_HEAD = "FEP shareholder loans to the JV (RtB cases): balance at 31-Dec and interest capitalised, taxed yearly"
+LOAN_ROWS = [("cash", "loan balance at 31-Dec, cash lines (12 %)"), ("dev", "loan balance at 31-Dec, land and devex (20 %)"),
+             ("drawn", "loans drawn in the year"), ("int", "interest capitalised in the year (taxable at FEP)")]
+CIT_YEARS = 3                                               # 31-Dec-2026, -2027, -2028: timeline columns J, K, L
+LOAN_CIT = "CIT on the interest of FEP's shareholder loans (JV only; 15 %, paid yearly as capitalised)"
 PER_PROJECT = [("post", "Net cash flow, post-tax"), ("eq", "Equity cash flow, post-tax (60 % debt)")]
 
 
@@ -140,9 +151,19 @@ def edit_dashboard(doc):
     assert [(b["t"], b["op"], b["cod"], b["eb"], b["pre"], b["net"]) for b in blocks] == [
         (332 + k, 336 + k, 337 + k, 356 + k, 357 + k, 153 + n) for k, n in ((0, 0), (32, 8), (64, 16))], blocks
 
-    # Inserts, bottom-up (positions in the user's numbering).
-    ops = [(a["master"], 1)] + [(b["pre"] + 1, len(TIMELINE)) for b in reversed(blocks)] + \
-          [(b["net"] + 1, len(PER_PROJECT)) for b in reversed(blocks)] + [(a["npv"] + 1, len(SUMMARY))]
+    q = anchors28(d)
+    for b, nm in zip(blocks, NAMES):
+        b["codx"] = f("COD exit: buyer's cash flow", f(f"{nm}: annual cash flow"))
+    assert [b["codx"] for b in blocks] == [361, 393, 425], blocks
+
+    # Inserts, bottom-up (positions in the user's numbering). §27: hold rows; §28: loan rows, CIT rows, summary.
+    ops = [(a["master"], 2)] + [(b["codx"] + 1, 1 + 2 * len(LOAN_ROWS)) for b in reversed(blocks)] + \
+          [(b["pre"] + 1, len(TIMELINE)) for b in reversed(blocks)] + \
+          [(q[k]["rec"] + 1, CIT_YEARS + 3) for k in "BA"] + [(q[k]["post"], 1) for k in "BA"] + \
+          [(b["net"] + 1, len(PER_PROJECT)) for b in reversed(blocks)] + [(a["npv"] + 1, len(SUMMARY))] + \
+          [(q[k]["s_irr"] + 1, 2) for k in "BA"]
+    ops.sort(key=lambda x: -x[0])
+    assert len({p for p, _ in ops}) == len(ops), ops
     for p, n in ops:
         d.insert(p, n)
         m.add(p, n)
@@ -211,8 +232,171 @@ def edit_dashboard(doc):
     R["check"] = r
     old = d.cell(f"H{R['master']}").getFormula()
     assert old == f"=SUM(H{R['chk1'] + 1}:H{r - 1})", old
-    d.formula(f"H{R['master']}", f"=SUM(H{R['chk1'] + 1}:H{r})")
-    return m, R, B
+    d.formula(f"H{R['master']}", f"=SUM(H{R['chk1'] + 1}:H{r + 1})")
+    R["check28"] = r + 1
+    Q = edit28(d, m, R, B, blocks, q)
+    return m, R, B, Q
+
+
+def user_groups(path):
+    """The user's grouped Dashboard rows (outline level 1, not collapsed), as runs (first, last)."""
+    rows = sorted(r for r, x in openpyxl.load_workbook(path)["Dashboard"].row_dimensions.items() if x.outlineLevel)
+    runs = []
+    for r in rows:
+        if runs and r == runs[-1][1] + 1:
+            runs[-1][1] = r
+        else:
+            runs.append([r, r])
+    return runs
+
+
+def keep_groups(doc, runs, m):
+    """Rows inserted right after a group join it in LibreOffice; reset the outline to the user's groups, shifted."""
+    import uno
+    from com.sun.star.table import CellRangeAddress
+    orient = uno.Enum("com.sun.star.table.TableOrientation", "ROWS")
+    s = doc.Sheets.getByName("Dashboard")
+    s.clearOutline()
+    for r1, r2 in runs:
+        assert m(r2) - m(r1) == r2 - r1, (r1, r2)                  # no insert inside a user's group
+        s.group(CellRangeAddress(Sheet=0, StartColumn=0, StartRow=m(r1) - 1, EndColumn=0, EndRow=m(r2) - 1), orient)
+
+
+def anchors28(d):
+    """§28 anchors in the user's numbering, per RtB case: claims, memo list, profit stack, summary."""
+    f = lambda t, s=1: d.find(t, start=s, exact=False)  # noqa: E731
+    q = {"B": {"end": f("Interest accrual end (earlier of freeze and sale)"),
+               "tot": f("Total FEP claims on its shareholder loans (JV only)"), "memo": f("Memo: FEP dated cash flows, Case B"),
+               "s_head": f("RTB exit, Case B"), "sale": "Sale_Date"},
+         "A": {"end": f("Case A: interest accrual end"), "tot": f("Total FEP claims on its shareholder loans, Case A"),
+               "memo": f("Memo: FEP dated cash flows, Case A"), "s_head": f("RTB exit, Case A"), "sale": "Sale_Date_A"}}
+    for k, x in q.items():
+        x["post"] = d.find("FEP profit, post-tax", x["memo"] - 12)
+        x["land"] = d.find("Land", x["memo"])
+        x["rec"] = x["land"] + 2
+        x["first"] = x["memo"] + 1                               # signing fee and DD (no claim: no factor)
+        x["s_irr"] = d.find("IRR, pre-tax", x["s_head"])
+        x["s_profit"] = d.find("FEP profit", x["s_head"])
+        assert d.cell(f"C{x['first']}").getString() == "Signing fee and DD", k
+        assert d.cell(f"C{x['rec']}").getString().startswith("FEP receipts at"), k
+        assert d.cell(f"C{x['post'] - 1}").getString().startswith("CIT on the exit gain"), k
+    expect = {"B": (175, 198, 315, 312, 323, 325, 121, 119), "A": (210, 233, 270, 266, 276, 278, 115, 113)}
+    got = {k: tuple(x[i] for i in ("end", "tot", "memo", "post", "land", "rec", "s_irr", "s_profit")) for k, x in q.items()}
+    assert got == expect, got
+    return q
+
+
+def edit28(d, m, R, B, blocks, q):
+    """§28 rows: factor columns M:O, loan sub-blocks per project, dated CIT rows, profit stack, summary, check."""
+    Q = {k: {n: m(v) for n, v in x.items() if isinstance(v, int)} | {"sale": x["sale"]} for k, x in q.items()}
+    fcols, dcols = ["M", "N", "O"], ["J", "K", "L"]
+    # 1. Factor to the first 31-Dec on the claim lines (M:O; dates in J:L), one formula per row.
+    for k, x in Q.items():
+        for fc, dc, nm in zip(fcols, dcols, NAMES):
+            d.s.copyRange(d.cell(f"{fc}{x['memo']}").getCellAddress(), d.cell(f"J{x['memo']}").getRangeAddress())
+            d.text(f"{fc}{x['memo']}", f"Factor to the first 31-Dec: {nm}")
+        for r in range(x["first"] + 1, x["rec"]):
+            rate = "Rate_Devex" if r >= x["land"] else "Rate_Cash"
+            for fc, dc in zip(fcols, dcols):
+                d.formula(f"{fc}{r}", f"=1+{rate}*(DATE(YEAR({dc}{r})+1,1,1)-{dc}{r})/Days_In_Year")
+                d.cell(f"{fc}{r}").NumberFormat = d.cell(f"E{Q['B']['end'] + 1}").NumberFormat   # 0.0000
+    # 2. Loan sub-blocks after each project's COD-exit row.
+    for c, fc, dc, b, blk in zip(P, fcols, dcols, B, blocks):
+        rows = m.block(blk["codx"] + 1)
+        d.copy_format(R["hold"], rows[0])
+        d.text(f"C{rows[0]}", LOAN_HEAD)
+        it = iter(rows[1:])
+        for k in "BA":
+            x = Q[k]
+            rr = {key: next(it) for key, _ in LOAN_ROWS}
+            fm = {"cash": f"=({{w}}{rr['cash']}*(1+Rate_Cash)+SUMPRODUCT(-${c}{x['first'] + 1}:${c}{x['land'] - 1}"
+                          f"*${fc}{x['first'] + 1}:${fc}{x['land'] - 1}*(YEAR(${dc}{x['first'] + 1}:${dc}{x['land'] - 1})"
+                          f"={{x}}{R['year']})))*({{x}}{R['ye']}<${c}{x['end']})",
+                  "dev": f"=({{w}}{rr['dev']}*(1+Rate_Devex)+SUMPRODUCT(-${c}{x['land']}:${c}{x['land'] + 1}"
+                         f"*${fc}{x['land']}:${fc}{x['land'] + 1}*(YEAR(${dc}{x['land']}:${dc}{x['land'] + 1})"
+                         f"={{x}}{R['year']})))*({{x}}{R['ye']}<${c}{x['end']})",
+                  "drawn": f"=-SUMPRODUCT(${c}{x['first'] + 1}:${c}{x['land'] + 1}*(YEAR(${dc}{x['first'] + 1}:"
+                           f"${dc}{x['land'] + 1})={{x}}{R['year']}))*({{x}}{R['ye']}<${c}{x['end']})",
+                  "int": f"=({{x}}{rr['cash']}+{{x}}{rr['dev']}-{{w}}{rr['cash']}-{{w}}{rr['dev']}-{{x}}{rr['drawn']})"
+                         f"*({{x}}{R['ye']}<${c}{x['end']})"}
+            for key, lab in LOAN_ROWS:
+                r = rr[key]
+                d.copy_format(R["money"], r)
+                d.text(f"C{r}", f"Case {k}: {lab}")
+                d.text(f"D{r}", "EUR k")
+                set_row(d, r, fm[key])
+                if key in ("drawn", "int"):
+                    d.formula(f"H{r}", f"=SUM(J{r}:{LAST}{r})")
+                b[f"loan{k}_{key}"] = r
+    # 3. Dated CIT rows after the receipts row, then post-tax MOIC and IRR on the full list.
+    for k, x in Q.items():
+        rows = m.block(q[k]["rec"] + 1)
+        years, rest, moic, irr = rows[:CIT_YEARS], rows[CIT_YEARS], rows[CIT_YEARS + 1], rows[CIT_YEARS + 2]
+        for i, r in enumerate(years):
+            yc = TL[i]
+            d.copy_format(x["land"], r, last="L")
+            d.text(f"C{r}", f"CIT on the interest capitalised at 31-Dec-{2026 + i}")
+            d.text(f"D{r}", "EUR k")
+            for c, dc, b in zip(P, dcols, B):
+                d.formula(f"{c}{r}", f"=-{yc}${b[f'loan{k}_int']}*CIT_Rate*{c}$21")
+                d.formula(f"{dc}{r}", f"={yc}${R['ye']}")
+            d.formula(f"H{r}", f"=SUM(E{r}:G{r})")
+        d.copy_format(x["land"], rest, last="L")
+        d.text(f"C{rest}", "CIT on the rest at the sale (stub to the accrual end, devex floor top-up)")
+        d.text(f"D{rest}", "EUR k")
+        for c, dc in zip(P, dcols):
+            d.formula(f"{c}{rest}", f"=-{c}{x['tot']}*CIT_Rate*{c}$21-SUM({c}{years[0]}:{c}{years[-1]})")
+            d.formula(f"{dc}{rest}", f"={x['sale']}")
+        d.formula(f"H{rest}", f"=SUM(E{rest}:G{rest})")
+        pre_moic = d.find("MOIC, pre-tax (dated", x["post"], exact=False)
+        pre_irr = d.find("IRR, pre-tax (dated", x["post"], exact=False)
+        d.copy_format(pre_moic, moic, last="H")
+        d.text(f"C{moic}", "MOIC, post-tax (dated cash flows incl. the CIT rows)")
+        d.text(f"D{moic}", "x")
+        for c in P + ["H"]:
+            rng = f"{c}{x['first']}:{c}{rest}"
+            d.formula(f"{c}{moic}", f'=SUMIF({rng},">0")/-SUMIF({rng},"<0")')
+        d.copy_format(pre_irr, irr, last="H")
+        d.text(f"C{irr}", "IRR, post-tax (dated cash flows incl. the CIT rows)")
+        d.text(f"D{irr}", "%")
+        for c, dc in zip(P, dcols):
+            d.formula(f"{c}{irr}", f"=XIRR({c}{x['first']}:{c}{rest},{dc}{x['first']}:{dc}{rest})")
+        x.update(cit_years=years, rest=rest, moic=moic, irr=irr)
+    # 4. Profit stacks: loan CIT before "FEP profit, post-tax" (accrued claims, not the waterfall payment).
+    for k, x in Q.items():
+        r, post = m.block(q[k]["post"])[0], x["post"]
+        d.copy_format(r - 1, r, last="H")
+        d.text(f"C{r}", LOAN_CIT)
+        d.text(f"D{r}", "EUR k")
+        for c in P:
+            d.formula(f"{c}{r}", f"=-{c}{x['tot']}*CIT_Rate*{c}$21")
+            old = d.cell(f"{c}{post}").getFormula()
+            assert old == f"={c}{r - 2}+{c}{r - 1}", old
+            d.formula(f"{c}{post}", f"{old}+{c}{r}")
+        d.formula(f"H{r}", f"=SUM(E{r}:G{r})")
+        x["loan_cit"] = r
+    # 5. Summary: post-tax MOIC and IRR under each case's pre-tax IRR; "FEP profit" relabelled.
+    for k, x in Q.items():
+        r1, r2 = m.block(q[k]["s_irr"] + 1)
+        for r, src, lab, unit in ((r1, x["s_irr"] - 1, "MOIC, post-tax", "x"), (r2, x["s_irr"], "IRR, post-tax", "%")):
+            d.copy_format(src, r, last="H")
+            d.text(f"C{r}", lab)
+            d.text(f"D{r}", unit)
+            for c in P:
+                d.formula(f"{c}{r}", f"={c}{x['moic'] if unit == 'x' else x['irr']}")
+        d.formula(f"H{r1}", f"=H{x['moic']}")
+        d.text(f"C{x['s_profit']}", "FEP profit, post-tax")
+        x.update(s_moic=r1, s_irr_post=r2)
+    # 6. Check: the rest taxed at the sale is <= 0 in both cases.
+    r = R["check28"]
+    d.copy_format(R["check"], r, last="H")
+    d.text(f"C{r}", "RtB loan CIT: the rest taxed at the sale is ≤ 0 (yearly schedule does not over-accrue), "
+                    "Case B + Case A")
+    d.text(f"D{r}", "flag")
+    for c in P:
+        d.formula(f"{c}{r}", f"=N({c}{Q['B']['rest']}>Tolerance)+N({c}{Q['A']['rest']}>Tolerance)")
+    d.formula(f"H{r}", f"=SUM(E{r}:G{r})")
+    return Q
 
 
 def array_cells(path):
@@ -249,15 +433,16 @@ def build():
     with Office(SRC) as lo:                                   # Office recalculates on load
         lo.save(BASE_RC)
         mi, ri = edit_inputs(lo.doc)
-        md, R, B = edit_dashboard(lo.doc)
+        md, R, B, Q = edit_dashboard(lo.doc)
         keep_arrays(lo.doc, array_cells(SRC), {"Inputs": mi, "Dashboard": md})
+        keep_groups(lo.doc, user_groups(SRC), md)
         lo.calculate()
         lo.save(OUT)
     restore_filter_case(OUT)
     with Office(OUT) as lo:
         lo.save(RC)
     info = {"Inputs": {"inserts": mi.ins, "rows": ri},
-            "Dashboard": {"inserts": md.ins, "rows": R, "blocks": dict(zip(NAMES, B))}}
+            "Dashboard": {"inserts": md.ins, "rows": R, "blocks": dict(zip(NAMES, B)), "rtb": Q}}
     MAPS.write_text(json.dumps(info, indent=1, ensure_ascii=False))
     print(f"wrote {OUT}")
 
@@ -400,6 +585,64 @@ def dump(wb, info):
     DUMP.write_text("\n".join(out) + "\n")
 
 
+# User cells that §27 / §28 change on purpose (user's numbering): relabels, the post-tax profit (+ loan CIT) and its
+# summary link, and the new factor cells M:O on the two memo lists (heading and claim lines).
+RELABELS = {("Dashboard", "C134"), ("Dashboard", "C113"), ("Dashboard", "C119"), ("Inputs", "C39"), ("Inputs", "H39")}
+PROFIT_ROWS = {266, 312, 113, 119}
+FACTOR_ROWS = {270, *range(272, 278), 315, *range(317, 325)}
+
+
+def expected(sh, cl, r0):
+    if (sh, f"{cl}{r0}") in RELABELS:
+        return "relabel"
+    if sh == "Dashboard" and r0 in PROFIT_ROWS and cl in "EFGH":
+        return "post-tax profit incl. loan CIT"
+    if sh == "Dashboard" and r0 in FACTOR_ROWS and cl in "MNO":
+        return "new factor cell"
+    return None
+
+
+def recompute28(wb, info):
+    """Bora (and the others): yearly capitalised loan interest and the post-tax RtB returns, from the memo lists."""
+    from datetime import date
+    dash, Q = wb["Dashboard"], info["Dashboard"]["rtb"]
+    name = lambda n: (lambda s, c: wb[s][c.replace("$", "")].value)(*next(wb.defined_names[n].destinations))  # noqa
+    rc, rd, cit, freeze = name("Rate_Cash"), name("Rate_Devex"), name("CIT_Rate"), name("Freeze_Date").date()
+    ok, out = True, {}
+    for c, dc, nm in zip(P, "JKL", NAMES):
+        jv = dash[f"{c}21"].value
+        for k, x in Q.items():
+            sale = name(x["sale"]).date()
+            end = min(freeze, sale)
+            lines = [(dash[f"{c}{r}"].value, dash[f"{dc}{r}"].value, rd if r >= x["land"] else rc)
+                     for r in range(x["first"] + 1, x["rec"])]          # datetimes: amount-weighted dates keep the
+            bal = {}                                                     # fraction of a day, as the claim rows do
+            for y in range(2026, 2026 + CIT_YEARS + 1):
+                bal[y] = sum(-p * (1 + rt * (datetime(d.year + 1, 1, 1) - d).total_seconds() / 86400 / 365)
+                             * (1 + rt) ** (y - d.year) for p, d, rt in lines if d.year <= y) * (y < end.year)
+            drawn = {y: -sum(p for p, d, _ in lines if d.year == y) * (y < end.year) for y in bal}
+            ints = {y: (bal[y] - bal.get(y - 1, 0) - drawn[y]) * (y < end.year) for y in bal}
+            yearly = [-ints[2026 + i] * cit * jv for i in range(CIT_YEARS)]
+            total = -dash[f"{c}{x['tot']}"].value * cit * jv
+            flows = [(dash[f"{dc}{r}"].value.date(), dash[f"{c}{r}"].value) for r in range(x["first"], x["rec"] + 1)]
+            flows += [(date(2026 + i, 12, 31), v) for i, v in enumerate(yearly)] + [(sale, total - sum(yearly))]
+            pos, neg = sum(v for _, v in flows if v > 0), -sum(v for _, v in flows if v < 0)
+            py = {"yearly CIT": yearly, "rest at sale": total - sum(yearly), "total loan CIT": total,
+                  "MOIC post-tax": pos / neg, "IRR post-tax": xirr(sorted(flows))}
+            model = {"yearly CIT": [dash[f"{c}{r}"].value for r in x["cit_years"]],
+                     "rest at sale": dash[f"{c}{x['rest']}"].value, "total loan CIT": dash[f"{c}{x['loan_cit']}"].value,
+                     "MOIC post-tax": dash[f"{c}{x['moic']}"].value, "IRR post-tax": dash[f"{c}{x['irr']}"].value}
+            diff = max([abs(a - b) for a, b in zip(py["yearly CIT"], model["yearly CIT"])] +
+                       [abs(py[t] - model[t]) for t in py if t != "yearly CIT"])
+            ok &= diff < 1e-6
+            out[(nm, k)] = model
+            print(f"   {nm:<11} Case {k}: yearly CIT " + ", ".join(f"{v:,.2f}" for v in model["yearly CIT"]) +
+                  f" | rest {model['rest at sale']:,.2f} | total {model['total loan CIT']:,.2f} | MOIC post "
+                  f"{model['MOIC post-tax']:.4f} | IRR post {model['IRR post-tax']:.4%}  (python diff {diff:.1e})")
+    print("independent recomputation (RtB loan CIT):", "PASS" if ok else "FAIL")
+    return ok
+
+
 def verify():
     info = json.loads(MAPS.read_text())
     a_wb = openpyxl.load_workbook(RC, data_only=True)
@@ -417,10 +660,12 @@ def verify():
     base_err = [e.where for e in lint_values(BASE_RC) if e.rule == "f-error"]
     print("   base file, same LibreOffice:", base_err)
     diffs = compare(b_wb, a_wb)
-    print(f"before / after: {len(diffs)} changed cell(s) in the user's cells")
+    bad = [x for x in diffs if not expected(x[0], x[3], x[1])]
+    print(f"before / after: {len(diffs)} changed cell(s) in the user's cells, {len(bad)} unexpected")
     for sh, r0, r1, cl, x, y in diffs:
-        print(f"   {sh}!{cl}{r0} → {cl}{r1}: {x!r} → {y!r}")
-    struct = cells_check(openpyxl.load_workbook(SRC), openpyxl.load_workbook(OUT))
+        print(f"   {sh}!{cl}{r0} → {cl}{r1}: {x!r} → {y!r}  [{expected(sh, cl, r0) or 'UNEXPECTED'}]")
+    struct = [x for x in cells_check(openpyxl.load_workbook(SRC), openpyxl.load_workbook(OUT))
+              if not (x[0] == "Dashboard" and x[1] in FACTOR_ROWS)]
     print(f"   non-empty cells per row (formulas / text) vs the user's file: {len(struct)} row(s) differ", struct[:5])
     want = {(sh, c, remap(sh)(r)) for sh, c, r in array_cells(SRC)} | {
         ("Dashboard", c, R[k]) for c in P for k in ("s_irr", "s_eirr")}
@@ -428,12 +673,17 @@ def verify():
     print(f"array formulas saved as arrays: {len(got)} (user's {len(want) - 6} + 6 new)",
           "OK" if got == want else f"MISMATCH {sorted(got ^ want)}")
     wb = openpyxl.load_workbook(OUT)
+    m = remap("Dashboard")
+    grp = lambda w, f=lambda r: r: {f(r) for r, x in w["Dashboard"].row_dimensions.items() if x.outlineLevel}  # noqa
+    same = grp(wb) == grp(openpyxl.load_workbook(SRC), m)
+    print("user's grouped rows kept, none added:", "OK" if same else "MISMATCH")
     print("hidden / grouped rows or columns:", sum(1 for s in wb.worksheets for _, x in
                                                    list(s.row_dimensions.items()) + list(s.column_dimensions.items())
                                                    if x.hidden or x.outlineLevel),
           "| comments:", [(s.title, c.coordinate) for s in wb.worksheets for row in s.iter_rows() for c in row
                           if c.comment])
     ok, res = recompute(a_wb, info)
+    ok &= recompute28(a_wb, info)
     lo = lo_irr_check(info)
     for nm in NAMES:
         x = lo[nm]
@@ -446,7 +696,13 @@ def verify():
     new = {"Inputs": set(info["Inputs"]["rows"].values()),
            "Dashboard": {R[k] for k in ("s_cit", "s_irr", "s_debt", "s_eirr", "s_dscr", "check", "master")}
            | {v for b in info["Dashboard"]["blocks"].values() for k, v in b.items()
-              if k in [t[0] for t in TIMELINE] or k.startswith("s_")}}
+              if k in [t[0] for t in TIMELINE] or k.startswith(("s_", "loan"))}
+           | {R["check28"]} | {v for x in info["Dashboard"]["rtb"].values() for k, v in x.items()
+                               if k in ("rest", "moic", "irr", "loan_cit", "s_moic", "s_irr_post")}
+           | {r for x in info["Dashboard"]["rtb"].values() for r in x["cit_years"]}}
+    loan_heads = {b["loanB_cash"] - 1 for b in info["Dashboard"]["blocks"].values()}
+    new["Dashboard"] |= loan_heads | {r for x in info["Dashboard"]["rtb"].values()
+                                      for r in range(x["first"] + 1, x["rec"])}
     found = []
     for x in lint(OUT):
         sh, _, where = x.where.partition("!")
@@ -458,7 +714,7 @@ def verify():
         print("  ", x)
     dump(a_wb, info)
     print("dump:", DUMP)
-    return ok and not other and not diffs and got == want
+    return ok and not other and not bad and not struct and got == want and same
 
 
 if __name__ == "__main__":
