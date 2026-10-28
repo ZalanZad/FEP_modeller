@@ -709,3 +709,48 @@ user's flagged file `reference/HU_Wind_bids_271026_flagged.xlsx` with the §25.1
 4. **Nothing hidden:** remove all row/column grouping and hiding on both sheets.
 5. Verification: recalc no errors, Master_Check 0 (add checks: devex items × scale = project devex; COD cost stack =
    timeline flows), lint clean on the changed rows, Python recomputation of the Iváncsa COD exit and both RtB cases.
+
+## 27. Eighteenth round (user, 28-Oct-2026): v3 is the base; add CIT and a 60 % levered hold case, streamlined
+
+**Source:** `reference/HU_Wind_bids_v3_281026.xlsx` – the user's corrected copy of the §26 file. **Its corrections are
+the truth and stay as they are** (every later round starts from the user's latest copy; the repository is updated
+with it first):
+- Bids: Bora overbuild 20 %, BESS 10 %; Iváncsa and Dunaújváros 40 % / 20 %; wind built 10 % below the bid for all three.
+- Project P50 hours on Dashboard row 22 (2,500 h for all); the case-table P50 row (2400/2350/2500) is marked "not used".
+- Points: ÖSZ-4 (BESS) bands renamed `Osz4_*` (Inputs rows 124–126, "50 < x ≤ 100 → max"); ÖSZ-6 bands corrected
+  (rows 127–129, 100 points only if x > 200 %).
+- Signing + DD row 69 = `E57/FX/Thousand`.
+- COD cost stack (Dashboard rows 93–99 and the summary rows 123–129): TSO, bid and performance securities shown as
+  own rows at 0 "(returned)"; municipal; Land `=E68`; "Developer premium paid for the RtB project (150 k€/MVA × MVA)"
+  `=E18*E6`; "All-in cost to COD for a buyer (securities excluded: returned)".
+- Inputs E47 land per MW = 0, note "Land is in the devex (Inputs rows 80, 81, 110) and bought by the RtB buyer".
+- Nothing hidden, no comments.
+
+**Change (one thing only): operating CIT and a 60 % levered case for the hold-to-maturity route**, re-applying the
+§24 pattern on this base. New file `projects/hu_wind_2/out/HU_Wind_bids_v3.xlsx`, built by `build_v3.py` through
+LibreOffice UNO row inserts (references survive); v2 stays as it is. Keep it streamlined: one input block, a few
+rows per project in the annual cash flow, five summary rows, one check. Nothing hidden.
+1. **Inputs (new block "Tax and debt (hold case)" after row 40, blue, source notes):** CIT rate on operating profit
+   = the existing `CIT_Rate` (15 %, relabel row 39 "Corporate income tax (operating profit; exit gains)"); tax
+   depreciation life 20 years (straight line on the all-in cost to COD, from the COD year; source: Hungarian CIT Act
+   Annex 2, 5 % p.a. for power plants – note as "to confirm"); no loss carry-forward (losses are not carried, simple);
+   gearing 60 % of the all-in cost to COD (user, 27-Oct-2026); interest 5 %; tenor 15 years, annuity from the first
+   full operating year. Names: `Tax_Dep_Life`, `Gearing`, `Debt_Rate`, `Debt_Tenor`.
+2. **Annual cash flow, each project block (after "Unlevered pre-tax cash flow", before the discount-factor row), one
+   formula per row across J:AS:** tax depreciation = −all-in cost ÷ `Tax_Dep_Life` × (0 ≤ years from COD <
+   `Tax_Dep_Life`); CIT = −MAX(0, EBITDA + depreciation) × `CIT_Rate` × (operating share > 0); unlevered post-tax
+   cash flow = unlevered pre-tax + CIT; debt drawn at COD = all-in cost × `Gearing` × COD-year flag; annuity
+   payment (PMT at `Debt_Rate`, `Debt_Tenor`, years from COD 1..tenor); debt balance (opening + drawn − principal);
+   interest = balance × rate; principal = annuity − interest; **interest is CIT-deductible in the levered case**:
+   levered CIT = −MAX(0, EBITDA + depreciation − interest) × rate; equity cash flow = unlevered pre-tax + debt drawn
+   − annuity + levered CIT; DSCR = EBITDA ÷ annuity (operating years only). The exits (RtB both cases, COD) stay
+   fully exempt as in v3; the COD exit is not touched.
+3. **Hold summary (Dashboard rows 134–140, relabel the heading "Hold to maturity (as the RtB buyer; EBITDA, CIT 15 %,
+   optional 60 % debt)"):** keep rows 135–140, add after them: CIT over the life (unlevered); project IRR post-tax;
+   debt drawn at COD; equity IRR post-tax (60 % geared); minimum DSCR. Also add "Net cash flow post-tax" and
+   "Equity cash flow (60 % debt)" to the per-project rows of the "Annual cash flow per project" summary (rows 148–170).
+4. **Check:** debt fully repaid at the end of the tenor (balance after the last annuity = 0, within tolerance), one
+   row per project, into Master_Check.
+5. Verification: recalc no errors; Master_Check 0; before/after comparison – every pre-existing cell of v3 unchanged
+   except the relabelled rows and the row shifts; Python recomputation of Bora's post-tax project IRR, equity IRR and
+   minimum DSCR from the recalculated EBITDA rows; dump to `out/dump_v3.txt`.
