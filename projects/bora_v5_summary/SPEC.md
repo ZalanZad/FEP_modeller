@@ -653,3 +653,32 @@ reference intact; openpyxl must not be used for inserts).
 4. Verification: recalc no errors, Master_Check 0 (add a check "debt fully repaid"), every other figure of the user's
    file unchanged except those driven by CIT 9 → 15 % (list them), check.py-style Python recomputation of the Bora
    post-tax project IRR and equity IRR.
+
+## 25. Sixteenth round (user, 28-Oct-2026): no JV → no shareholder loans; Case A exits before HCSSZ
+
+**Source:** `reference/HU_Wind_bids_271026_flagged.xlsx` – the user's latest copy (own CIT logic: 15 %, share-deal
+participation exemption flag `Share_Exempt`, claims taxed as interest; project P50 row 21; developer JV buy-out in the COD
+exit; two comments: Dashboard G195 "not correct", J232 "different exit date"). THE base; change as little as possible;
+edit through LibreOffice UNO (`build_lev.py` approach, row inserts keep references).
+
+1. **No JV partner → no loans, no claims, no interest tax.** The FEP claims (12 % on cash lines, 20 % / 2× on devex) are
+   the return on FEP's shareholder loans *to a JV with a developer*. Iváncsa and Dunaújváros have no JV partner (FEP
+   100 %), so there is nobody to lend to: FEP simply funds its own SPV. New per-project Dashboard key input
+   `JV with a developer (1 = yes; claims and DSA apply)`: Bora 1, Iváncsa 0, Dunaújváros 0. Every claim line (both RtB
+   cases) × the flag; the DSA is already off for them. Effect for a no-JV project: proceeds = premium + reimbursement −
+   sale costs, all to FEP; pre-tax profit unchanged (claims were only a reallocation inside a 100 % FEP waterfall); CIT
+   on claims = 0 (no interest income); the share gain stays exempt under `Share_Exempt`. Relabel the claim rows
+   "FEP claims on its shareholder loans (JV only)".
+2. **Case A (buyer pays the grid connection fees) exits before HCSSZ.** New Inputs row `Sale date, Case A (before
+   HCSSZ)` = 30-Sep-2028. Case A uses it everywhere: its own claims block (accrual end = MIN(freeze, Sale date A);
+   accrual factors for participation fee, bid security, PB, TSO, devex – same row pattern as the main block), DSA to
+   Sale date A, its dated receipts at Sale date A, its IRR. Fix the detail labels so the summary's "Case A / Case B"
+   names match the detail blocks (today the detail block of the summary's Case A is titled "Case B"). New check:
+   `Sale date A < HCSSZ date` (0 = OK) into Master_Check.
+3. **Re-apply §24 on this base:** hold case with CIT 15 % on operating profit (tax depreciation 20 y, no loss
+   carry-forward) and the 60 % levered case (5 %, 15 y annuity from the first full year, DSCR, debt balance, "debt
+   repaid" check); hold summary rows: CIT over the life, project IRR post-tax, debt at COD, equity IRR post-tax (60 %),
+   minimum DSCR; hold heading relabelled.
+4. Verification: recalc no errors, Master_Check 0; before/after list (only the claim, Case A and new rows may change);
+   Python recomputation of Iváncsa Case B (no claims) and Bora Case A (sale 30-Sep-2028) waterfalls and of the
+   hold post-tax/equity IRRs.
