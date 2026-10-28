@@ -786,3 +786,28 @@ No-JV projects (Iváncsa, Dunaújváros) have no loans and no such CIT (× the J
    `N(rest row > Tolerance)`, into Master_Check.
 7. Verification as §27.5, plus Python recomputation of Bora's yearly capitalised interest (both cases) from the memo
    lists and of the post-tax RtB IRRs.
+
+## 29. Audit round on v3 (28-Oct-2026): findings of model-auditor and model-reviewer, fixes applied
+
+Numbers tied out (Python recomputation from inputs within 1e-9; Master_Check 0 in Base/Low/High and a perturbed run).
+Fixed in `build_v3.py` (same output file):
+1. **Development-devex loan principal was missing from the JV waterfalls** (both RtB cases): only the return
+   (MAX(20 % accrued, 1× principal)) was paid before the 70/30 split, so FEP's devex came back 1×, not the 2× floor,
+   and the developer shared in FEP's principal. New waterfall row "Less development devex repaid to FEP (loan principal,
+   JV only)" after the land row; included in FEP's receipts. Bora only (JV = 1).
+2. FILTER-based array IRRs (12 cells) replaced by plain XIRR on the whole row: they now calculate in LibreOffice and
+   older Excel, and a new check counts errors in the summary block. Portfolio IRR added in the Total column of the
+   RtB cases (dates are common to all projects).
+3. Tautological waterfall checks replaced by "dated cash flows tie to the post-tax profit" (both cases); the dead
+   "RtB price: 0" timeline rows removed; check "claim lines paid before the accrual end" shortened.
+4. JV flag applied to the loan sub-blocks (no balances shown for no-JV projects); row 21 relabelled (the DSA has its
+   own flag).
+5. Debt service, interest and principal shown negative like every other outflow; DSCR = EBITDA ÷ debt service.
+6. Labels: parameters (15 %, 60 %, 12 %, 20 %) taken out of the new labels; rows 76/78 case notes were swapped; land
+   moved from "sunk" to "returned or reimbursed at cost" (row 76 total unchanged); rows 168/178 label; case header
+   without "yield" (project P50 is used, as the user set); BESS capex "(points only; no BESS revenue or opex)";
+   stale Inputs notes; premium computed once; unused names removed.
+Left as the user's decisions, raised as questions: CIT 15 % (statutory 9 %); COD price = PV of pre-tax EBITDA at 8 %;
+securities posted in cash; debt drawn 100 % at COD without construction interest (COD-year equity cash flow positive);
+NTP (30-Jun-2029) before the Case B sale (30-Sep-2029); Case A premium = Case B premium; ÖSZ-4 basis on MVA (GYIK Q20
+reads BESS MW ÷ installed wind); community contribution 0 for Bora vs the 2 €/MWh minimum in the call's footnote.

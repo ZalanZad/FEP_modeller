@@ -5,6 +5,22 @@ Fable adds an entry whenever a round teaches something new and useful (a user pr
 tool limitation, a trick that worked). Short entries, dated, newest at the top. Project-specific decisions stay in the
 project's SPEC; rules that bind every model go to `CLAUDE.md` or `docs/MODELLING_STANDARDS.md`.
 
+## 2026-10-28 (audit round)
+- **Audit pairs pay off:** run `model-auditor` (numbers, lint, scenarios) and `model-reviewer` (business sense, labels,
+  structure) in parallel on a finished file; the reviewer found a waterfall omission (loan principal not repaid before
+  the split) that the number tie-out could not, because the Python shadow copied the same logic.
+- **Checks must be falsifiable.** A check that compares a residual with itself is always 0; tie the dated cash-flow
+  list to the profit stack instead, and count errors in the summary block (`SUMPRODUCT(--ISERROR(range))`).
+- **Prefer plain `XIRR` on the whole timeline row** (zeros are fine) over `XIRR(FILTER(...))`: FILTER is Excel-365
+  only, shows #NAME? in LibreOffice and older Excel, and hides errors from the Master check.
+- **Shareholder-loan waterfall order:** sale costs → principal of every FEP loan line (securities, fees, land, devex)
+  → interest/returns → DSA → split. Each line's principal and return are separate rows, so the 2× floor on devex is
+  principal + MAX(accrued, 1× principal).
+- **Outflows negative everywhere**, debt service included; DSCR = EBITDA ÷ debt service. Do not bake parameter
+  values ("15 %", "60 %") into labels; they go stale.
+- **The user's dates are common to all projects** (their decision), so a portfolio XIRR in the Total column is valid;
+  say so in the row note.
+
 ## 2026-10-28
 - **The user's hand-edited copy is the base.** When the user uploads an edited workbook, copy it to `reference/` with
   the date, diff it against our last output to learn the corrections, record them in the SPEC, and build the next
