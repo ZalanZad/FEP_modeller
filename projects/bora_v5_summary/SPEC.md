@@ -828,14 +828,16 @@ keep it lean. Same file `out/HU_Wind_bids_v3.xlsx`, `build_v3.py`.
    year", same pattern as the operating-share row); CIT = rate × MAX(0, EBITDA − depreciation [− interest, levered]).
    No loss carry-forward (no loss years arise after COD; the Bora model's 50 % LCF would change nothing here – state
    it in the SPEC, not in the model). HIPA stays in opex.
-5. **Hold case, debt (as the Bora model):** debt size = `Gearing` × (construction capex + connection fees + municipal)
-   – not on land or the premium; **drawn pro rata with construction** (construction-share row); **IDC** at `Debt_Rate`
-   on (opening balance + half the year's draw) × the construction fraction of the year, capitalised into the balance
-   and into the depreciable base; **upfront fee** `Debt_Fee` 1.75 % of the debt size at the first draw, equity-paid
-   (not deducted: it falls in a pre-COD year without LCF – conservative, say so in the label); operating interest =
-   balance after draws × rate × operating share of the year; annuity on the balance at COD (draws + IDC) from the
-   first full operating year for `Debt_Tenor` years; principal = debt service − interest; closing balance; check
-   "debt repaid".
+5. **Hold case, debt (Bora-model mechanics, two reasoned departures):** debt size = `Gearing` × the **all-in cost to
+   COD** (what the buyer actually funds, incl. land and premium – lenders quote gearing on total project cost; the
+   Bora model sizes on the accounting base, which understates debt capacity at a 2× DSCR); **drawn pro rata with
+   construction**; **IDC** at `Debt_Rate` on (draws and IDC to date + `IDC_Draw_Share` 50 % of the year's draw) × the
+   construction fraction of the year, capitalised into the balance and into the depreciable base; **upfront fee**
+   `Debt_Fee` 1.75 % of the debt size at the first draw, equity-paid and **deducted in the year paid** (it falls
+   pre-COD without income, so without loss carry-forward the deduction is lost – conservative, immaterial: ~0.1 M€
+   of CIT); operating interest = balance after draws × rate × operating share of the year; annuity on the balance at
+   COD (draws + IDC) from the first full operating year for `Debt_Tenor` years, the COD-year interest paid in the
+   COD year; principal = debt service − interest; closing balance; check "debt repaid".
 6. **Returns:** DSCR = (EBITDA + levered CIT) ÷ debt service (post-tax CFADS, as the Bora model); equity cash flow =
    unlevered pre-tax cash flow + draws + fee + debt service + levered CIT; project IRR pre-/post-tax, equity IRR,
    min DSCR as before. Not modelled (Bora model has them switched off or case-specific): DSRA, cash sweep,

@@ -58,37 +58,56 @@ HOLD_LABEL = "Hold to maturity (as the RtB buyer; EBITDA, CIT, optional debt)"
 
 # name, label, unit, value, template ("pct" | "years"), source note
 NEW_INPUTS = [
-    ("Tax_Dep_Life", "Tax depreciation life (straight line on the all-in cost to COD, from the COD year)", "years", 20,
+    ("Tax_Dep_Life", "Tax depreciation life (straight line on the depreciable base, from COD)", "years", 20,
      "years", "HU CIT Act Annex 2, 5 % p.a. power plants – to confirm"),
-    ("Gearing", "Gearing (debt ÷ all-in cost to COD)", "%", 0.60, "pct", "user, 27-Oct-2026"),
+    ("Gearing", "Gearing (debt ÷ all-in cost to COD)", "%", 0.60, "pct",
+     "user, 27-Oct-2026"),
     ("Debt_Rate", "Debt interest rate", "%", 0.05, "pct", "Bora model Inputs G220"),
     ("Debt_Tenor", "Debt tenor (annuity from the first full operating year)", "years", 15, "years",
      "Bora model Inputs G222"),
+    ("Debt_Fee", "Debt upfront fee (on the debt size, at the first draw)", "%", 0.0175, "pct",
+     "Bora model Inputs E85 / HTM E85"),
+    ("IDC_Draw_Share", "Share of the year's draw bearing interest in that year (mid-year draws)", "%", 0.5, "pct",
+     "Bora model HTM (IDC on half the year's draw)"),
 ]
+SIGNING = 135                                               # Inputs row 17, all three projects (user, 29-Oct-2026)
 
-# Timeline rows after "Unlevered pre-tax cash flow": key, label, unit, template, formula, H column.
-# {x} this column, {w} the column to the left (I for J: empty, so the opening balance is 0), {a} the all-in cost cell.
+# Hold-case rows after "Unlevered pre-tax cash flow" (§30.4–30.6, as the Bora model HTM sheet): key, label, unit,
+# template, formula, H column. {x} this column, {w} the column to the left (I for J: empty, so openings are 0), {c} the
+# project's value column (E / F / G, as the user's "Value" cells); kind "value" = one cell in {c}, no timeline.
 TIMELINE = [
-    ("dep", "Tax depreciation (straight line on the all-in cost from the COD year)", "EUR k", "money",
-     "=-{a}/Tax_Dep_Life*({x}{t}>=0)*({x}{t}<Tax_Dep_Life)", "sum"),
-    ("cit", "CIT, unlevered (no loss carry-forward)", "EUR k", "money",
-     "=-MAX(0,{x}{eb}+{x}{dep})*CIT_Rate*({x}{op}>0)", "sum"),
+    ("dsh", "Tax depreciation share of the year (Tax_Dep_Life years from COD)", "%", "share",
+     "=MAX(0,MIN({x}{mo},Tax_Dep_Life*Months_In_Year)-MAX({x}{mo}-Months_In_Year,0))/Months_In_Year", "sum"),
+    ("base", "Depreciable base, unlevered (construction capex, connection fees, municipal)", "EUR k", "value",
+     "={c}{capx}+{c}{conn}+{c}{muni}", None),
+    ("dep", "Tax depreciation, unlevered", "EUR k", "money", "=-${c}{base}/Tax_Dep_Life*{x}{dsh}", "sum"),
+    ("cit", "CIT, unlevered", "EUR k", "money", "=-MAX(0,{x}{eb}+{x}{dep})*CIT_Rate", "sum"),
     ("post", "Unlevered post-tax cash flow", "EUR k", "bold", "={x}{pre}+{x}{cit}", "sum"),
-    ("draw", "Debt drawn at COD (gearing × all-in cost; no interest during construction)", "EUR k", "money",
-     "={a}*Gearing*{x}{cod}", "sum"),
-    ("ds", "Debt service, annuity (interest + principal)", "EUR k", "money",
-     "=PMT(Debt_Rate,Debt_Tenor,{a}*Gearing)*({x}{t}>=1)*({x}{t}<=Debt_Tenor)", "sum"),
-    ("int", "Interest (on the opening balance)", "EUR k", "money", "=-{w}{bal}*Debt_Rate*({x}{t}>=1)", "sum"),
-    ("prin", "Principal repaid (annuity − interest)", "EUR k", "money", "={x}{ds}-{x}{int}", "sum"),
-    ("bal", "Debt balance, closing", "EUR k", "money", "={w}{bal}+{x}{draw}+{x}{prin}", None),
-    ("citl", "CIT, levered (interest deductible; no loss carry-forward)", "EUR k", "money",
-     "=-MAX(0,{x}{eb}+{x}{dep}+{x}{int})*CIT_Rate*({x}{op}>0)", "sum"),
-    ("eq", "Equity cash flow, post-tax (geared)", "EUR k", "bold", "={x}{pre}+{x}{draw}+{x}{ds}+{x}{citl}", "sum"),
-    ("dscr", "DSCR (EBITDA ÷ debt service)", "x", "ratio", '=IF({x}{ds}<0,-{x}{eb}/{x}{ds},"")', "min"),
+    ("size", "Debt size (gearing × all-in cost to COD)", "EUR k", "value", "={c}{allin}*Gearing", None),
+    ("draw", "Debt drawn (pro rata with construction)", "EUR k", "money", "=${c}{size}*{x}{cs}", "sum"),
+    # IDC on the draws and IDC to date (rows draw:idc, adjacent) = the opening balance before COD; not on the balance
+    # row, which carries the principal of the annuity sized on the IDC total (a circular reference otherwise).
+    ("idc", "Interest during construction, capitalised (on draws and IDC to date, mid-year draws)", "EUR k",
+     "money", "=(SUM($I{draw}:{w}{idc})+{x}{draw}*IDC_Draw_Share)*Debt_Rate*{x}{cs}*${c}{cm}/Months_In_Year", "sum"),
+    ("fee", "Debt upfront fee at the first draw (equity-paid; deductible in the year paid, no loss carry-forward)",
+     "EUR k", "money", "=-${c}{size}*Debt_Fee*({x}{cs}>0)*({w}{cs}=0)", "sum"),
+    ("int", "Interest paid", "EUR k", "money", "=-({w}{bal}+{x}{draw}+{x}{idc})*Debt_Rate*{x}{op}", "sum"),
+    ("ds", "Debt service (interest in the COD year; annuity from the first full operating year)", "EUR k", "money",
+     "=PMT(Debt_Rate,Debt_Tenor,$H{draw}+$H{idc})*({x}{t}>=1)*({x}{t}<=Debt_Tenor)+{x}{int}*({x}{t}=0)", "sum"),
+    ("prin", "Principal repaid", "EUR k", "money", "={x}{ds}-{x}{int}", "sum"),
+    ("bal", "Debt balance, closing", "EUR k", "money", "={w}{bal}+{x}{draw}+{x}{idc}+{x}{prin}", None),
+    ("depi", "Tax depreciation of the capitalised interest", "EUR k", "money", "=-$H{idc}/Tax_Dep_Life*{x}{dsh}",
+     "sum"),
+    ("citl", "CIT, levered (interest deductible)", "EUR k", "money",
+     "=-MAX(0,{x}{eb}+{x}{dep}+{x}{depi}+{x}{int}+{x}{fee})*CIT_Rate", "sum"),
+    ("eq", "Equity cash flow, post-tax (geared)", "EUR k", "bold", "={x}{pre}+{x}{draw}+{x}{fee}+{x}{ds}+{x}{citl}",
+     "sum"),
+    ("dscr", "DSCR (EBITDA + CIT) ÷ debt service", "x", "ratio", '=IF({x}{ds}<0,-({x}{eb}+{x}{citl})/{x}{ds},"")',
+     "min"),
 ]
 SUMMARY = [("s_cit", "CIT over the life, unlevered", "EUR k", "money"),
            ("s_irr", "Project IRR, post-tax", "%", "irr"),
-           ("s_debt", "Debt drawn at COD (gearing × all-in cost)", "EUR k", "money"),
+           ("s_debt", "Debt at COD (draws + capitalised interest)", "EUR k", "money"),
            ("s_eirr", "Equity IRR, post-tax (geared)", "%", "irr"),
            ("s_dscr", "Minimum DSCR", "x", "ratio")]
 # §28: FEP shareholder loans to the JV (RtB cases), CIT on the interest as capitalised at 31-Dec.
@@ -100,8 +119,6 @@ LOAN_CIT = "CIT on the interest of FEP's shareholder loans (JV only; paid yearly
 PER_PROJECT = [("post", "Net cash flow, post-tax"), ("eq", "Equity cash flow, post-tax (geared)")]
 # §29 (audit fixes).
 UNUSED_NAMES = ["Opex_BoP", "Opex_Lease", "Opex_Ins", "Opex_Mgmt", "Opex_PropTax"]
-DEV_REPAID = "Less development devex repaid to FEP (loan principal, JV only)"
-DEV_RECEIPT = "Development devex repaid to FEP (loan principal, JV only)"
 ERR_CHECK = "No errors in the summary block"
 JV_LABEL = "JV with a developer (1 = yes; shareholder-loan claims apply)"
 SPEND = "Spending (RtB purchase, capex, fees, securities), net"
@@ -144,11 +161,16 @@ def edit_inputs(doc):
     inp.text(f"C{r_cit}", CIT_LABEL)
     inp.text(f"H{r_cit}", "SPEC §27 (exits exempt by the flag below)")
     inp.text(f"H{r_ex}", "user, 27-Oct-2026 (share deal)")                       # §29.9: stale notes
+    r_sign, r_disc = inp.find("Signing fee and DD"), tmpl["pct"]                  # §30.2, §30.3
+    assert [inp.cell(f"{c}{r_sign}").getValue() for c in P] == [SIGNING] * 3       # set before the base recalc
+    inp.text(f"H{r_sign}", "user, 29-Oct-2026")
+    assert inp.cell(f"C{r_disc}").getString() == "Discount rate (buyer's pre-tax return at COD)"
+    inp.text(f"C{r_disc}", "Discount rate (buyer's unlevered post-tax return at COD)")
     r_land = inp.find("Land purchase and easements")
     inp.insert(r_ex + 1, 1 + len(NEW_INPUTS))
     m.add(r_ex + 1, 1 + len(NEW_INPUTS))
     land = [r for r in range(m(r_land), 300) if inp.cell(f"G{r}").getString() == "Land"]   # devex items, class Land
-    assert land == [85, 86, 116], land
+    assert land == [m(r) for r in (80, 81, 111)], land          # the user's rows 80, 81, 111
     inp.text(f"H{m(r_land)}", LAND_NOTE.format(", ".join(map(str, land))))
     tmpl = {k: m(v) for k, v in tmpl.items()}
     rows = m.block(r_ex + 1)
@@ -164,7 +186,16 @@ def edit_inputs(doc):
         inp.text(f"H{r}", note)
         add_name(doc, name, idx, col("E"), r)
         out[name] = r
-    return m, out
+    return m, out, [[r_sign, "H"], [r_disc, "C"]]
+
+
+def set_signing(doc):
+    """§30.2: the user's one input change (signing fee and DD 135 k EUR per project), made before the base recalc so
+    that the before / after comparison shows only the model changes."""
+    inp = Sheet(doc, "Inputs")
+    r = inp.find("Signing fee and DD")
+    for c in P:
+        inp.number(f"{c}{r}", SIGNING)
 
 
 def edit_dashboard(doc):
@@ -174,7 +205,8 @@ def edit_dashboard(doc):
     a = {"allin": f("All-in cost to COD for a buyer"), "hold": f("Hold to maturity"), "year": d.find("Year", 300),
          "ye": d.find("Year end"), "irr": f("Project IRR, pre-tax"), "moic": f("MOIC, pre-tax", 120),
          "money": f("Construction capex (straight-line"), "chk1": f("Checks (0 = OK)"), "master": d.find("Master check"),
-         "s_top": d.find("Returns RTB COD HTM")}
+         "s_top": d.find("Returns RTB COD HTM"), "capx": d.find("Construction capex"),
+         "conn": f("Connection fees (TSO security"), "muni": d.find("Municipal one-off"), "sale_cod": f("Sale price at COD")}
     a["npv"] = f("NPV at the discount rate", a["hold"])
     a["cod_irr"] = f("IRR, pre-tax", f("COD exit (as the RtB buyer"))
     a["chk_last"] = a["master"] - 1
@@ -186,9 +218,12 @@ def edit_dashboard(doc):
              "cod": d.find("COD year flag", h), "eb": d.find("EBITDA", h), "pre": d.find("Unlevered pre-tax cash flow", h)}
         b["net"] = d.find("Net cash flow", d.find(nm, s_head))
         b["dead"] = f("RtB price: 0", h)
+        b.update(mo=f("Months operated by year end", h), cs=f("Construction share of the year", h),
+                 cm=f("Construction months by year end", h), df=f("Discount factor to COD", h),
+                 val=f("EBITDA valued at COD", h), inv=f("Investment cash flow", h))
         blocks.append(b)
     expect = {"allin": 99, "hold": 134, "irr": 139, "npv": 140, "year": 328, "ye": 329, "master": 442, "cod_irr": 133,
-              "s_top": 108}
+              "s_top": 108, "capx": 91, "conn": 92, "muni": 96, "sale_cod": 130}
     assert all(a[k] == v for k, v in expect.items()), {k: a[k] for k in expect}
     assert [(b["t"], b["op"], b["cod"], b["eb"], b["pre"], b["net"]) for b in blocks] == [
         (332 + k, 336 + k, 337 + k, 356 + k, 357 + k, 153 + n) for k, n in ((0, 0), (32, 8), (64, 16))], blocks
@@ -202,12 +237,12 @@ def edit_dashboard(doc):
     U = user29(d, a, blocks, q)                                  # §29 edits on the user's cells, user's numbering
 
     # Inserts (and §29 deletes, n = -1), bottom-up (positions in the user's numbering). §27: hold rows; §28: loan
-    # rows, CIT rows, summary; §29: devex principal rows in both waterfalls and receipts stacks, dead rows deleted.
+    # rows, CIT rows, summary; §29: dead rows deleted; §30: the hold rows are the Bora-model set.
     ops = [(a["master"], 3)] + [(b["codx"] + 1, 1 + 2 * len(LOAN_ROWS)) for b in reversed(blocks)] + \
           [(b["pre"] + 1, len(TIMELINE)) for b in reversed(blocks)] + \
           [(q[k]["rec"] + 1, CIT_YEARS + 4) for k in "BA"] + [(q[k]["post"], 1) for k in "BA"] + \
           [(b["net"] + 1, len(PER_PROJECT)) for b in reversed(blocks)] + [(a["npv"] + 1, len(SUMMARY))] + \
-          [(q[k]["s_irr"] + 1, 2) for k in "BA"] + [(q[k][r], 1) for k in "BA" for r in ("wf_c12", "rs_c12")] + \
+          [(q[k]["s_irr"] + 1, 2) for k in "BA"] + \
           [(b.pop("dead"), -1) for b in blocks]
     ops.sort(key=lambda x: -x[0])
     assert len({p for p, _ in ops}) == len(ops), ops
@@ -221,8 +256,9 @@ def edit_dashboard(doc):
     R = {k: m(v) for k, v in a.items()}
     B = [{k: m(v) for k, v in b.items()} for b in blocks]
     tmpl = {"money": R["money"], "bold": B[0]["pre"], "ratio": R["money"], "irr": R["irr"], "moic": R["moic"],
-            "npv": R["npv"]}
+            "npv": R["npv"], "value": R["money"]}
     d.text(f"C{R['hold']}", HOLD_LABEL)
+    d.text(f"C{R['sale_cod']}", "Sale price at COD (PV of unlevered post-tax cash flow)")
 
     # §29.2: the user's FILTER array IRRs (COD exit, hold pre-tax) → plain XIRR on the whole row (no array).
     for r, key in ((R["cod_irr"], "codx"), (R["irr"], "pre")):
@@ -234,14 +270,18 @@ def edit_dashboard(doc):
     for c, b, blk in zip(P, B, blocks):
         new = m.block(blk["pre"] + 1)
         b.update({key: r for (key, *_), r in zip(TIMELINE, new)})
+        refs = b | {"c": c} | {k: R[k] for k in ("capx", "conn", "muni", "allin")}
         for key, lab, unit, kind, fml, tot in TIMELINE:
             r = b[key]
-            d.copy_format(tmpl[kind], r)
+            d.copy_format(b["op"] if kind == "share" else tmpl[kind], r)
             d.text(f"C{r}", lab)
             d.text(f"D{r}", unit)
-            refs = {k: v for k, v in b.items()}
-            set_row(d, r, fml.replace("{a}", f"${c}${R['allin']}").replace("{x}", "{{x}}").replace("{w}", "{{w}}")
-                    .format(**refs))
+            fml = fml.replace("{x}", "{{x}}").replace("{w}", "{{w}}").format(**refs)
+            if kind == "value":                                    # one value in the project's column
+                d.formula(f"{c}{r}", fml)
+                d.cell(f"{c}{r}").NumberFormat = d.cell(f"H{R['money']}").NumberFormat
+            else:
+                set_row(d, r, fml)
             if tot == "sum":
                 d.formula(f"H{r}", f"=SUM(J{r}:{LAST}{r})")
             elif tot == "min":
@@ -249,6 +289,10 @@ def edit_dashboard(doc):
             if kind == "ratio":
                 for ref in (f"H{r}", f"J{r}:{LAST}{r}"):
                     d.cell(ref).NumberFormat = d.cell(f"E{R['moic']}").NumberFormat
+        # §30.3: COD price on the unlevered post-tax cash flow (the CIT row sits above, in the rows just added).
+        assert d.cell(f"J{b['val']}").getFormula() == f"=J{b['eb']}*J{b['df']}", d.cell(f"J{b['val']}").getFormula()
+        d.text(f"C{b['val']}", "Unlevered post-tax cash flow valued at COD (total = COD price)")
+        set_row(d, b["val"], f"=({{x}}{b['eb']}+{{x}}{b['cit']})*{{x}}{b['df']}")
 
     # Hold summary rows after the NPV row; IRRs as plain XIRR on the whole row.
     for (key, lab, unit, kind), r in zip(SUMMARY, m.block(a["npv"] + 1)):
@@ -258,8 +302,10 @@ def edit_dashboard(doc):
         for c, b in zip(P, B):
             if kind == "irr":
                 d.formula(f"{c}{r}", xirr_row(b["post"] if key == "s_irr" else b["eq"], R["ye"]))
+            elif key == "s_debt":
+                d.formula(f"{c}{r}", f"=$H${b['draw']}+$H${b['idc']}")
             else:
-                d.formula(f"{c}{r}", "=$H${}".format(b[{"s_cit": "cit", "s_debt": "draw", "s_dscr": "dscr"}[key]]))
+                d.formula(f"{c}{r}", "=$H${}".format(b[{"s_cit": "cit", "s_dscr": "dscr"}[key]]))
         if key in ("s_cit", "s_debt"):
             d.formula(f"H{r}", f"=SUM(E{r}:G{r})")
         R[key] = r
@@ -345,19 +391,21 @@ def user29(d, a, blocks, q):
     for c in P:
         assert d.cell(f"{c}{r}").getFormula().startswith("=N(MAX(YEAR($Inputs."), d.cell(f"{c}{r}").getFormula()
         d.formula(f"{c}{r}", f"=(YEAR(MAX(Inputs!{c}$21:{c}$24,$J$55:$J$56))>=YEAR({c}{q['B']['end']}))*1")
-    # The user's cells that change on purpose (user's numbering), by reason.
-    fix1 = []
-    for k, x in q.items():
-        fix1 += list(range(x["wf_c12"], x["wf_dev"] + 1)) + list(range(x["ps"] + 1, x["post"] + 1)) + \
-                [x["rec"], x["pre_moic"], x["pre_irr"]] + list(range(x["s_head"] + 1, x["s_irr"] + 1))
-    fix1.append(f("Memo: pre-tax profit vs Case B"))
+    # §30.2: "Exit fees" out of the two profit-stack labels.
+    r_sign = [d.find("Less: signing fee and DD, Exit fees", q[k]["ps"]) for k in "BA"]
+    for r in r_sign:
+        d.text(f"C{r}", "Less: signing fee and DD")
+    # The user's cells that change on purpose (user's numbering), by reason; the base is recalculated with the user's
+    # signing fee input (135) first, so its effects are not listed here.
+    cod = [a["sale_cod"], a["sale_cod"] + 1, a["cod_irr"] - 1, f("Buyer profit, post-tax")]
     cells = lambda rows, cols: [[r, c] for r in rows for c in cols]  # noqa: E731
     return {"Dashboard": {
         "relabel": cells([r_jv, r_case, r_bess, r_sunk, r_sunk + 1, a["hold"], *r_spend[1:], q["A"]["tie"],
-                          q["B"]["tie"], q["A"]["s_profit"], q["B"]["s_profit"], q["A"]["rs_rec"], q["B"]["rs_rec"]],
-                         "C") + cells([r_tot, r_exp], "J"),
+                          q["B"]["tie"], q["A"]["s_profit"], q["B"]["s_profit"], *r_sign, a["sale_cod"],
+                          *(b["val"] for b in blocks)], "C") + cells([r_tot, r_exp], "J"),
         "exposure rows: land returned at cost": cells([r_sunk, r_sunk + 1], "EFGH"),
-        "devex principal repaid (Bora and the total only)": cells(sorted(set(fix1)), "EH"),
+        "COD price on the unlevered post-tax cash flow": cells(cod, "EFGH") +
+        cells([r for b in blocks for r in (b["val"], b["codx"])], ["H"] + TL),
         "IRR now calculates (FILTER array → XIRR)": cells([a["cod_irr"], a["irr"]], "EFG"),
         "portfolio IRR (Total column)": cells([q[k][r] for k in "AB" for r in ("s_irr", "pre_irr")], "H"),
         "post-tax profit incl. loan CIT (§28)": cells([q[k][r] for k in "AB" for r in ("post", "s_profit")], "EH"),
@@ -368,35 +416,9 @@ def user29(d, a, blocks, q):
 
 
 def edit29(d, m, R, q, Q):
-    """§29 rows after the inserts: devex principal in both waterfalls and receipts stacks, the tie checks, portfolio
-    IRRs, the summary error check."""
+    """§29 rows after the inserts: the tie checks, portfolio IRRs, the summary error check (the devex-principal rows
+    of §29.1 are reverted by §30.1)."""
     for k, x in Q.items():
-        dv, rs = m.block(q[k]["wf_c12"])[0], m.block(q[k]["rs_c12"])[0]
-        tot, dist = x["wf_tot"], x["wf_dist"]
-        d.copy_format(dv - 1, dv, last="H")
-        d.text(f"C{dv}", DEV_REPAID)
-        d.text(f"D{dv}", "EUR k")
-        d.copy_format(rs + 1, rs, last="H")
-        d.text(f"C{rs}", DEV_RECEIPT)
-        d.text(f"D{rs}", "EUR k")
-        for c in P:
-            d.formula(f"{c}{dv}", f"=-MIN(SUM({c}{tot}:{c}{dv - 1}),{c}{x['devex']}*{c}$21)")
-            cell = d.cell(f"{c}{dv + 1}")                       # claims at 12 %: its range ended just above the insert
-            old, s_old = cell.getFormula(), f"SUM({c}{tot}:{c}{dv - 1})"
-            assert s_old in old, old
-            cell.setFormula(old.replace(s_old, f"SUM({c}{tot}:{c}{dv})"))
-            for r in range(dv + 1, dist + 1):                   # the rest of the chain now sums through the new row
-                assert f"SUM({c}{tot}:{c}{r - 1})" in d.cell(f"{c}{r}").getFormula(), (r, d.cell(f"{c}{r}").getFormula())
-            d.formula(f"{c}{rs}", f"=-{c}{dv}")
-            cell = d.cell(f"{c}{x['rs_rec']}")                  # receipts: the insert sat at the top of its range
-            assert cell.getFormula() == f"=SUM({c}{rs + 1}:{c}{x['rs_rec'] - 1})", cell.getFormula()
-            d.formula(f"{c}{x['rs_rec']}", f"=SUM({c}{rs}:{c}{x['rs_rec'] - 1})")
-        for r in (dv, rs):
-            d.formula(f"H{r}", f"=SUM(E{r}:G{r})")
-        lab = d.cell(f"C{x['rs_rec']}").getString()
-        assert "(claims + return" in lab, lab
-        d.text(f"C{x['rs_rec']}", lab.replace("(claims + return", "(devex repaid + claims + return"))
-        x.update(dv=dv, rs_dv=rs)
         # 3b. Tie check replaces the tautological "waterfall closes" check.
         r = x["tie"]
         d.text(f"C{r}", f"Case {k} dated cash flows tie to the post-tax profit")
@@ -418,25 +440,19 @@ def edit29(d, m, R, q, Q):
 
 
 def anchors29(d, q):
-    """§29 anchors in the user's numbering, per RtB case: waterfall, receipts stack, pre-tax profit, tie check."""
+    """§29 anchors in the user's numbering, per RtB case: premium, profit stack, receipts, pre-tax returns, tie check."""
     f = lambda t, s=1: d.find(t, start=s, exact=False)  # noqa: E731
-    eur = f("Guarantees, securities and connection fees, DEVEX (EUR k)")
     heads = {"B": (f("RtB exit, Case B: waterfall at the sale"), f("FEP profit, Case B (at the sale)"),
-                   f("Case B waterfall closes"), f("DEVEX – development", eur)),
-             "A": (f("Waterfall at the sale, Case A"), f("FEP profit, Case A (at sale A)"), f("Case A waterfall closes"),
-                   f("Case A devex – development (× scale)"))}
-    for k, (wf, ps, tie, dev) in heads.items():
+                   f("Case B waterfall closes")),
+             "A": (f("Waterfall at the sale, Case A"), f("FEP profit, Case A (at sale A)"), f("Case A waterfall closes"))}
+    for k, (wf, ps, tie) in heads.items():
         x = q[k]
-        x.update(wf_prem=d.find("RtB premium", wf), wf_tot=d.find("Total proceeds", wf),
-                 wf_land=d.find("Less land repaid to FEP at cost", wf), wf_dist=d.find("Distributable proceeds", wf),
-                 wf_dev=f("Developer share of distributable", wf), ps=ps, rs_c12=f("FEP claims at 12 %", ps),
-                 rs_rec=f("FEP receipts at", ps), pre=d.find("FEP profit, pre-tax", ps),
-                 pre_moic=f("MOIC, pre-tax (dated", ps), pre_irr=f("IRR, pre-tax (dated", ps), tie=tie, devex=dev)
-        x["wf_c12"] = x["wf_land"] + 1
-        assert d.cell(f"C{x['wf_c12']}").getString().startswith("Less FEP claims at 12 %"), k
-        assert x["rs_rec"] == x["rs_c12"] + 3 and x["pre"] == x["post"] - 2, (k, x)
-    got = {k: tuple(q[k][i] for i in ("wf_land", "rs_c12", "rs_rec", "pre", "tie", "devex")) for k in q}
-    assert got == {"B": (287, 303, 306, 310, 432, 67), "A": (242, 257, 260, 264, 441, 208)}, got
+        x.update(wf_prem=d.find("RtB premium", wf), ps=ps, rs_rec=f("FEP receipts at", ps),
+                 pre=d.find("FEP profit, pre-tax", ps), pre_moic=f("MOIC, pre-tax (dated", ps),
+                 pre_irr=f("IRR, pre-tax (dated", ps), tie=tie)
+        assert x["pre"] == x["post"] - 2, (k, x)
+    got = {k: tuple(q[k][i] for i in ("rs_rec", "pre", "tie")) for k in q}
+    assert got == {"B": (306, 310, 432), "A": (260, 264, 441)}, got
 
 
 def user_groups(path):
@@ -633,8 +649,10 @@ def keep_arrays(doc, cells, maps):
 def build():
     unused_names(SRC)
     with Office(SRC) as lo:                                   # Office recalculates on load
+        set_signing(lo.doc)                                   # the user's input change, in the base too
+        lo.calculate()
         lo.save(BASE_RC)
-        mi, ri = edit_inputs(lo.doc)
+        mi, ri, inp_cells = edit_inputs(lo.doc)
         md, R, B, Q, U = edit_dashboard(lo.doc)
         irr, rtb_user = set(U.pop("irr_rows")), U.pop("rtb_user")  # the user's FILTER IRRs, now plain XIRR
         for n in UNUSED_NAMES:                                # before keep_arrays: a name change drops the arrays
@@ -649,6 +667,7 @@ def build():
     info = {"Inputs": {"inserts": mi.ins, "rows": ri},
             "Dashboard": {"inserts": md.ins, "deletes": md.dels, "rows": R, "blocks": dict(zip(NAMES, B)), "rtb": Q},
             "expected": U | {"irr_rows": sorted(irr)}, "rtb_user": rtb_user}
+    info["expected"]["Inputs"]["relabel"] += inp_cells
     MAPS.write_text(json.dumps(info, indent=1, ensure_ascii=False))
     print(f"wrote {OUT}")
 
@@ -706,58 +725,80 @@ def cells_check(b_wb, a_wb, skip):
 
 
 def recompute(wb, info):
-    """Hold case, independently: from the recalculated EBITDA, pre-tax CF, years and all-in cost (§27, signs §29)."""
-    dash, inp = wb["Dashboard"], wb["Inputs"]
+    """Hold case and COD exit, independently (§30.3–30.6): from the user's recalculated rows (years from COD, months,
+    construction and operating shares, EBITDA, pre-tax and investment cash flow) and the capex cells, the tax and debt
+    schedule as the Bora model, the COD price (PV of EBITDA + unlevered CIT) and the COD-exit MOIC / IRR."""
+    dash, inp, nm_ = wb["Dashboard"], wb["Inputs"], names(wb)
     iv = lambda name: inp[f"E{info['Inputs']['rows'][name]}"].value  # noqa: E731
-    cit_r = inp[f"E{next(r for r in range(1, 200) if inp.cell(r, 3).value == CIT_LABEL)}"].value
-    life, gear, rate, ten = iv("Tax_Dep_Life"), iv("Gearing"), iv("Debt_Rate"), iv("Debt_Tenor")
+    life, gear, rate, ten, fee = (iv(k) for k in ("Tax_Dep_Life", "Gearing", "Debt_Rate", "Debt_Tenor", "Debt_Fee"))
+    cit_r, dr, mo12 = nm_["CIT_Rate"], nm_["Discount_Rate"], nm_["Months_In_Year"]
     R = info["Dashboard"]["rows"]
     cols = range(col("J") + 1, col(LAST) + 2)
-    ye = [dash.cell(R["ye"], c).value.date() for c in cols]
+    ye = [dash.cell(R["ye"], c).value for c in cols]
     res, ok = {}, True
     for c, nm in zip(P, NAMES):
         b = info["Dashboard"]["blocks"][nm]
         row = lambda r: [dash.cell(r, k).value for k in cols]  # noqa: E731
-        tn, op, eb, pre, codx = row(b["t"]), row(b["op"]), row(b["eb"]), row(b["pre"]), row(b["codx"])
-        allin = dash[f"{c}{R['allin']}"].value
-        dep = [allin / life * (0 <= n < life) for n in tn]
-        cit = [-max(0, e - x) * cit_r * (o > 0) for e, x, o in zip(eb, dep, op)]
+        tn, op, eb, pre, mo, cs, inv = (row(b[k]) for k in ("t", "op", "eb", "pre", "mo", "cs", "inv"))
+        cm = dash[f"{c}{b['cm']}"].value
+        cod = inp[f"{c}{next(r for r in range(1, 60) if inp.cell(r, 3).value == 'COD')}"].value
+        base = sum(dash[f"{c}{R[k]}"].value for k in ("capx", "conn", "muni"))
+        dsh = [max(0, min(m_, life * mo12) - max(m_ - mo12, 0)) / mo12 for m_ in mo]
+        dep = [-base / life * x for x in dsh]
+        cit = [-max(0, e + x) * cit_r for e, x in zip(eb, dep)]
         post = [p + t for p, t in zip(pre, cit)]
-        debt = gear * allin
-        ann = debt * rate / (1 - (1 + rate) ** -ten)               # paid: shown negative in the model
-        bal, citl, eq, dscr = 0.0, [], [], []
-        for n, e, x, o, p in zip(tn, eb, dep, op, pre):
-            i = bal * rate if n >= 1 else 0.0
-            a_ = ann if 1 <= n <= ten else 0.0
-            drawn = debt if n == 0 else 0.0
-            bal = bal + drawn - (a_ - i)
-            ct = -max(0, e - x - i) * cit_r * (o > 0)
+        size = dash[f"{c}{R['allin']}"].value * gear                     # amendment: on the all-in cost
+        bal, prev_cs, draws, idcs, fees, ints, dss, eq, dscr, citl = 0.0, 0.0, [], [], [], [], [], [], [], []
+        for n, s_, o in zip(tn, cs, op):
+            dw = size * s_
+            idc = (bal + dw * iv("IDC_Draw_Share")) * rate * s_ * cm / mo12
+            fees.append(-size * fee * (s_ > 0) * (prev_cs == 0))
+            i = -(bal + dw + idc) * rate * o
+            if n >= 1 and n <= ten:
+                p0 = sum(draws) + dw + sum(idcs) + idc               # all draws and IDC fall before COD
+                ds = -p0 * rate / (1 - (1 + rate) ** -ten)
+            else:
+                ds = i if n == 0 else 0.0
+            bal += dw + idc + (ds - i)
+            draws.append(dw)
+            idcs.append(idc)
+            ints.append(i)
+            dss.append(ds)
+            prev_cs = s_
+        depi = [-sum(idcs) / life * x for x in dsh]
+        for e, x, y, i, p, dw, fe, ds in zip(eb, dep, depi, ints, pre, draws, fees, dss):
+            ct = -max(0, e + x + y + i + fe) * cit_r                       # the fee deducted in the year paid
             citl.append(ct)
-            eq.append(p + drawn - a_ + ct)
-            if a_ > 0:
-                dscr.append(e / a_)
-            if n == ten:
-                bal_end = bal
-        nz = lambda v: [(t, x) for t, x in zip(ye, v) if x != 0]  # noqa: E731
-        py = {"all-in cost": allin, "EBITDA total": sum(eb), "CIT total": sum(cit), "project IRR pre-tax": xirr(nz(pre)),
-              "project IRR post-tax": xirr(nz(post)), "debt at COD": debt, "equity IRR": xirr(nz(eq)),
-              "min DSCR": min(dscr), "CIT levered total": sum(citl), "debt service total": -ann * ten,
-              "balance at tenor end": bal_end, "COD exit IRR": xirr(nz(codx))}
-        # Model values: the summary cells (plain XIRR on the whole row now) and the timeline totals.
-        model = {"all-in cost": dash[f"{c}{R['hold'] + 1}"].value, "EBITDA total": dash[f"{c}{R['hold'] + 4}"].value,
-                 "CIT total": dash[f"{c}{R['s_cit']}"].value, "project IRR pre-tax": dash[f"{c}{R['irr']}"].value,
-                 "project IRR post-tax": dash[f"{c}{R['s_irr']}"].value, "debt at COD": dash[f"{c}{R['s_debt']}"].value,
-                 "equity IRR": dash[f"{c}{R['s_eirr']}"].value, "min DSCR": dash[f"{c}{R['s_dscr']}"].value,
-                 "CIT levered total": dash[f"H{b['citl']}"].value, "debt service total": dash[f"H{b['ds']}"].value,
-                 "balance at tenor end": next(x for n, x in zip(tn, row(b["bal"])) if n == ten),
-                 "COD exit IRR": dash[f"{c}{R['cod_irr']}"].value}
+            eq.append(p + dw + fe + ds + ct)
+            if ds < 0:
+                dscr.append(-(e + ct) / ds)
+        df = [(1 + dr) ** ((ser(cod) - ser(t)) / 365) for t in ye]
+        price = sum((e + t) * f_ for e, t, f_ in zip(eb, cit, df))
+        codcf = [v * (n <= 0) + (n == 0) * (price + dash[f"{c}62"].value + dash[f"{c}63"].value)
+                 for v, n in zip(inv, tn)]
+        nz = lambda v: [(t.date(), x) for t, x in zip(ye, v) if x != 0]  # noqa: E731
+        moic = sum(v for v in codcf if v > 0) / -sum(v for v in codcf if v < 0)
+        py = {"depreciable base": base, "debt size": size, "debt at COD": sum(draws) + sum(idcs), "IDC": sum(idcs), "fee": sum(fees),
+              "CIT unlevered total": sum(cit), "project IRR pre-tax": xirr(nz(pre)),
+              "project IRR post-tax": xirr(nz(post)), "equity IRR": xirr(nz(eq)), "min DSCR": min(dscr),
+              "CIT levered total": sum(citl), "balance at the end": bal, "COD price": price, "COD MOIC": moic,
+              "COD IRR": xirr(nz(codcf))}
+        model = {"depreciable base": dash[f"{c}{b['base']}"].value, "debt size": dash[f"{c}{b['size']}"].value,
+                 "debt at COD": dash[f"{c}{R['s_debt']}"].value,
+                 "IDC": dash[f"H{b['idc']}"].value, "fee": dash[f"H{b['fee']}"].value,
+                 "CIT unlevered total": dash[f"{c}{R['s_cit']}"].value, "project IRR pre-tax": dash[f"{c}{R['irr']}"].value,
+                 "project IRR post-tax": dash[f"{c}{R['s_irr']}"].value, "equity IRR": dash[f"{c}{R['s_eirr']}"].value,
+                 "min DSCR": dash[f"{c}{R['s_dscr']}"].value, "CIT levered total": dash[f"H{b['citl']}"].value,
+                 "balance at the end": dash[f"{LAST}{b['bal']}"].value, "COD price": dash[f"{c}{R['sale_cod']}"].value,
+                 "COD MOIC": dash[f"{c}{R['cod_irr'] - 1}"].value, "COD IRR": dash[f"{c}{R['cod_irr']}"].value}
         for k in py:
-            tol = 1e-6 if ("IRR" in k or "DSCR" in k) else 0.01
+            tol = 1e-6 if ("IRR" in k or "DSCR" in k or "MOIC" in k) else 0.01
             ok &= abs(py[k] - model[k]) <= tol
         diff = max(abs(py[k] - model[k]) for k in py)
         res[nm] = model
         print(f"   {nm:<11} " + " | ".join(f"{k} {model[k]:,.4f}" for k in model) + f"   (max python diff {diff:.1e})")
-    print("independent recomputation (hold case, COD IRR):", "PASS" if ok else "FAIL")
+    print("independent recomputation (hold case: tax and levered schedule; COD price, MOIC, IRR):",
+          "PASS" if ok else "FAIL")
     return ok, res
 
 
@@ -805,8 +846,7 @@ def yearfrac30(a, b):
 
 
 def recompute29(wb, base, info, yearly):
-    """Both RtB cases from the inputs: claims (accrual factors), DSA, waterfall with the devex principal (§29.1),
-    FEP receipts, profit pre / post-tax, dated MOIC and IRR (pre / post-tax) and the portfolio IRR (Total column)."""
+    """Both RtB cases from the inputs: claims (accrual factors), DSA, waterfall (no devex principal: §30.1), FEP receipts, profit pre / post-tax, dated MOIC and IRR (pre / post-tax) and the portfolio IRR (Total column)."""
     dash, inp, nm_ = wb["Dashboard"], wb["Inputs"], names(wb)
     Q, d = info["Dashboard"]["rtb"], lambda c, r: dash[f"{c}{r}"].value
     lab = lambda t: next(r for r in range(1, 200) if str(inp.cell(r, 3).value or "").startswith(t))  # noqa: E731
@@ -841,11 +881,11 @@ def recompute29(wb, base, info, yearly):
             land, devex = dev["Land"][0], dev["Devex"][0]
             av = prem + reimb + land - min(prem + reimb + land, nm_["Sale_Costs"])
             paid = {}
-            for key, due in (("sec", reimb), ("land", land), ("dv", devex * jv), ("c12", c12), ("ret", cdev),
+            for key, due in (("sec", reimb), ("land", land), ("c12", c12), ("ret", cdev),
                              ("dsa", dsa)):
                 paid[key] = min(av, due)
                 av -= paid[key]
-            receipts = paid["dv"] + paid["c12"] + paid["ret"] + av * share
+            receipts = paid["c12"] + paid["ret"] + av * share
             pre = receipts - e["sign"] - e["fee"] - devex
             post = pre - max(0, pre) * cit * (1 - nm_["Share_Exempt"]) - (c12 + cdev) * cit * jv
             flows = [(dte["sign"], -e["sign"])] + [(dte[t], -e[a]) for a, t in cash] + \
@@ -855,19 +895,19 @@ def recompute29(wb, base, info, yearly):
             post_f = flows + [(datetime(2026 + i, 12, 31).date(), v) for i, v in enumerate(yl["yearly"])] + \
                 [(dt(sale).date(), yl["rest"]), (dt(sale).date(), post - pre + (c12 + cdev) * cit * jv)]
             moic = lambda fl: sum(v for _, v in fl if v > 0) / -sum(v for _, v in fl if v < 0)  # noqa: E731
-            py = {"devex repaid": paid["dv"], "receipts": receipts, "profit pre-tax": pre, "profit post-tax": post,
+            py = {"receipts": receipts, "profit pre-tax": pre, "profit post-tax": post,
                   "MOIC pre-tax": moic(flows), "IRR pre-tax": xirr(sorted(flows)), "MOIC post-tax": moic(post_f),
                   "IRR post-tax": xirr(sorted(post_f))}
-            model = {"devex repaid": -d(c, x["dv"]), "receipts": d(c, x["rs_rec"]), "profit pre-tax": d(c, x["pre"]),
+            model = {"receipts": d(c, x["rs_rec"]), "profit pre-tax": d(c, x["pre"]),
                      "profit post-tax": d(c, x["post"]), "MOIC pre-tax": d(c, x["pre_moic"]),
                      "IRR pre-tax": d(c, x["pre_irr"]), "MOIC post-tax": d(c, x["moic"]),
                      "IRR post-tax": d(c, x["irr"])}
             diff = max(abs(py[t] - model[t]) for t in py)
             ok &= diff < 1e-6
-            # Expected effect of the devex principal on the pre-tax profit: + (1 − FEP share) × devex × JV.
+            # §30.1 revert: the pre-tax profit equals the base's (recalculated with signing / DD 135).
             u = info["rtb_user"][k]["pre"]
             delta = model["profit pre-tax"] - base["Dashboard"][f"{c}{u}"].value
-            ok &= abs(delta - (1 - share) * devex * jv) < 1e-6
+            ok &= abs(delta) < 1e-6
             port.setdefault(k, ([], []))
             port[k][0].extend(flows)
             port[k][1].extend(post_f)
@@ -879,7 +919,7 @@ def recompute29(wb, base, info, yearly):
         py, model = (xirr(sorted(fl)), xirr(sorted(fl_post))), (d("H", x["pre_irr"]), d("H", x["irr"]))
         ok &= max(abs(a - b) for a, b in zip(py, model)) < 1e-6 and model == (d("H", x["s_irr"]), d("H", x["s_irr_post"]))
         print(f"   portfolio Case {k}: IRR pre-tax {model[0]:.4%}, post-tax {model[1]:.4%} (python {py[0]:.4%}, {py[1]:.4%})")
-    print("independent recomputation (RtB waterfalls incl. the devex principal):", "PASS" if ok else "FAIL")
+    print("independent recomputation (RtB waterfalls):", "PASS" if ok else "FAIL")
     return ok, out
 
 
@@ -1060,9 +1100,9 @@ def verify():
            "Dashboard": {R[k] for k in ("s_cit", "s_irr", "s_debt", "s_eirr", "s_dscr", "check", "master",
                                         "check28", "check_err", "irr", "cod_irr")}
            | {v for b in info["Dashboard"]["blocks"].values() for k, v in b.items()
-              if k in [t[0] for t in TIMELINE] or k.startswith(("s_", "loan"))}
+              if k in [t[0] for t in TIMELINE] + ["val"] or k.startswith(("s_", "loan"))}
            | {v for x in Q.values() for k, v in x.items()
-              if k in ("rest", "exit", "moic", "irr", "loan_cit", "s_moic", "s_irr_post", "dv", "rs_dv", "tie", "pre_irr")}
+              if k in ("rest", "exit", "moic", "irr", "loan_cit", "s_moic", "s_irr_post", "tie", "pre_irr")}
            | {r for x in Q.values() for r in x["cit_years"]}}
     loan_heads = {b["loanB_cash"] - 1 for b in info["Dashboard"]["blocks"].values()}
     new["Dashboard"] |= loan_heads | {r for x in Q.values() for r in range(x["first"] + 1, x["rec"])}
