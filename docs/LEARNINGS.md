@@ -5,6 +5,23 @@ Fable adds an entry whenever a round teaches something new and useful (a user pr
 tool limitation, a trick that worked). Short entries, dated, newest at the top. Project-specific decisions stay in the
 project's SPEC; rules that bind every model go to `CLAUDE.md` or `docs/MODELLING_STANDARDS.md`.
 
+## 2026-10-29
+- **JV waterfall, devex:** only the *return* on FEP's devex funding (MAX(20 % accrued, 1× principal)) is paid before
+  the 70/30 split; the principal is covered by the RtB premium through FEP's share. Do not add a principal row
+  (user, 29-Oct-2026 – reverted an audit "fix").
+- **Hold-case tax and debt mechanics = the Bora model (HTM sheet):** depreciable base = construction capex +
+  connection fees + municipal (+ capitalised IDC), not land or the RtB premium; straight line 20 y from COD pro rata
+  to the operating share; debt sized on the same base, drawn pro rata with construction, IDC capitalised, 1.75 %
+  upfront fee equity-paid, annuity from the first full operating year; DSCR on post-tax CFADS (EBITDA + CIT).
+  The Bora model also has loss carry-forward (50 % cap), DSRA, sweep, commitment fee, Robin Hood tax and a
+  refinancing case – switched off or case-specific, so the lean model leaves them out and says so in the SPEC.
+- **COD price = PV of unlevered post-tax cash flow** at the buyer's unlevered return (asset-pricing convention);
+  never price off a levered equity IRR.
+- **Signing fee + DD = 135 k€ per project** (user, 29-Oct-2026); never label them "exit fees".
+- **Reviewer findings are hypotheses:** a "missing principal" finding was wrong because the deal logic (premium covers
+  it) was not in the dump. Put deal-structure notes in the SPEC where the reviewer reads them, and confirm structural
+  "fixes" with the user before building them.
+
 ## 2026-10-28 (audit round)
 - **Audit pairs pay off:** run `model-auditor` (numbers, lint, scenarios) and `model-reviewer` (business sense, labels,
   structure) in parallel on a finished file; the reviewer found a waterfall omission (loan principal not repaid before
