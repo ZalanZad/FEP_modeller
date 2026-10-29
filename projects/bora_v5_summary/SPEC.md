@@ -811,3 +811,34 @@ Left as the user's decisions, raised as questions: CIT 15 % (statutory 9 %); COD
 securities posted in cash; debt drawn 100 % at COD without construction interest (COD-year equity cash flow positive);
 NTP (30-Jun-2029) before the Case B sale (30-Sep-2029); Case A premium = Case B premium; ÖSZ-4 basis on MVA (GYIK Q20
 reads BESS MW ÷ installed wind); community contribution 0 for Bora vs the 2 €/MWh minimum in the call's footnote.
+
+## 30. Twentieth round (user, 29-Oct-2026): corrections after the audit; hold-case tax and debt aligned with the Bora model
+
+Source for the mechanics: `reference/Bora_model_RTB_COD_HTM_4_291026.xlsm` (HTM sheet). Align the logic, not the numbers;
+keep it lean. Same file `out/HU_Wind_bids_v3.xlsx`, `build_v3.py`.
+1. **Revert §29.1.** The development-devex principal is NOT repaid in the JV waterfall; only its return (MAX(20 %
+   accrued, 1× principal)) is. The principal is covered by the RtB premium through FEP's share (user, 29-Oct-2026).
+2. **Signing fee and DD = 135 k€ per project** (Inputs row 17, all three); "Exit fees" dropped from every label.
+3. **COD price on unlevered post-tax cash flow:** sale price at COD = PV at the buyer's rate of (EBITDA + unlevered
+   CIT) after COD; Inputs rate relabelled "Discount rate (buyer's unlevered post-tax return at COD)". The pre-tax
+   project IRR stays as an output.
+4. **Hold case, tax (as the Bora model):** depreciable base = construction capex + connection fees + municipal
+   (+ capitalised IDC in the levered case); land and the RtB premium are not depreciated; straight line over
+   `Tax_Dep_Life` from COD, **pro rata to the operating share of the year** (helper row "Tax depreciation share of the
+   year", same pattern as the operating-share row); CIT = rate × MAX(0, EBITDA − depreciation [− interest, levered]).
+   No loss carry-forward (no loss years arise after COD; the Bora model's 50 % LCF would change nothing here – state
+   it in the SPEC, not in the model). HIPA stays in opex.
+5. **Hold case, debt (as the Bora model):** debt size = `Gearing` × (construction capex + connection fees + municipal)
+   – not on land or the premium; **drawn pro rata with construction** (construction-share row); **IDC** at `Debt_Rate`
+   on (opening balance + half the year's draw) × the construction fraction of the year, capitalised into the balance
+   and into the depreciable base; **upfront fee** `Debt_Fee` 1.75 % of the debt size at the first draw, equity-paid
+   (not deducted: it falls in a pre-COD year without LCF – conservative, say so in the label); operating interest =
+   balance after draws × rate × operating share of the year; annuity on the balance at COD (draws + IDC) from the
+   first full operating year for `Debt_Tenor` years; principal = debt service − interest; closing balance; check
+   "debt repaid".
+6. **Returns:** DSCR = (EBITDA + levered CIT) ÷ debt service (post-tax CFADS, as the Bora model); equity cash flow =
+   unlevered pre-tax cash flow + draws + fee + debt service + levered CIT; project IRR pre-/post-tax, equity IRR,
+   min DSCR as before. Not modelled (Bora model has them switched off or case-specific): DSRA, cash sweep,
+   commitment fee, Robin Hood tax, refinancing.
+7. Verification as §27.5; Python recomputation of the Bora levered schedule (draws, IDC, annuity, balance, CIT, equity
+   IRR, min DSCR) and of the new COD price.
