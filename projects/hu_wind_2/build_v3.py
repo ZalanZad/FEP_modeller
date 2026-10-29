@@ -39,8 +39,9 @@ from openpyxl.worksheet.formula import ArrayFormula
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parents[1]))
-from build_lev import LAST, TL, add_name, col, letter, xirr  # noqa: E402
-from build_lev2 import Rows, Sheet  # noqa: E402
+from build_lev import add_name, col, letter, xirr  # noqa: E402
+from build_lev2 import Rows  # noqa: E402
+from build_lev2 import Sheet as _Sheet  # noqa: E402
 from fepm.audit.lint import lint, lint_values  # noqa: E402
 from fepm.recalc import Office  # noqa: E402
 
@@ -52,6 +53,9 @@ BASE_RC = HERE / "out" / "HU_Wind_bids_v3_base_recalc.xlsx"
 MAPS = HERE / "out" / "rows_v3.json"
 DUMP = HERE / "out" / "dump_v3.txt"
 P = ["E", "F", "G"]
+USER_LAST, N_EXTRA = "AS", 4                                # §31.2: the user's timeline 2026–2061, + 4 years
+LAST = letter(col(USER_LAST) + N_EXTRA)                     # AW (2065)
+TL = [letter(i) for i in range(col("J"), col(LAST) + 1)]
 NAMES = ["Bora", "Iváncsa", "Dunaújváros"]
 CIT_LABEL = "Corporate income tax (operating profit; exit gains)"
 HOLD_LABEL = "Hold to maturity (as the RtB buyer; EBITDA, CIT, optional debt)"
@@ -123,6 +127,28 @@ ERR_CHECK = "No errors in the summary block"
 JV_LABEL = "JV with a developer (1 = yes; shareholder-loan claims apply)"
 SPEND = "Spending (RtB purchase, capex, fees, securities), net"
 LAND_NOTE = "Land is in the devex (Inputs rows {}) and bought by the RtB buyer at cost"
+
+
+class Sheet(_Sheet):
+    def copy_format(self, src_row, dst_row, last=None):
+        super().copy_format(src_row, dst_row, last or LAST)     # the extended timeline by default
+
+
+def extend_timeline(doc):
+    """§31.2: 4 columns inserted before AS (every $J:$AS range and $AS reference moves to AW), filled with each row's
+    formula and format from AR. The timeline is positional (year = First_Year + column), so J:AS keep 2026–2061 and
+    AT:AW are 2062–2065: the before / after comparison is column for column."""
+    s = doc.Sheets.getByName("Dashboard")
+    s.Columns.insertByIndex(col(USER_LAST), N_EXTRA)
+    n = s.createCursor()
+    n.gotoEndOfUsedArea(False)
+    last_row = n.getRangeAddress().EndRow + 1
+    src = s.getCellRangeByName(f"AR1:AR{last_row}").getRangeAddress()
+    width = s.Columns.getByIndex(col("AR")).Width
+    for i in range(N_EXTRA):
+        j = col(USER_LAST) + i
+        s.copyRange(s.getCellByPosition(j, 0).getCellAddress(), src)
+        s.Columns.getByIndex(j).Width = width
 
 
 class Rows2(Rows):
@@ -242,8 +268,8 @@ def edit_dashboard(doc):
           [(b["pre"] + 1, len(TIMELINE)) for b in reversed(blocks)] + \
           [(q[k]["rec"] + 1, CIT_YEARS + 4) for k in "BA"] + [(q[k]["post"], 1) for k in "BA"] + \
           [(b["net"] + 1, len(PER_PROJECT)) for b in reversed(blocks)] + [(a["npv"] + 1, len(SUMMARY))] + \
-          [(q[k]["s_irr"] + 1, 2) for k in "BA"] + \
-          [(b.pop("dead"), -1) for b in blocks]
+          [(q[k]["s_irr"] + 1, 2) for k in "BA"] + [(q["B"]["end"] + 1, N_FACTOR_NEW)] + \
+          [(b.pop("dead"), -1) for b in blocks] + [(f("Claim lines paid before the accrual end year"), -1)]
     ops.sort(key=lambda x: -x[0])
     assert len({p for p, _ in ops}) == len(ops), ops
     for p, n in ops:
@@ -255,6 +281,7 @@ def edit_dashboard(doc):
             m.delete(p)
     R = {k: m(v) for k, v in a.items()}
     B = [{k: m(v) for k, v in b.items()} for b in blocks]
+    factors31(d, m, q)
     tmpl = {"money": R["money"], "bold": B[0]["pre"], "ratio": R["money"], "irr": R["irr"], "moic": R["moic"],
             "npv": R["npv"], "value": R["money"]}
     d.text(f"C{R['hold']}", HOLD_LABEL)
@@ -338,6 +365,53 @@ def edit_dashboard(doc):
     return m, R, B, Q, U
 
 
+# §31.1: Case B claim accrual factors in the Case A pattern (a payment may fall in the accrual end year).
+FACTOR_LINES = [("bid submission", "Inputs!{c}$21", "Rate_Cash"), ("performance security posting", "Inputs!{c}$22",
+                                                                       "Rate_Cash"),
+                ("TSO security payment", "Inputs!{c}$23", "Rate_Cash"),
+                ("connection agreement (HCSSZ)", "Inputs!{c}$24", "Rate_Cash"),
+                ("land payment (amount-weighted)", "$J$56", "Rate_Devex"),
+                ("development devex payment (amount-weighted)", "$J$55", "Rate_Devex")]
+N_FACTOR_NEW = 1 + 3 * len(FACTOR_LINES) - 14                # 19 rows replace the user's 14
+
+
+def factors31(d, m, q):
+    """Rewrite the Case B factor block (user rows end+1 … end+14, plus the inserted rows) and repoint the claim rows."""
+    f = lambda t, s=1: d.find(t, start=s, exact=False)  # noqa: E731
+    e, rows = m(q["B"]["end"]), list(range(m(q["B"]["end"]) + 1, m(q["B"]["end"] + 14) + 1))
+    assert len(rows) == 1 + 3 * len(FACTOR_LINES), rows
+    ta = f("Case A: start of the accrual end year")
+    tf = f("Case A, from bid submission: factor in the payment year")
+    st = rows[0]
+    d.copy_format(ta, st)
+    d.text(f"C{st}", "Case B: start of the accrual end year")
+    d.text(f"D{st}", "date")
+    acc = []
+    for i, (name, ref, rate) in enumerate(FACTOR_LINES):
+        r1, r2, r3 = rows[1 + 3 * i: 4 + 3 * i]
+        for r, src, lab in ((r1, tf, "factor in the payment year (if before the end year)"),
+                            (r2, tf + 1, "factor in the end year (to the accrual end)"), (r3, tf + 2, "accrual factor")):
+            d.copy_format(src, r)
+            d.text(f"C{r}", f"Case B, from {name}: {lab}")
+            d.text(f"D{r}", "x")
+        for c in P:
+            x = ref.format(c=c)
+            d.formula(f"{c}{r1}", f"=1+{rate}*(DATE(YEAR({x})+1,1,1)-{x})*({x}<{c}{st})/Days_In_Year")
+            d.formula(f"{c}{r2}", f"=1+{rate}*MAX(0,{c}{e}-MAX({x},{c}{st})+1)/Days_In_Year")
+            d.formula(f"{c}{r3}", f"={c}{r1}*(1+{rate})^MAX(0,YEAR({c}{st})-YEAR({x})-1)*{c}{r2}")
+        acc.append(r3)
+    for c in P:
+        d.formula(f"{c}{st}", f"=DATE(YEAR({c}{e}),1,1)")
+    # Claim rows: the user's factor rows (end+4, +6, …, +14) → the new accrual-factor rows.
+    old = {m(q["B"]["end"] + 4 + 2 * i): r for i, r in enumerate(acc)}
+    for r in range(m(q["B"]["tot"]) - 8, m(q["B"]["tot"])):
+        for c in P:
+            cell = d.cell(f"{c}{r}")
+            new = re.sub(rf"\b{c}(\d+)\b", lambda h: f"{c}{old.get(int(h.group(1)), h.group(1))}", cell.getFormula())
+            assert any(f"{c}{x}" in new for x in acc), (r, new)       # each claim reads a new factor row
+            cell.setFormula(new)
+
+
 def user29(d, a, blocks, q):
     """§29 edits on the user's cells, before any insert (user's numbering). Returns the user's cells that change on
     purpose, by reason, for the before / after comparison."""
@@ -386,11 +460,6 @@ def user29(d, a, blocks, q):
         for c in P:
             for r in (q[k]["wf_prem"], f("RtB premium paid by the buyer", q[k]["ps"])):
                 d.formula(f"{c}{r}", f"={c}{prem}")
-    # 3c. Claim lines paid before the accrual end year: shorter, same test.
-    r = f("Claim lines paid before the accrual end year")
-    for c in P:
-        assert d.cell(f"{c}{r}").getFormula().startswith("=N(MAX(YEAR($Inputs."), d.cell(f"{c}{r}").getFormula()
-        d.formula(f"{c}{r}", f"=(YEAR(MAX(Inputs!{c}$21:{c}$24,$J$55:$J$56))>=YEAR({c}{q['B']['end']}))*1")
     # §30.2: "Exit fees" out of the two profit-stack labels.
     r_sign = [d.find("Less: signing fee and DD, Exit fees", q[k]["ps"]) for k in "BA"]
     for r in r_sign:
@@ -410,7 +479,8 @@ def user29(d, a, blocks, q):
         "portfolio IRR (Total column)": cells([q[k][r] for k in "AB" for r in ("s_irr", "pre_irr")], "H"),
         "post-tax profit incl. loan CIT (§28)": cells([q[k][r] for k in "AB" for r in ("post", "s_profit")], "EH"),
         "factor cell (§28)": cells(sorted(FACTOR_ROWS), "MNO"),
-        "deleted": cells(sorted(b["dead"] for b in blocks), "C")},
+        "Case B claim factors rebuilt (Case A pattern)": cells(range(q["B"]["end"] + 1, q["B"]["end"] + 15), "CDEFGH"),
+        "deleted": cells(sorted(b["dead"] for b in blocks) + [f("Claim lines paid before the accrual end year")], "C")},
         "Inputs": {"relabel": [[39, "C"], [39, "H"], [40, "H"], [47, "H"]]},
         "irr_rows": [a["cod_irr"], a["irr"]], "rtb_user": {k: {"pre": x["pre"]} for k, x in q.items()}}
 
@@ -516,7 +586,7 @@ def edit28(d, m, R, B, blocks, q):
             rate = "Rate_Devex" if r >= x["land"] else "Rate_Cash"
             for fc, dc in zip(fcols, dcols):
                 d.formula(f"{fc}{r}", f"=1+{rate}*(DATE(YEAR({dc}{r})+1,1,1)-{dc}{r})/Days_In_Year")
-                d.cell(f"{fc}{r}").NumberFormat = d.cell(f"E{Q['B']['end'] + 1}").NumberFormat   # 0.0000
+                d.cell(f"{fc}{r}").NumberFormat = d.cell(f"E{Q['B']['end'] + 2}").NumberFormat   # 0.0000
     # 2. Loan sub-blocks after each project's COD-exit row.
     for c, fc, dc, b, blk in zip(P, fcols, dcols, B, blocks):
         rows = m.block(blk["codx"] + 1)
@@ -652,6 +722,7 @@ def build():
         set_signing(lo.doc)                                   # the user's input change, in the base too
         lo.calculate()
         lo.save(BASE_RC)
+        extend_timeline(lo.doc)
         mi, ri, inp_cells = edit_inputs(lo.doc)
         md, R, B, Q, U = edit_dashboard(lo.doc)
         irr, rtb_user = set(U.pop("irr_rows")), U.pop("rtb_user")  # the user's FILTER IRRs, now plain XIRR
@@ -895,10 +966,10 @@ def recompute29(wb, base, info, yearly):
             post_f = flows + [(datetime(2026 + i, 12, 31).date(), v) for i, v in enumerate(yl["yearly"])] + \
                 [(dt(sale).date(), yl["rest"]), (dt(sale).date(), post - pre + (c12 + cdev) * cit * jv)]
             moic = lambda fl: sum(v for _, v in fl if v > 0) / -sum(v for _, v in fl if v < 0)  # noqa: E731
-            py = {"receipts": receipts, "profit pre-tax": pre, "profit post-tax": post,
+            py = {"claims": c12 + cdev, "receipts": receipts, "profit pre-tax": pre, "profit post-tax": post,
                   "MOIC pre-tax": moic(flows), "IRR pre-tax": xirr(sorted(flows)), "MOIC post-tax": moic(post_f),
                   "IRR post-tax": xirr(sorted(post_f))}
-            model = {"receipts": d(c, x["rs_rec"]), "profit pre-tax": d(c, x["pre"]),
+            model = {"claims": d(c, x["tot"]), "receipts": d(c, x["rs_rec"]), "profit pre-tax": d(c, x["pre"]),
                      "profit post-tax": d(c, x["post"]), "MOIC pre-tax": d(c, x["pre_moic"]),
                      "IRR pre-tax": d(c, x["pre_irr"]), "MOIC post-tax": d(c, x["moic"]),
                      "IRR post-tax": d(c, x["irr"])}
@@ -948,13 +1019,55 @@ def scratch(info):
                                                for k, (p_, a, b) in v.items()))
         ok_ex = ex == (0, 0, 0, 0) and all(b < a for v in rtb.values() for _, a, b in v.values())
         lo.set("Share_Exempt", 1)
+        ok_31 = flow31(lo, info, state)
         cell = lo.doc.Sheets.getByName("Dashboard").getCellRangeByName(f"E{Q['B']['first']}")
         cell.setValue(cell.getValue() - 1)                        # break the first Case B dated flow by 1 k EUR
         out["broken"] = state() + (lo.get(f"Dashboard!H{Q['B']['tie']}"),)
     for k, (mc, n, *t) in out.items():
         print(f"   {k:<6} Master_Check {mc} | error cells {n}" + (f" | Case B tie check {t[0]}" if t else ""))
     return all(out[k] == (0, 0) for k in ("Low", "High", "Base")) and out["broken"][0] == 1 and \
-        out["broken"][2] == 1 and ok_ex
+        out["broken"][2] == 1 and ok_ex and ok_31
+
+
+def claims_lo(lo, info):
+    """Case B claims per project recomputed in Python from the live LibreOffice values (act/365, capitalised 31-Dec);
+    max difference to the model's claim rows."""
+    Q, g = info["Dashboard"]["rtb"]["B"], lo.get
+    rc, rd, floor = g("Rate_Cash"), g("Rate_Devex"), g("Devex_Floor")
+    end = min(g("Freeze_Date"), g("Sale_Date"))
+    diff = 0.0
+    for c in P:
+        jv, dte = g(f"Dashboard!{c}21"), {k: g(f"Inputs!{c}{r}") for k, r in (("bid", 21), ("pb", 22), ("tso", 23),
+                                                                               ("hc", 24))}
+        dte.update(land=g("Dashboard!J56"), dev=g("Dashboard!J55"))
+        amt = lambda r: g(f"Dashboard!{c}{r}")  # noqa: E731
+        py = [amt(r) * (factor(dte[k], end, rc) - 1) for r, k in ((61, "bid"), (62, "bid"), (63, "pb"), (64, "tso"),
+                                                                   (65, "hc"), (66, "hc"))]
+        py += [amt(r) * max(factor(dte[k], end, rd) - 1, floor - 1) for r, k in ((68, "land"), (67, "dev"))]
+        model = [g(f"Dashboard!{c}{r}") for r in range(Q["tot"] - 8, Q["tot"])]
+        diff = max([diff] + [abs(jv * a - b) for a, b in zip(py, model)])
+    return diff
+
+
+def flow31(lo, info, state):
+    """§31.3 flow-through tests in the scratch session: Iváncsa COD +1 year; Bora HCSSZ in the accrual end year; the
+    freeze date at 31-Dec-2028. Each input is set back afterwards."""
+    from datetime import date
+    sv = lambda t: (date(*t) - date(1899, 12, 30)).days  # noqa: E731
+    op = info["Dashboard"]["blocks"]["Iváncsa"]["op"]
+    ok = True
+    for ref, val, what in (("Inputs!F26", sv((2032, 6, 30)), "Iváncsa COD 30-Jun-2032"),
+                           ("Inputs!E24", sv((2029, 3, 1)), "Bora HCSSZ 01-Mar-2029"),
+                           ("Freeze_Date", sv((2028, 12, 31)), "Freeze_Date 31-Dec-2028")):
+        old = lo.get(ref)
+        lo.set(ref, val)
+        mc, n = state()
+        life, dif = lo.get(f"Dashboard!H{op}"), claims_lo(lo, info)
+        print(f"   {what}: Master_Check {mc} | error cells {n} | Iváncsa operating years {life} | Case B claims "
+              f"vs Python max diff {dif:.1e}")
+        ok &= mc == 0 and n == 0 and abs(life - 30) < 1e-9 and dif < 1e-9
+        lo.set(ref, old)
+    return ok
 
 
 def dump(wb, info):
@@ -1066,7 +1179,7 @@ def verify():
     print(f"before / after: {len(diffs)} changed cell(s) in the user's cells, {len(bad)} unexpected")
     for sh, r0, r1, cl, x, y in diffs:
         print(f"   {sh}!{cl}{r0} → {cl}{r1}: {x!r} → {y!r}  [{expected(info, sh, cl, r0) or 'UNEXPECTED'}]")
-    print("   deleted user rows (dead 'RtB price: 0' rows):", [r for r, _ in info["expected"]["Dashboard"]["deleted"]])
+    print("   deleted user rows (dead 'RtB price: 0' rows; claim-timing check):", [r for r, _ in info["expected"]["Dashboard"]["deleted"]])
     skip = {("Dashboard", r) for r in FACTOR_ROWS} | {("Inputs", 40)} | {("Dashboard", r) for r, _ in
                                                        info["expected"]["Dashboard"]["portfolio IRR (Total column)"]}
     struct = cells_check(openpyxl.load_workbook(SRC), openpyxl.load_workbook(OUT), skip)

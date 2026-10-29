@@ -5,6 +5,17 @@ Fable adds an entry whenever a round teaches something new and useful (a user pr
 tool limitation, a trick that worked). Short entries, dated, newest at the top. Project-specific decisions stay in the
 project's SPEC; rules that bind every model go to `CLAUDE.md` or `docs/MODELLING_STANDARDS.md`.
 
+## 2026-10-29 (flow-through test)
+- **Run a one-at-a-time shock test before delivery** (`projects/hu_wind_2/flow_test.py` is the template): set each
+  key input in LibreOffice, recalc, read the headline outputs, count error cells with
+  `sheet.queryFormulaCells(4)`, check the Master check, restore. It finds what static audits miss: formulas that are
+  right for the base dates but break when a date crosses a year boundary, and timelines too short for a COD delay.
+- **Date-driven accruals must survive any ordering of dates:** use MAX(0, …) on day counts and exponents; a guard
+  check is a fallback, not a fix.
+- **Give the timeline headroom** beyond COD + life (≥ 4 years) so a COD delay is a sensitivity, not a check failure.
+- **Insert columns inside a range through UNO** (before the last column) to extend every $J:$AS reference
+  automatically, then copy the last column's formulas into the new ones.
+
 ## 2026-10-29
 - **JV waterfall, devex:** only the *return* on FEP's devex funding (MAX(20 % accrued, 1× principal)) is paid before
   the 70/30 split; the principal is covered by the RtB premium through FEP's share. Do not add a principal row

@@ -844,3 +844,16 @@ keep it lean. Same file `out/HU_Wind_bids_v3.xlsx`, `build_v3.py`.
    commitment fee, Robin Hood tax, refinancing.
 7. Verification as §27.5; Python recomputation of the Bora levered schedule (draws, IDC, annuity, balance, CIT, equity
    IRR, min DSCR) and of the new COD price.
+
+## 31. Flow-through test (user, 29-Oct-2026): "if you change the inputs, everything changes accordingly"
+
+`projects/hu_wind_2/flow_test.py` shocks 42 inputs one at a time in LibreOffice (P50, PPA, case selector, turbine
+prices and route, O&M, MVA, overbuild, BESS, build shortfall, municipal, community, RtB premium, FEP share, JV, DSA,
+signing/DD, CIT, exemption, gearing, debt rate and tenor, tax depreciation, buyer rate, FX, curtailment, degradation,
+escalations, life, every key date, devex scale, connection fees) and requires 0 error cells and Master check 0 (the
+"HCSSZ before sale A" shock must fire its check). Two weaknesses it found, fixed in `build_v3.py`:
+1. Case B claim accrual broke when a payment fell in the accrual-end year (HCSSZ in 2029, freeze in 2028): rebuilt
+   on the Case A pattern (payment-year factor, end-year factor with MAX(0,…), compounding with MAX(0,…)); the guard
+   check "claim lines paid before the accrual end year" is gone.
+2. The timeline (2026–2061) could not hold a COD delay: extended to 2065 (J:AW).
+Open for the user: the Low case has the same PPA and O&M as Base, so Low moves only the turbine price.
