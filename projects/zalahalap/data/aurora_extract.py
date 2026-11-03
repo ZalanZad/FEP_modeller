@@ -24,6 +24,8 @@ calendar-year averages 2026–2060, Central scenario only. One CSV row per serie
     (s+18, s+19), grid-charge costs (s+15, s+17) and the volume network charges (s+26, grid-drawn only) drop out.
     "down_cap_share" = (aFRR-down s+23 + FCR s+24) / s+27, multiplied on the sheet by In_AFRR_Down_Share.
 Aurora's battery blocks are fixed dispatch outputs: nothing here re-optimises when model inputs change.
+No standalone-solar capture: the databook has no solar row outside the co-located blocks (checked every sheet,
+SPEC v2 §5.1, 03-Nov-2026), so the PV-only case uses the DC 2 h block's direct price as a flagged proxy.
 Stdlib + openpyxl.
 """
 from __future__ import annotations
