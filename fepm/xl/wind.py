@@ -23,8 +23,9 @@ Templates (`=` formulas with tokens), rendered once per cell:
     {key.all}      the row's timeline                               $J15:$AW15
     {key.prev}     previous column                                  I15
     {key.cases}    the row's case columns                           $E15:$G15
-    {year} {yend}  the timeline header (row 4 year, row 5 year end) J$4, J$5
-    {c}            the current column letter                        J  (for cross-sheet refs: "Revenue!{c}$23")
+    {year} {yend}  the timeline header (row 4 year, row 5 year end) J$4, J$5 ({year.all} = $J$4:$AW$4)
+    {c} {p}        the current / previous column letter             J, I (cross-sheet "Revenue!{c}$23"; a row below
+                   for a corkscrew opening "{p}42")
     {self...}      the row being written
 
 Inside a `Block` an unqualified key resolves to the block's own row first. Workbook names are written as text.
@@ -37,8 +38,8 @@ import re
 
 from openpyxl import Workbook
 from openpyxl.formatting.rule import CellIsRule
-from openpyxl.styles import Alignment, Border, Font, Side
-from openpyxl.utils import get_column_letter as L
+from openpyxl.styles import Border, Font, Side
+from openpyxl.utils import column_index_from_string, get_column_letter as L
 from openpyxl.workbook.defined_name import DefinedName
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.worksheet.properties import Outline
@@ -176,10 +177,11 @@ class Sheet:
             key, mod = m.group(1), m.group(2)
             if key == "c":
                 return L(col)
-            if key == "year":
-                return f"{L(col)}${YEAR_ROW}"
-            if key == "yend":
-                return f"{L(col)}${YEND_ROW}"
+            if key == "p":
+                return L(col - 1)
+            if key in ("year", "yend"):
+                hr = YEAR_ROW if key == "year" else YEND_ROW
+                return f"$J${hr}:${last}${hr}" if mod == "all" else f"{L(col)}${hr}"
             r = row if key == "self" else self.row_of(key)
             if mod in ("E", "F", "G", "H"):
                 return f"${mod}{r}"
@@ -350,7 +352,7 @@ def check_format(ws, rng):
 
 
 def _col(c) -> int:
-    return c if isinstance(c, int) else __import__("openpyxl").utils.column_index_from_string(c)
+    return c if isinstance(c, int) else column_index_from_string(c)
 
 
 # =========================================================================================== Block
@@ -425,8 +427,10 @@ class DatedBlock:
         return r
 
     def line(self, key, label, amount, date, earns, unit="EUR k", fmt=None):
-        """A dated flow: `amount` template for E:G (same formula), `date` template, `earns` = flag template."""
+        """A dated flow: `amount` template for E:G (same formula), `date` template, `earns` = flag template.
+        `{row}` in a template is this line's row number (e.g. `$J{row}` for its own date)."""
         sh = self.sh
+        amount, date = amount.replace("{row}", str(sh.r)), date.replace("{row}", str(sh.r))
         r = sh.row(key, label, unit, cases=amount, extra={"J": date}, fmt=fmt)
         sh.ws.cell(r, 10).number_format = FMT["date"]
         sh._cell(r, 11, f"=DATE(YEAR(J{r})+1,1,1)-J{r}", False, FMT["int"], False, False)
@@ -437,10 +441,6 @@ class DatedBlock:
         sh._cell(r, 14, earns, False, FMT["flag"], False, False)
         self.lines.append(r)
         return r
-
-    def span(self, first=None, last=None, col="{c}"):
-        a, b = first or self.lines[0], last or self.lines[-1]
-        return a, b
 
     def claim(self, key, label, end_key, first=None, last=None):
         """Return due at an end date per case: SUMPRODUCT(−amount × (factor − 1) × flag) over the lines."""
