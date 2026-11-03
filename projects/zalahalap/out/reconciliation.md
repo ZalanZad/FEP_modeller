@@ -1,48 +1,99 @@
-# Zalahaláp – reconciliation of Scenario A to the original model
+# Zalahaláp – reconciliation (SPEC v2 §9)
 
-Original: `reference/zalahalap/Zalahalap_model_10112025_v3.xlsb` (Negotiated case), targets in `data/old_engine/old_targets.csv` ([R] = from the copy with Aurora_Curve!C8 = 0, SPEC §3.2). New: `out/Zalahalap_Model.xlsm`, Calc_1 = case A. Written by `reconcile.py`.
+Original: `reference/zalahalap/Zalahalap_model_10112025_v3.xlsb` (Negotiated case). New: `out/Zalahalap_Model.xlsx` (SPEC v2: PV only | PV + 2 h | PV + 4 h, unlevered, 5-year PV PPA). Written by `reconcile.py`.
 
-Three independent calculations: the v3 shadow `data/old_engine/old_zhlp.py` (ties to every target), the new-structure shadow in `reconcile.py` (quarterly, coded from the SPEC; stored in `data/recon_targets.csv` and tested on the Checks sheet), and the workbook recalculated in LibreOffice with the solvers re-run.
+Three independent calculations: the v3 shadow `data/old_engine/old_zhlp.py`, the v1-structure shadow in `reconcile.py` (quarterly, SPEC v1, with a switch per §13 fix) and the v2 shadow `shadow.py` (annual, coded from SPEC v2). The workbook is recalculated in LibreOffice.
 
-Model checks: set 2 = 0, base = 0. Tolerance 0.1 % on values, 0.1 pp on rates.
+## 1. The v3 shadow ties to the original
 
-## 1. The original targets
+`old_zhlp.py` reproduces 31 of 31 targets of `data/old_engine/old_targets.csv` to 1e-6 (HTM targets from the copy with Aurora_Curve!C8 = 0, SPEC v1 §3.2).
 
-| Target | Unit | v3 cell | v3 target | v3 shadow | Shadow ties | New model, set 2 | Ties | Why it differs |
-|---|---|---|---:|---:|---|---:|---|---|
-| rtb_xirr_incl | % | Summary!D6 | 224.51 % | 224.51 % | yes | 169.51 % | no | quarterly grid (§13.12): the acquisition flows move from 30-Nov-25 to 31-Dec-25 and the sale from 31-Oct-26 to 31-Dec-26, the pre-RtB costs to quarter ends; the profit ties |
-| rtb_xirr_excl | % | Calculation!F144 | 181.83 % | 181.83 % | yes | – | – | no equivalent row (by design, §13.13: one RtB return, one break-even = implied price) |
-| rtb_moic_incl_dep | x | Summary!D7 | 1.427x | 1.427x | yes | 1.423x | no | gross receipts ÷ gross outlays as v3; deposits counted when paid and refunded (v3: peak balance), guarantee fees and the return on the quarterly grid |
-| rtb_moic_excl_dep | x | Summary!D25 | 1.576x | 1.576x | yes | – | – | no equivalent row (by design, §13.13: one RtB return, one break-even = implied price) |
-| calc_moic_incl_dep | x | Calculation!G179 | 1.795x | 1.795x | yes | – | – | no equivalent row (by design, §13.13: one RtB return, one break-even = implied price) |
-| calc_moic_excl_dep | x | Calculation!G180 | 2.529x | 2.529x | yes | – | – | no equivalent row (by design, §13.13: one RtB return, one break-even = implied price) |
-| rtb_net_profit | EUR m | Summary!D8 | 2.941 | 2.941 | yes | 2.922 | no | FEP now pays 9 % CIT on the 12 % return it receives (fix round 1, D7); v3 had no tax at FEP |
-| rtb_capital | EUR m | Summary!D9 | 6.882 | 6.882 | yes | 6.901 | no | guarantee fees run to the end of the exit quarter (31-Dec-26; v3: the sale month) on quarter-end balances; deposits equal (1,776) |
-| rtb_proceeds | EUR m | Summary!D23 | 9.824 | 9.824 | yes | 9.842 | no | mirror of capital and profit (proceeds before FEP tax) |
-| developer_profit | EUR k | Calculation!F226 | 2,429.6 | 2,429.6 | yes | 2,561.1 | no | v3 deducts the PSH land apport (150) from the price but never credits it to PSH (Calculation F225); the new model pays it back to PSH |
-| rtb_breakeven | EUR k/MW | RTB_Model!D78 | 9.6 | 9.6 | yes | – | – | no equivalent row (by design, §13.13: one RtB return, one break-even = implied price) |
-| htm_xirr | % | Summary!H6 [R] | 5.50 % | 5.50 % | yes | 5.60 % | yes |  |
-| htm_moic | x | Summary!H7 [R] | 1.959x | 1.959x | yes | 1.977x | no | as the HTM IRR |
-| htm_npv | EUR m | Summary!H8 [R] | -13.009 | -13.009 | yes | -12.420 | no | as the HTM IRR; discounted to 31-Dec-25 in both |
-| htm_capital | EUR m | Summary!H9 [R] | 85.419 | 85.419 | yes | 84.846 | no | as the HTM IRR |
-| htm_payback | years | Summary!H10 [R] | 16.8 | 16.8 | yes | – | – | no equivalent row (by design, §13.13: one RtB return, one break-even = implied price) |
-| project_irr | % | Summary!D31 [R] | 6.37 % | 6.37 % | yes | 5.91 % | no | §13.4: includes all project cash (deposits, guarantees, pre-RtB costs, early works when paid); no working capital; tax base incl. development costs |
-| buyer_irr | % | Summary!D33 [R] | 5.57 % | 5.57 % | yes | 5.22 % | no | buyer pays the price, early works, cash deposits and pre-RtB costs at the exit (v3: price and early works only), bears guarantee fees to COD and gets the deposits back at COD |
-| buyer_moic | x | Summary!D34 [R] | 1.986x | 1.986x | yes | – | – | no equivalent row (by design, §13.13: one RtB return, one break-even = implied price) |
-| buyer_npv | EUR m | Summary!D36 [R] | -12.524 | -12.524 | yes | – | – | no equivalent row (by design, §13.13: one RtB return, one break-even = implied price) |
-| ffy_gwh | GWh | Summary!H21 | 75.6 | 75.6 | yes | 75.6 | yes |  |
-| ffy_price | EUR/MWh | Summary!H22 | 72.6 | 72.6 | yes | – | – | no equivalent row (by design, §13.13: one RtB return, one break-even = implied price) |
-| ffy_revenue | EUR m | Summary!H24 | 8.849 | 8.849 | yes | 8.849 | yes |  |
-| life_pv_revenue | EUR m | Summary!H25 [R] | 233.190 | 233.190 | yes | 232.619 | no | operations end 31-Mar-2063 = COD + 35 years (v3: 30-Apr-2063, one month more) |
-| life_goo | EUR m | Summary!H26 | 6.708 | 6.708 | yes | 6.692 | no | as PV revenue |
-| life_revenue | EUR m | Summary!H27 [R] | 349.819 | 349.819 | yes | 348.985 | no | as PV revenue |
-| life_ebitda | EUR m | Summary!H30 [R] | 177.872 | 177.872 | yes | 177.480 | no | as PV revenue (opex rules identical) |
-| life_margin | % | Summary!H31 [R] | 50.85 % | 50.85 % | yes | – | – | no equivalent row (by design, §13.13: one RtB return, one break-even = implied price) |
-| life_capex | EUR m | Summary!H33 | 57.170 | 57.170 | yes | 57.170 | yes |  |
-| life_opex | EUR m | Summary!H53 [R] | 171.947 | 171.947 | yes | – | – | no equivalent row (by design, §13.13: one RtB return, one break-even = implied price) |
-| life_bess_net | EUR m | Summary!H59 | 109.921 | 109.921 | yes | 109.674 | no | same v3 stack (fix 6 off); one month shorter life |
+## 2. Bridge: v3 → PV + 4 h column, Base, merchant BESS basis
 
-## 2. Each §13 change inside the v3 structure (v3 shadow, cumulative)
+Rows 1–2 are values; each further row switches one change on (cumulative) and shows its effect. Rows 2–10 run on the v1 quarterly shadow (unlevered: gearing 0 throughout), rows 11–13 on the v2 annual shadow; the last row is the workbook's PV + 4 h column (Base). The implied premium is shown before the 0 floor; the workbook floors it at 0.
+
+| Step | SPEC | FEP hold IRR | Project IRR | RtB profit (k€) | RtB XIRR | Implied RtB premium before the 0 floor (k€/MWp) |
+|---|---|---:|---:|---:|---:|---:|
+| v3 original (targets; the v3 shadow ties) | v1 §3.2 | 5.50 % | 6.37 % | 2,941.4 | 224.51 % | – |
+| v1 structure (quarterly), v3 rules: set 2 of the v1 workbook | v1 §11 | 5.60 % | 5.91 % | 2,921.6 | 169.51 % | -176.0 |
+| + §13 fixes 2, 3, 5–8 (reimbursement timing, guarantee phantom, clipping, Aurora 4 h block, augmentation, act/365 return) | v1 §13.2–13.8 | +5.00 pp | +5.16 pp | +29.1 | -14.28 pp | +479.4 |
+| + §13.14 share step (60 % at ≤ 90) | v1 §13.14 | +0.00 pp | +0.00 pp | +0.0 | +0.00 pp | +0.0 |
+| + §13.16–13.17 Aurora 4 h direct and transfer prices, DC clipping 0 | v1 §13.16–17 | -2.84 pp | -2.90 pp | +0.0 | +0.00 pp | -280.4 |
+| + 63 MWp, 1,265 MWh/MWp, 49.9 MVA | v2 §3.1 | +0.32 pp | +0.34 pp | +108.0 | +5.69 pp | +27.9 |
+| + v2 dates: RtB 31-Dec-26, exit 31-Mar-27, NTP 30-Jun-27 | v2 §3.2 | +0.11 pp | +0.11 pp | +15.2 | -59.00 pp | +10.5 |
+| + Early works four lines; E48/E49 to capex at NTP | v1 §13.15 | +0.00 pp | +0.01 pp | -13.6 | +10.06 pp | +0.2 |
+| + SPV price 549 (no return), DSA 945, no PSH land step | v2 §6 | -0.14 pp | -0.28 pp | -685.7 | -49.40 pp | +0.0 |
+| + Tax defaults: BESS 10 years, losses lapse NTP + 5 years | v2 §3.2 | +0.15 pp | +0.15 pp | +0.0 | +0.00 pp | +12.8 |
+| + Annual timeline, year-end dates (the RtB route keeps exact dates), unlevered, v2 JV split | v2 §4, §6 | -0.18 pp | -0.20 pp | -9.5 | -6.95 pp | -18.5 |
+| + HIPA 2 % and innovation contribution 0.3 % on revenue | v2 §3.2 | -0.45 pp | -0.46 pp | +0.0 | +0.00 pp | -39.3 |
+| + PPA 5 years at 45 €/MWh on all PV output = base | v2 §5.2 | -0.30 pp | -0.31 pp | +0.0 | +0.00 pp | -27.4 |
+| **PV + 4 h, Base: the workbook (implied premium floored at 0)** | | 7.27 % | 7.52 % | 2,365.0 | 55.63 % | 0.0 |
+
+Notes on the steps:
+
+- Row 2 vs row 1: the v1 quarterly structure (period-end flows, all project cash in the project IRR, FEP taxed on the 12 % return, PSH land paid back); documented in SPEC v1 §13 and the v1 reconciliation.
+- §13.6 (Aurora's 4 h block total instead of v3's 0.591-scaled stack) lifts the hold IRR; §13.16–17 then price the PV at Aurora's direct and transfer prices (v3: 65 % of baseload on all output) and cut it back.
+- The v2 dates move the exit five months later and the RtB XIRR falls accordingly; the SPV price 549 (to FEP before the split, no return) and the DSA loan lower the RtB profit through the split.
+- Annual timeline step: year-end dates on the grid, construction by calendar month share, the pre-COD cash dated (RtB route) and mapped by year, the buyer reimbursements inside the JV split, guarantee fees paid at release, deposits returned at COD on the hold route, no debt, one SPV tax.
+- PPA step: 45 €/MWh nominal on all PV output for 5 years (Aurora's direct price is 98–108 €/MWh nominal in 2028–29 for the 4 h block), no balancing in those years.
+
+## 3. The v2 shadow ties to the workbook
+
+Workbook recalculated in LibreOffice with `Dash_Case` = Base, Low, High; every Dashboard result below compared with `shadow.py` (EUR k, rates, multiples).
+
+| Sensitivity | Master check | Results compared | Largest absolute difference | Largest relative difference |
+|---|---:|---:|---:|---:|
+| Base | 0 | 117 | 5.82e-11 | 9.93e-15 |
+| Low | 0 | 117 | 5.82e-11 | 3.42e-14 |
+| High | 0 | 117 | 5.82e-11 | 4.55e-15 |
+
+Base results (workbook):
+
+| Result | PV only | PV + 2h BESS | PV + 4h BESS |
+|---|---:|---:|---:|
+| PV generation (GWh) | 79.3 | 79.3 | 79.3 |
+| Revenue | 3,718.6 | 7,282.0 | 9,729.2 |
+| EBITDA | 2,167.3 | 3,980.8 | 6,371.7 |
+| Revenue | 203,149.5 | 310,420.9 | 401,994.6 |
+| EBITDA | 108,393.3 | 131,005.5 | 220,473.1 |
+| Lifetime corporate income tax, hold route (SPV) | 6,160.6 | 5,643.0 | 11,142.4 |
+| Total uses to COD (= equity, unlevered) | 36,595.0 | 47,595.0 | 58,595.0 |
+| Sale at RtB: Implied premium at the buyer target IRR (floored at 0) | 0.0 | 0.0 | 0.0 |
+| Sale at RtB: Buyer IRR at our price, unlevered after tax | 4.85 % | 4.32 % | 6.90 % |
+| Sale at RtB: Buyer IRR at our price, unlevered before tax | 5.23 % | 4.71 % | 7.45 % |
+| Sale at RtB: FEP profit, pre-tax | 2,392.6 | 2,392.6 | 2,392.6 |
+| Sale at RtB: FEP profit, post-tax | 2,365.0 | 2,365.0 | 2,365.0 |
+| Sale at RtB: MOIC, pre-tax | 1.320x | 1.320x | 1.320x |
+| Sale at RtB: IRR, pre-tax | 56.26 % | 56.26 % | 56.26 % |
+| Sale at RtB: IRR, post-tax | 55.63 % | 55.63 % | 55.63 % |
+| Sale at RtB: NPV at the discount rate, post-tax (to the acquisition date) | 1,835.1 | 1,835.1 | 1,835.1 |
+| Sale at RtB: PSH profit | 1,397.6 | 1,397.6 | 1,397.6 |
+| Sale at COD: Implied COD price at the buyer target IRR (floored at 0) | 530.8 | 659.7 | 1,041.5 |
+| Sale at COD: Enterprise value used | 33,439.4 | 41,562.5 | 65,614.1 |
+| Sale at COD: Buyer IRR at our price, unlevered after tax | 8.00 % | 8.00 % | 8.00 % |
+| Sale at COD: Buyer IRR at our price, unlevered before tax | 8.49 % | 8.54 % | 8.64 % |
+| Sale at COD: FEP contributions to COD | 42,321.2 | 53,321.2 | 64,321.2 |
+| Sale at COD: FEP proceeds at COD | 33,439.4 | 41,562.5 | 65,344.8 |
+| Sale at COD: FEP profit, pre-tax | -8,881.8 | -11,758.7 | 1,023.7 |
+| Sale at COD: FEP profit, post-tax | -8,881.8 | -11,758.7 | 967.9 |
+| Sale at COD: MOIC, pre-tax | 0.713x | 0.692x | 1.022x |
+| Sale at COD: IRR, pre-tax | -24.66 % | -27.26 % | 1.92 % |
+| Sale at COD: IRR, post-tax | -24.66 % | -27.26 % | 1.82 % |
+| Sale at COD: NPV at the discount rate, post-tax (to the acquisition date) | -9,475.9 | -12,208.2 | -2,637.3 |
+| Sale at COD: PSH profit | -150.0 | -150.0 | 119.2 |
+| Hold: FEP equity invested (incl. the 2048 repower) | 42,281.8 | 64,518.8 | 89,752.4 |
+| Hold: FEP distributions | 100,645.7 | 117,649.5 | 198,488.1 |
+| Hold: FEP profit, pre-tax | 64,524.5 | 58,773.7 | 119,878.2 |
+| Hold: FEP profit, post-tax | 58,363.9 | 53,130.7 | 108,735.7 |
+| Hold: IRR, after tax | 5.24 % | 4.68 % | 7.27 % |
+| Hold: IRR, before tax | 5.63 % | 5.08 % | 7.83 % |
+| Hold: NPV at the discount rate, after tax (to the acquisition date) | -10,794.1 | -13,526.4 | -3,699.2 |
+| Hold: Memo: project IRR, unlevered after tax (FEP's before the buy-out) | 5.50 % | 4.93 % | 7.52 % |
+| Hold: Memo: project IRR, unlevered before tax | 5.90 % | 5.33 % | 8.09 % |
+
+## 4. Each §13 change inside the v3 structure (v3 shadow, cumulative; appendix)
+
+Values in € m (profit, NPV, lifetime totals).
 
 | Step | FEP profit – RtB | FEP IRR – RtB | FEP MOIC – RtB | FEP IRR – HTM | FEP NPV – HTM | Project IRR | Buyer IRR | Lifetime revenue | Lifetime EBITDA |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -55,76 +106,3 @@ Model checks: set 2 = 0, base = 0. Tolerance 0.1 % on values, 0.1 pp on rates.
 | + Fix 5: PV export clipped (2 %) | +0.000 | +0.00 pp | +0.000x | -0.22 pp | -1.037 | -0.23 pp | -0.22 pp | -4.798 | -4.415 |
 | + Fix 6: Aurora 4 h block total for the BESS | +0.000 | +0.00 pp | +0.000x | +6.09 pp | +33.830 | +6.62 pp | +6.14 pp | +145.138 | +145.138 |
 | + Fix 7: augmentation indexed | +0.000 | +0.00 pp | +0.000x | -0.28 pp | -2.294 | -0.27 pp | -0.28 pp | +0.000 | +0.000 |
-| **v3 structure, all switchable fixes** | 2.951 | 199.13 % | 1.482x | 11.10 % | 17.609 | 12.48 % | 11.21 % | 490.159 | 318.595 |
-
-Values in € m (profit, NPV, lifetime totals). At the price of 90 the share step changes nothing (both rules give 60 %, user 22-Oct-2026).
-
-## 3. New structure: reconciliation set → base set (workbook, cumulative)
-
-Values in € k (profit, NPV, lifetime totals). Each step removes the set-2 override of the inputs named (the set then inherits the base value) and re-runs Solver.bas.
-
-| Step | SPEC | FEP profit – RtB | FEP IRR – RtB | FEP MOIC – RtB | FEP IRR – HTM | FEP NPV – HTM | Project IRR | Buyer IRR at 90 | Lifetime revenue | Lifetime EBITDA |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Workbook, set 2 (Reconciliation, v3 rules) | §10 | 2,921.6 | 169.51 % | 1.423x | 5.60 % | -12,419.7 | 5.91 % | 5.22 % | 348,984.6 | 177,480.5 |
-| + Fix 2: pre-RtB costs reimbursed as spent | §13.2 | +0.0 | -17.77 pp | +0.000x | +0.00 pp | +0.0 | +0.00 pp | +0.00 pp | +0.0 | +0.0 |
-| + Fix 3: no bank-guarantee phantom | §13.3 | +31.9 | +3.64 pp | +0.008x | +0.01 pp | +71.2 | +0.02 pp | +0.01 pp | +0.0 | +0.0 |
-| + Fix 5: PV export clipped (2 %) | §13.5 | +0.0 | +0.00 pp | +0.000x | -0.22 pp | -1,044.7 | -0.22 pp | -0.21 pp | -4,786.2 | -4,403.8 |
-| + Fix 6: Aurora 4 h block total for the BESS | §13.6 | +0.0 | +0.00 pp | +0.000x | +5.50 pp | +30,285.5 | +5.66 pp | +5.34 pp | +127,762.1 | +127,762.1 |
-| + Fix 7: augmentation indexed, Aurora repower year | §13.7 | +0.0 | +0.00 pp | +0.000x | -0.29 pp | -2,233.3 | -0.29 pp | -0.30 pp | +0.0 | +0.0 |
-| + Fix 8: dated act/365 return, 31-Dec capitalisation | §13.8 | -2.9 | -0.15 pp | -0.000x | -0.00 pp | -3.6 | +0.00 pp | +0.00 pp | +0.0 | +0.0 |
-| + User: share step (60 % at 90) | §13.14, §0.4 | +0.0 | +0.00 pp | +0.000x | +0.00 pp | +0.0 | +0.00 pp | +0.00 pp | +0.0 | +0.0 |
-| + User: early works, four lines; E48/E49 at NTP | §13.15, §0.3, §0.5 | -6.8 | +10.30 pp | +0.050x | +0.01 pp | +17.6 | +0.01 pp | +0.00 pp | +0.0 | +0.0 |
-| + Tax: HIPA and innovation contribution | §13.10 | +0.0 | +0.00 pp | +0.000x | -0.45 pp | -2,599.1 | -0.46 pp | -0.43 pp | +0.0 | -10,855.1 |
-| + Tax defaults: BESS 10 years, losses lapse after 5 years | §15.9 | +0.0 | +0.00 pp | +0.000x | +0.14 pp | +730.8 | +0.15 pp | +0.13 pp | +0.0 | +0.0 |
-| + JV sheet 221025: SPV 549, DSA loan, no PSH land step | §7, §15.10 | -671.8 | -80.79 pp | -0.175x | -0.16 pp | -689.4 | -0.31 pp | +0.00 pp | +0.0 | +0.0 |
-| + Debt: 55 % gearing (Bana terms) | §13.9, §15.1 | +0.0 | +0.00 pp | +0.000x | +2.04 pp | +3,832.2 | +0.00 pp | +0.00 pp | +0.0 | +0.0 |
-| **Workbook, base set** | | 2,272.0 | 84.73 % | 1.306x | 12.19 % | 15,947.4 | 10.46 % | 9.76 % | 471,960.5 | 289,983.7 |
-
-Last step vs the base set: largest difference 0.00e+00 (the steps restore every set-2 override).
-
-## 4. Independent shadow vs the workbook (set 2, Calc_1)
-
-| Headline | Shadow | Workbook | Difference |
-|---|---:|---:|---:|
-| FEP profit – RtB | 2,921.6 | 2,921.6 | -2.27e-12 |
-| FEP IRR – RtB | 169.51 % | 169.51 % | -1.78e-15 |
-| FEP MOIC – RtB | 1.423x | 1.423x | -6.66e-16 |
-| FEP IRR – HTM | 5.60 % | 5.60 % | -9.71e-17 |
-| FEP NPV – HTM | -12,419.7 | -12,419.7 | -2.73e-11 |
-| Project IRR | 5.91 % | 5.91 % | 1.39e-16 |
-| Buyer IRR at 90 | 5.22 % | 5.22 % | 1.39e-17 |
-| Lifetime revenue | 348,984.6 | 348,984.6 | 0.00e+00 |
-| Lifetime EBITDA | 177,480.5 | 177,480.5 | 0.00e+00 |
-
-## 5. Fix rounds 1–2 (22-Oct-2026): case B bridge, v1 → new base (shadow, cumulative)
-
-Each step switches one change on in the independent shadow; the first line equals the v1 workbook (commit 5b343d2: hold 10.72 %, implied RtB 165.4 k€/MWp, buyer IRR 8.83 %), the last line is checked against the new workbook (Calc_2, base set). The DSRA fix (COD sale only), D1 and D2 do not move these columns.
-
-| Step | FEP IRR – hold | FEP IRR – hold, pre-tax | Project IRR | Buyer IRR at 90 | Implied RtB price before the 0 floor (k€/MWp) | FEP profit – RtB (k€) | Revenue, first full year (k€) |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| v1 build, 5b343d2 (shadow) | 10.72 % | 11.54 % | 9.54 % | 8.83 % | 165.4 | 2,400.5 | 12,038.6 |
-| + M1: no grid charging, PV-only factor by component | -1.10 pp | -1.20 pp | -0.74 pp | -0.71 pp | -64.5 | +0.0 | -823.2 |
-| + M2: two PV prices (direct export, transfer to the BESS) | -1.24 pp | -1.33 pp | -0.87 pp | -0.84 pp | -74.3 | +0.0 | -453.6 |
-| + Clipping 0 % for the DC-coupled case | +0.37 pp | +0.40 pp | +0.26 pp | +0.25 pp | +21.6 | +0.0 | +158.0 |
-| + D6: DSA and SPV price out of the SPV tax base | -0.01 pp | -0.00 pp | -0.01 pp | -0.01 pp | -0.8 | +0.0 | +0.0 |
-| + Unlevered tax in project, buyer and implied price | +0.00 pp | +0.00 pp | -0.16 pp | -0.15 pp | -13.4 | +0.0 | +0.0 |
-| + D7: FEP taxed on the 12 % return | +0.00 pp | +0.00 pp | +0.00 pp | +0.00 pp | +0.0 | -26.0 | +0.0 |
-| **Shadow, new base** | 8.74 % | 9.41 % | 8.02 % | 7.37 % | 34.0 | 2,374.4 | 10,919.8 |
-| **Workbook, Calc_2 base** | 8.74 % | – | 8.02 % | 7.37 % | – | 2,374.4 | – |
-
-Implied RtB price in the workbook (floored at 0): 34.0 k€/MWp.
-
-## 6. Structural changes (§13 items without a switch)
-
-- §13.1: Aurora_Curve!C8 = 'no ' breaks the v3 HTM chain; the [R] targets come from the patched copy.
-- §13.4: the project IRR includes all project cash (v3 HTM_Model!D79 left out deposits, guarantees and pre-RtB costs).
-- §13.9: v3 has no debt; set 2 runs at 0 % gearing, the base at 55 % (Bana terms, SPEC §15.1).
-- §13.10: HIPA and the innovation contribution are off in set 2; tax on the sale gain per deal form (share deal, exempt; asset deal taxed); FEP pays CIT on the 12 % return as interest income. The SPV tax base also carries IDC and pre-RtB costs (v3: construction capex only); the DSA and the SPV price are shareholder-level and stay out. Unlevered views use an unlevered tax (no interest or fees).
-- §13.11: one FX (400) for the HUF deposits and land payments.
-- §13.12: one quarterly timeline from 01-Oct-2025 (v3: monthly RtB route, quarterly HTM); flows at period ends; the exit quarter belongs to the seller; the 12 % return on a payment starts in the next quarter (v3: in the month paid).
-- §13.13: no typed values on calc sheets, no data tables, one break-even (the implied price at the buyer target IRR), `n/a` plus a check instead of IFERROR(…,0).
-- Not in §13, by design of the new structure: no working capital (v3: 30 days receivable and payable), construction capex spread linearly over NTP → COD (v3: buyer-model monthly curve), case A COD = 31-Mar-2028 (v3 01-Apr-2028 = operations from the same day), degradation on a 365-day year.
-
-## 7. v3 bugs not reproduced (SPEC §13)
-
-Summary!D28 → RTB_Model!D75 instead of D78; Sensitivities!E39:E42 use D73/D74; Calculation!G225 omits G221; Dyn_Inp!G24/H26:Y26 row offsets; Control!D26 overrides the construction-start default; stale notes. Also found: the developer's proceeds (Calculation F225) omit the 150 land apport deducted at F155.

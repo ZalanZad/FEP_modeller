@@ -1,17 +1,15 @@
-"""Zalahaláp – reconciliation of Scenario A (Calc_1) to the original model (SPEC §3.2, §13).
+"""Zalahaláp – reconciliation of the v2 workbook (SPEC v2 §9): the v3 shadow, a bridge from v3 to the PV + 4 h column
+(Base, merchant BESS basis) and the tie-out of an independent Python shadow to the workbook.
 
-    python3 projects/zalahalap/reconcile.py            → data/recon_targets.csv and out/reconciliation.md
-    python3 projects/zalahalap/reconcile.py --targets  → data/recon_targets.csv only (no workbook needed)
+    python3 projects/zalahalap/reconcile.py            → out/reconciliation.md (needs LibreOffice for Low / High)
+    python3 projects/zalahalap/reconcile.py --targets  → data/recon_targets.csv only
 
-Three independent pieces:
-  1. data/old_engine/old_zhlp.py – Python shadow of the original v3 model (monthly RtB route, quarterly HTM). It ties
-     to every target of data/old_engine/old_targets.csv; its switches apply the §13 fixes inside the v3 structure.
-  2. Shadow – this file: an independent quarterly Python engine of the new structure (same rules as the workbook,
-     coded from the SPEC and the v3 inputs, never read from the workbook). Its Scenario A values in the reconciliation
-     set (set 2, every fix off) are stored in data/recon_targets.csv; build.py writes them to Curves and the Checks
-     sheet tests that the workbook ties to them (0.1 %, 0.1 pp).
-  3. The workbook itself (out/Zalahalap_Model.xlsm, private LibreOffice copy): set 2, then each fix and user decision
-     switched on in turn (cumulative), with the solvers re-run, ending at the base set.
+Three independent calculations:
+  1. data/old_engine/old_zhlp.py – Python shadow of the original v3 model; ties to every target of old_targets.csv.
+  2. run() below – the v1 structure (quarterly, SPEC v1) with switches for the §13 fixes; its v3-rules set is
+     stored in data/recon_targets.csv. It carries the bridge from v3 to the v2 inputs on the v1 grid.
+  3. shadow.py – the v2 structure (annual, SPEC v2), coded from the SPEC; it carries the last bridge steps and ties to
+     the recalculated workbook (out/Zalahalap_Model_recalc.xlsx; Low / High recalculated here in LibreOffice).
 Stdlib + fepm.
 """
 from __future__ import annotations
@@ -19,21 +17,22 @@ from __future__ import annotations
 import argparse
 import csv
 import datetime as dt
-import shutil
 import sys
-import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(HERE / "data" / "old_engine"))
+sys.path.insert(0, str(HERE))
 
 import old_zhlp as V3  # noqa: E402
+import shadow as V2  # noqa: E402
 
 DATA = HERE / "data"
 OUT = HERE / "out"
-XLSM = OUT / "Zalahalap_Model.xlsm"
+XLSX = OUT / "Zalahalap_Model.xlsx"
+RECALC = OUT / "Zalahalap_Model_recalc.xlsx"
 EXCEL0 = dt.date(1899, 12, 30)
 N = 155
 START = dt.date(2025, 10, 1)
@@ -401,89 +400,6 @@ def write_targets():
     return path, sh
 
 
-# =========================================================================================== workbook bridge
-OUTS = [  # key, label, unit, (column, Calc_1 row label)
-    ("rtb_profit", "FEP profit – RtB", "k", ("I", "FEP cash flow – sale at RtB")),
-    ("rtb_irr", "FEP IRR – RtB", "%", ("E", "FEP IRR – sale at RtB, after tax")),
-    ("rtb_moic", "FEP MOIC – RtB", "x", ("E", "FEP MOIC – sale at RtB (receipts after tax ÷ outlays)")),
-    ("htm_irr", "FEP IRR – HTM", "%", ("E", "FEP IRR – hold to maturity, levered, after tax")),
-    ("htm_npv", "FEP NPV – HTM", "k", ("E", "FEP NPV – hold to maturity")),
-    ("proj_irr", "Project IRR", "%", ("E", "Project IRR, unlevered, after tax")),
-    ("buyer_irr", "Buyer IRR at 90", "%", ("E", "Buyer IRR at RtB, unlevered, after tax")),
-    ("life_revenue", "Lifetime revenue", "k", ("I", "Revenue (E: first full year)")),
-    ("life_ebitda", "Lifetime EBITDA", "k", ("I", "EBITDA (E: first full year)")),
-]
-TARGET_MAP = {  # v3 target key -> (column, Calc_1 row label, scale to the target unit), or None (no new-model row)
-    "rtb_xirr_incl": ("E", "FEP IRR – sale at RtB, after tax", 1),
-    "rtb_xirr_excl": None,
-    "rtb_moic_incl_dep": ("E", "FEP MOIC – sale at RtB (receipts after tax ÷ outlays)", 1),
-    "rtb_moic_excl_dep": None, "calc_moic_incl_dep": None, "calc_moic_excl_dep": None,
-    "rtb_net_profit": ("I", "FEP cash flow – sale at RtB", 1000),
-    "rtb_capital": ("I", "FEP outlays – RtB route", -1000),
-    "rtb_proceeds": ("I", "FEP receipts – RtB route", 1000),
-    "developer_profit": ("I", "PSH cash flow – sale at RtB", 1),
-    "rtb_breakeven": None,
-    "htm_xirr": ("E", "FEP IRR – hold to maturity, levered, after tax", 1),
-    "htm_moic": ("E", "FEP MOIC – hold to maturity", 1),
-    "htm_npv": ("E", "FEP NPV – hold to maturity", 1000),
-    "htm_capital": ("E", "FEP capital invested – hold to maturity (outflows)", 1000),
-    "htm_payback": None,
-    "project_irr": ("E", "Project IRR, unlevered, after tax", 1),
-    "buyer_irr": ("E", "Buyer IRR at RtB, unlevered, after tax", 1),
-    "buyer_moic": None, "buyer_npv": None,
-    "ffy_gwh": ("E", "PV generation after availability and degradation (E: first full year)", 1000),
-    "ffy_price": None,
-    "ffy_revenue": ("E", "Revenue (E: first full year)", 1000),
-    "life_pv_revenue": ("I", "PV revenue: direct export and energy sent to the BESS (E: first full year)", 1000),
-    "life_goo": ("I", "Guarantee of origin revenue", 1000),
-    "life_revenue": ("I", "Revenue (E: first full year)", 1000),
-    "life_ebitda": ("I", "EBITDA (E: first full year)", 1000),
-    "life_margin": None,
-    "life_capex": ("E", "Remaining construction capex (E: total incl. early works, F: of which BESS)", 1000),
-    "life_opex": None,
-    "life_bess_net": ("I", "BESS revenue (E: first full year)", 1000),
-}
-WHY = {  # target key -> why the new structure differs in the reconciliation set (SPEC §13)
-    "rtb_xirr_incl": "quarterly grid (§13.12): the acquisition flows move from 30-Nov-25 to 31-Dec-25 and the sale "
-                     "from 31-Oct-26 to 31-Dec-26, the pre-RtB costs to quarter ends; the profit ties",
-    "rtb_moic_incl_dep": "gross receipts ÷ gross outlays as v3; deposits counted when paid and refunded (v3: peak "
-                         "balance), guarantee fees and the return on the quarterly grid",
-    "rtb_net_profit": "FEP now pays 9 % CIT on the 12 % return it receives (fix round 1, D7); v3 had no tax at FEP",
-    "rtb_capital": "guarantee fees run to the end of the exit quarter (31-Dec-26; v3: the sale month) on "
-                   "quarter-end balances; deposits equal (1,776)",
-    "rtb_proceeds": "mirror of capital and profit (proceeds before FEP tax)",
-    "developer_profit": "v3 deducts the PSH land apport (150) from the price but never credits it to PSH "
-                        "(Calculation F225); the new model pays it back to PSH",
-    "htm_xirr": "no working capital, linear construction spread (v3: buyer-model monthly curve), deposits and "
-                "guarantees by line, PSH buy-out at the exit, tax with development costs capitalised (§13.10)",
-    "htm_moic": "as the HTM IRR",
-    "htm_npv": "as the HTM IRR; discounted to 31-Dec-25 in both",
-    "htm_capital": "as the HTM IRR",
-    "project_irr": "§13.4: includes all project cash (deposits, guarantees, pre-RtB costs, early works when paid); "
-                   "no working capital; tax base incl. development costs",
-    "buyer_irr": "buyer pays the price, early works, cash deposits and pre-RtB costs at the exit (v3: price and early "
-                 "works only), bears guarantee fees to COD and gets the deposits back at COD",
-    "ffy_gwh": "degradation on elapsed years at the period start with a 365-day year (v3: 366 in leap years)",
-    "ffy_revenue": "as generation; no working-capital timing",
-    "life_pv_revenue": "operations end 31-Mar-2063 = COD + 35 years (v3: 30-Apr-2063, one month more)",
-    "life_goo": "as PV revenue", "life_revenue": "as PV revenue", "life_ebitda": "as PV revenue (opex rules identical)",
-    "life_capex": "same total (57,170)", "life_bess_net": "same v3 stack (fix 6 off); one month shorter life",
-}
-STEPS = [  # label, Inputs names whose set-2 override is removed (cumulative), SPEC reference
-    ("Fix 2: pre-RtB costs reimbursed as spent", ["In_Fix_Reimb"], "§13.2"),
-    ("Fix 3: no bank-guarantee phantom", ["In_Fix_BG"], "§13.3"),
-    ("Fix 5: PV export clipped (2 %)", ["In_Fix_Clip"], "§13.5"),
-    ("Fix 6: Aurora 4 h block total for the BESS", ["In_Fix_BESS"], "§13.6"),
-    ("Fix 7: augmentation indexed, Aurora repower year", ["In_Fix_Augment"], "§13.7"),
-    ("Fix 8: dated act/365 return, 31-Dec capitalisation", ["In_Fix_Interest"], "§13.8"),
-    ("User: share step (60 % at 90)", ["In_Share_Rule"], "§13.14, §0.4"),
-    ("User: early works, four lines; E48/E49 at NTP", ["In_Milestones_Scope"], "§13.15, §0.3, §0.5"),
-    ("Tax: HIPA and innovation contribution", ["In_HIPA", "In_Innovation"], "§13.10"),
-    ("Tax defaults: BESS 10 years, losses lapse after 5 years", ["In_Dep_BESS_Years", "In_Loss_Years"], "§15.9"),
-    ("JV sheet 221025: SPV 549, DSA loan, no PSH land step", ["In_SPV_Price", "In_SPV_Interest", "In_DSA_Per_MWp",
-                                                               "In_PSH_Land_Step", "In_EW_To_PSH"], "§7, §15.10"),
-    ("Debt: 55 % gearing (Bana terms)", ["In_Gearing"], "§13.9, §15.1"),
-]
 OLD_STEPS = [  # label, old_zhlp switches (cumulative)
     ("Fix 3: no bank-guarantee phantom", dict(fix3_bg=True)),
     ("Fix 2: pre-RtB costs reimbursed as spent", dict(fix2_reimb=True)),
@@ -500,11 +416,122 @@ OLD_OUTS = [("rtb_net_profit", "FEP profit – RtB", "m"), ("rtb_xirr_incl", "FE
             ("life_revenue", "Lifetime revenue", "m"), ("life_ebitda", "Lifetime EBITDA", "m")]
 
 
+
+def old_bridge():
+    block = {y: v for y, v in curves()[("storage_total", "2027 solar DC 1.0cy 4h")].items()}
+    over, out = {}, [("v3 original (shadow = targets)", V3.run())]
+    for label, sw in OLD_STEPS:
+        over.update(sw)
+        out.append((label, V3.run(**over, bess_block=block, aug_year_new=2048)))
+    return out
+
+
+# =========================================================================================== bridge v3 → v2
+BLK = "2027 solar DC 1.0cy 4h"
+D = dt.date
+V1_STEPS = [  # label, SPEC reference, switches on the v1 quarterly shadow (cumulative from set 2)
+    ("§13 fixes 2, 3, 5–8 (reimbursement timing, guarantee phantom, clipping, Aurora 4 h block, augmentation, "
+     "act/365 return)", "v1 §13.2–13.8", dict(fix2=1, fix3=1, fix5=1, fix6=1, fix7=1, fix8=1)),
+    ("§13.14 share step (60 % at ≤ 90)", "v1 §13.14", dict(step=1)),
+    ("§13.16–13.17 Aurora 4 h direct and transfer prices, DC clipping 0", "v1 §13.16–17",
+     dict(pv_curve=("direct_price", BLK), pv_tr_curve=("transfer_price", BLK), clip=0.0)),
+    ("63 MWp, 1,265 MWh/MWp, 49.9 MVA", "v2 §3.1", dict(mwp=63, yld=1265, mva=49.9)),
+    ("v2 dates: RtB 31-Dec-26, exit 31-Mar-27, NTP 30-Jun-27", "v2 §3.2",
+     dict(rtb=D(2026, 12, 31), exit=D(2027, 3, 31), ntp=D(2027, 6, 30))),
+    ("Early works four lines; E48/E49 to capex at NTP", "v1 §13.15", dict(scope=4, ew_psh=0)),
+    ("SPV price 549 (no return), DSA 945, no PSH land step", "v2 §6", dict(spv=549, spv_int=0, dsa=15, psh_step=0)),
+    ("Tax defaults: BESS 10 years, losses lapse NTP + 5 years", "v2 §3.2", dict(dep_bess=10, loss_years=5)),
+]
+V2_STEPS = [  # label, SPEC reference, shadow.py overrides (the last one is the base)
+    ("Annual timeline, year-end dates (the RtB route keeps exact dates), unlevered, v2 JV split", "v2 §4, §6",
+     dict(ppa_years=0, hipa=0, innov=0)),
+    ("HIPA 2 % and innovation contribution 0.3 % on revenue", "v2 §3.2", dict(ppa_years=0)),
+    ("PPA 5 years at 45 €/MWh on all PV output = base", "v2 §5.2", {}),
+]
+BRIDGE = [("hold_irr", "FEP hold IRR", "%"), ("proj_irr", "Project IRR", "%"), ("rtb_profit", "RtB profit (k€)", "k"),
+          ("rtb_irr", "RtB XIRR", "%"), ("implied_raw", "Implied RtB premium before the 0 floor (k€/MWp)", "k")]
+
+
+def bridge():
+    tg = V3.targets()
+    rows = [("v3 original (targets; the v3 shadow ties)", "v1 §3.2",
+             dict(hold_irr=tg["htm_xirr"], proj_irr=tg["project_irr"], rtb_profit=tg["rtb_net_profit"] * 1000,
+                  rtb_irr=tg["rtb_xirr_incl"], implied_raw=None))]
+    over = dict(SET2)
+    v1 = lambda r: dict(r, hold_irr=r["htm_irr"])           # noqa: E731  (v1 names the hold IRR htm_irr)
+    rows.append(("v1 structure (quarterly), v3 rules: set 2 of the v1 workbook", "v1 §11", v1(run(params(**over)))))
+    for label, ref, sw in V1_STEPS:
+        over.update(sw)
+        rows.append((label, ref, v1(run(params(**over)))))
+    for label, ref, kw in V2_STEPS:
+        rows.append((label, ref, V2.run("PV + 4h BESS", "Base", **kw)))
+    return rows
+
+
+# =========================================================================================== tie-out
+TIE = [  # shadow key, Dashboard label, occurrence, scale (workbook = shadow / scale)
+    ("gen_ffy", "PV generation", 0, 1000), ("rev_ffy", "Revenue", 0, 1), ("ebitda_ffy", "EBITDA", 0, 1),
+    ("rev_life", "Revenue", 1, 1), ("ebitda_life", "EBITDA", 1, 1), ("tax_life", "Lifetime corporate income tax, "
+                                                                     "hold route (SPV)", 0, -1),
+    ("capex_total", "Total uses to COD (= equity, unlevered)", 0, 1),
+    ("implied_rtb", "Implied premium at the buyer target IRR (floored at 0)", 0, 1),
+    ("buyer_rtb", "Buyer IRR at our price, unlevered after tax", 0, 1),
+    ("buyer_rtb_pre", "Buyer IRR at our price, unlevered before tax", 0, 1),
+    ("rtb_profit_pre", "FEP profit, pre-tax", 0, 1), ("rtb_profit", "FEP profit, post-tax", 0, 1),
+    ("rtb_moic", "MOIC, pre-tax", 0, 1), ("rtb_irr_pre", "IRR, pre-tax", 0, 1), ("rtb_irr", "IRR, post-tax", 0, 1),
+    ("rtb_npv", "NPV at the discount rate, post-tax (to the acquisition date)", 0, 1), ("psh_rtb", "PSH profit", 0, 1),
+    ("implied_cod", "Implied COD price at the buyer target IRR (floored at 0)", 0, 1),
+    ("ev", "Enterprise value used", 0, 1), ("buyer_cod", "Buyer IRR at our price, unlevered after tax", 1, 1),
+    ("buyer_cod_pre", "Buyer IRR at our price, unlevered before tax", 1, 1),
+    ("cod_contrib", "FEP contributions to COD", 0, 1), ("cod_proceeds", "FEP proceeds at COD", 0, 1),
+    ("cod_profit_pre", "FEP profit, pre-tax", 1, 1), ("cod_profit", "FEP profit, post-tax", 1, 1),
+    ("cod_moic", "MOIC, pre-tax", 1, 1), ("cod_irr_pre", "IRR, pre-tax", 1, 1), ("cod_irr", "IRR, post-tax", 1, 1),
+    ("cod_npv", "NPV at the discount rate, post-tax (to the acquisition date)", 1, 1), ("psh_cod", "PSH profit", 1, 1),
+    ("hold_equity", "FEP equity invested (incl. the 2048 repower)", 0, 1), ("hold_dist", "FEP distributions", 0, 1),
+    ("hold_profit_pre", "FEP profit, pre-tax", 2, 1), ("hold_profit", "FEP profit, post-tax", 2, 1),
+    ("hold_irr", "IRR, after tax", 0, 1), ("hold_irr_pre", "IRR, before tax", 0, 1),
+    ("hold_npv", "NPV at the discount rate, after tax (to the acquisition date)", 0, 1),
+    ("proj_irr", "Memo: project IRR, unlevered after tax (FEP's before the buy-out)", 0, 1),
+    ("proj_irr_pre", "Memo: project IRR, unlevered before tax", 0, 1)]
+CASES = ["PV only", "PV + 2h BESS", "PV + 4h BESS"]
+
+
+def dashboard_cells():
+    """(shadow key, scale) -> Dashboard row, by label and occurrence in column C (visible part only)."""
+    import openpyxl
+    ws = openpyxl.load_workbook(XLSX, read_only=False)["Dashboard"]
+    seen, rows = {}, {}
+    for r in range(1, ws.max_row + 1):
+        lab = ws.cell(r, 3).value
+        if isinstance(lab, str) and not ws.row_dimensions[r].hidden:
+            seen.setdefault(lab, []).append(r)
+    for key, lab, nth, scale in TIE:
+        rows[key] = (seen[lab][nth], scale)
+    return rows
+
+
+def tie_out(sensitivities=("Base", "Low", "High")):
+    """Workbook (LibreOffice) vs shadow for every case and sensitivity: {(sens, case, key): (wb, shadow)}."""
+    from fepm.recalc import Office
+    cells = dashboard_cells()
+    res = {}
+    with Office(XLSX) as lo:
+        for sens in sensitivities:
+            lo.set("Dash_Case", sens)
+            lo.calculate()
+            mc = lo.get("Master_Check")
+            for i, case in enumerate(CASES):
+                sh = V2.run(case, sens)
+                for key, (r, scale) in cells.items():
+                    res[(sens, case, key)] = (lo.get(f"Dashboard!{'EFG'[i]}{r}"), sh[key] / scale)
+            res[(sens, "master", "check")] = (mc, 0)
+    return res
+
+
+# =========================================================================================== report
 def fmt(v, unit):
     if v is None:
         return "–"
-    if isinstance(v, str):
-        return v
     if unit == "%":
         return f"{v * 100:.2f} %"
     if unit == "x":
@@ -522,123 +549,71 @@ def delta(a, b, unit):
         return f"{d * 100:+.2f} pp"
     if unit == "x":
         return f"{d:+.3f}x"
-    return f"{d:+,.1f}" if unit == "k" else f"{d:+,.3f}"
+    return f"{d:+,.3f}" if unit == "m" else f"{d:+,.1f}"
 
 
-def row_index(path):
-    import openpyxl
-    ws = openpyxl.load_workbook(path, read_only=True)["Calc_1"]
-    idx = {}
-    for r, row in enumerate(ws.iter_rows(min_col=3, max_col=3, values_only=True), 1):
-        if row[0] and row[0] not in idx:
-            idx[row[0]] = r
-    return idx
-
-
-def input_rows(path, names):
-    import openpyxl
-    wb = openpyxl.load_workbook(path, read_only=True)
-    return {n: int(wb.defined_names[n].attr_text.split("$")[-1]) for n in names}
-
-
-def workbook_bridge():
-    from fepm.recalc import Office
-    idx = row_index(XLSM)
-    names = sorted({n for _, ns, _ in STEPS for n in ns})
-    rows = input_rows(XLSM, names)
-    snap = lambda lo: {k: lo.get(f"Calc_1!{c}{idx[lab]}") for k, _, _, (c, lab) in OUTS}  # noqa: E731
-    tmap = lambda lo: {k: (lo.get(f"Calc_1!{c}{idx[lab]}") / s if m else None)  # noqa: E731
-                       for k, m in TARGET_MAP.items() for c, lab, s in [m or ("E", None, 1)]}
-    res = []
-    with tempfile.TemporaryDirectory() as tmp:
-        work = Path(tmp) / XLSM.name
-        shutil.copy(XLSM, work)
-        with Office(work) as lo:
-            lo.set("Scenario_Name", "Reconciliation (v3 rules)")
-            lo.run_macro("Scenarios", "RunSolvers")
-            set2 = tmap(lo)
-            checks2 = lo.get("Model_Checks")
-            res.append(("Workbook, set 2 (Reconciliation, v3 rules)", snap(lo)))
-            for label, ns, _ in STEPS:
-                for n in ns:
-                    lo._range(f"Inputs!I{rows[n]}").getCellByPosition(0, 0).setFormula("")
-                lo.run_macro("Scenarios", "RunSolvers")
-                res.append((label, snap(lo)))
-            lo.set("Scenario_Name", "Base")
-            lo.run_macro("Scenarios", "RunSolvers")
-            base = snap(lo)
-            base_b = {k: lo.get(f"Calc_2!{c}{idx[lab]}") for k, _, _, (c, lab) in OUTS}
-            base_b["implied_rtb"] = lo.get(f"Calc_2!E{idx[IMPLIED]}")
-            checks1 = lo.get("Model_Checks")
-    return set2, res, base, checks2, checks1, base_b
-
-
-IMPLIED = "Implied RtB price at the target IRR, floored at 0 (E), closed form (F)"
-BLK = "2027 solar DC 1.0cy 4h"
-FIX1 = [  # case B, cumulative from the build before fix round 1 (shadow switches)
-    ("v1 build, 5b343d2 (shadow)", dict(LEGACY)),
-    ("M1: no grid charging, PV-only factor by component", dict(grid_import=0)),
-    ("M2: two PV prices (direct export, transfer to the BESS)",
-     dict(pv_curve=("direct_price", BLK), pv_tr_curve=("transfer_price", BLK))),
-    ("Clipping 0 % for the DC-coupled case", dict(clip=0.0)),
-    ("D6: DSA and SPV price out of the SPV tax base", dict(dep_sh=False)),
-    ("Unlevered tax in project, buyer and implied price", dict(unlev_tax=True)),
-    ("D7: FEP taxed on the 12 % return", dict(int_tax=True)),
-]
-FIX1_OUTS = [("htm_irr", "FEP IRR – hold", "%"), ("htm_irr_pre", "FEP IRR – hold, pre-tax", "%"),
-             ("proj_irr", "Project IRR", "%"), ("buyer_irr", "Buyer IRR at 90", "%"),
-             ("implied_raw", "Implied RtB price before the 0 floor (k€/MWp)", "k"),
-             ("rtb_profit", "FEP profit – RtB (k€)", "k"), ("first_rev", "Revenue, first full year (k€)", "k")]
-
-
-def fix1_bridge():
-    over, out = {}, []
-    for label, sw in FIX1:
-        over.update(sw)
-        out.append((label, run(params_b(**over))))
-    return out
-
-
-def old_bridge():
-    block = {y: v for y, v in curves()[("storage_total", "2027 solar DC 1.0cy 4h")].items()}
-    over, out = {}, [("v3 original (shadow = targets)", V3.run())]
-    for label, sw in OLD_STEPS:
-        over.update(sw)
-        out.append((label, V3.run(**over, bess_block=block, aug_year_new=2048)))
-    return out
-
-
-def report(set2, res, base, checks2, checks1, base_b):
+def report(tie):
     tg, rows3 = V3.targets(), V3.run()
-    tol = lambda t, x, unit: abs(x - t) <= (0.001 if unit == "%" else 0.001 * max(1, abs(t)))  # noqa: E731
-    units = {r["key"]: r["unit"] for r in csv.DictReader(open(DATA / "old_engine" / "old_targets.csv"))}
-    sh2 = run(params(**SET2))
-    L = ["# Zalahaláp – reconciliation of Scenario A to the original model", "",
-         "Original: `reference/zalahalap/Zalahalap_model_10112025_v3.xlsb` (Negotiated case), targets in "
-         "`data/old_engine/old_targets.csv` ([R] = from the copy with Aurora_Curve!C8 = 0, SPEC §3.2). New: "
-         "`out/Zalahalap_Model.xlsm`, Calc_1 = case A. Written by `reconcile.py`.", "",
-         "Three independent calculations: the v3 shadow `data/old_engine/old_zhlp.py` (ties to every target), the "
-         "new-structure shadow in `reconcile.py` (quarterly, coded from the SPEC; stored in `data/recon_targets.csv` "
-         "and tested on the Checks sheet), and the workbook recalculated in LibreOffice with the solvers re-run.", "",
-         f"Model checks: set 2 = {checks2:g}, base = {checks1:g}. Tolerance 0.1 % on values, 0.1 pp on rates.", "",
-         "## 1. The original targets", "",
-         "| Target | Unit | v3 cell | v3 target | v3 shadow | Shadow ties | New model, set 2 | Ties | Why it differs |",
-         "|---|---|---|---:|---:|---|---:|---|---|"]
-    cells = {r["key"]: r["cell"] + (" [R]" if r["basis"] == "R" else "")
-             for r in csv.DictReader(open(DATA / "old_engine" / "old_targets.csv"))}
-    for k, t in tg.items():
-        u = {"%": "%", "x": "x"}.get(units[k], "m" if units[k] == "EUR m" else "k")
-        x3 = rows3.get(k)
-        ok3 = "yes" if x3 is not None and abs(x3 - t) <= 1e-6 * max(1, abs(t)) else "NO"
-        xn = set2.get(k)
-        if xn is None:
-            L.append(f"| {k} | {units[k]} | {cells[k]} | {fmt(t, u)} | {fmt(x3, u)} | {ok3} | – | – | "
-                     "no equivalent row (by design, §13.13: one RtB return, one break-even = implied price) |")
-            continue
-        ok = "yes" if tol(t, xn, u) else "no"
-        L.append(f"| {k} | {units[k]} | {cells[k]} | {fmt(t, u)} | {fmt(x3, u)} | {ok3} | {fmt(xn, u)} | {ok} | "
-                 f"{WHY.get(k, '') if ok == 'no' else ''} |")
-    L += ["", "## 2. Each §13 change inside the v3 structure (v3 shadow, cumulative)", "",
+    ties3 = sum(1 for k, t in tg.items() if rows3.get(k) is not None and abs(rows3[k] - t) <= 1e-6 * max(1, abs(t)))
+    L = ["# Zalahaláp – reconciliation (SPEC v2 §9)", "",
+         "Original: `reference/zalahalap/Zalahalap_model_10112025_v3.xlsb` (Negotiated case). New: "
+         "`out/Zalahalap_Model.xlsx` (SPEC v2: PV only | PV + 2 h | PV + 4 h, unlevered, 5-year PV PPA). Written by "
+         "`reconcile.py`.", "",
+         "Three independent calculations: the v3 shadow `data/old_engine/old_zhlp.py`, the v1-structure shadow in "
+         "`reconcile.py` (quarterly, SPEC v1, with a switch per §13 fix) and the v2 shadow `shadow.py` (annual, coded "
+         "from SPEC v2). The workbook is recalculated in LibreOffice.", "",
+         "## 1. The v3 shadow ties to the original", "",
+         f"`old_zhlp.py` reproduces {ties3} of {len(tg)} targets of `data/old_engine/old_targets.csv` to 1e-6 "
+         "(HTM targets from the copy with Aurora_Curve!C8 = 0, SPEC v1 §3.2).", "",
+         "## 2. Bridge: v3 → PV + 4 h column, Base, merchant BESS basis", "",
+         "Rows 1–2 are values; each further row switches one change on (cumulative) and shows its effect. Rows 2–10 run on the v1 quarterly shadow (unlevered: gearing 0 "
+         "throughout), rows 11–13 on the v2 annual shadow; the last row is the workbook's PV + 4 h column (Base). The "
+         "implied premium is shown before the 0 floor; the workbook floors it at 0.", "",
+         "| Step | SPEC | " + " | ".join(lbl for _, lbl, _ in BRIDGE) + " |", "|---|---|" + "---:|" * len(BRIDGE)]
+    prev = None
+    for k, (label, ref, vals) in enumerate(bridge()):
+        if k < 2:
+            L.append(f"| {label} | {ref} | " + " | ".join(fmt(vals.get(x), u) for x, _, u in BRIDGE) + " |")
+        else:
+            L.append(f"| + {label} | {ref} | " + " | ".join(delta(prev.get(x), vals.get(x), u) for x, _, u in BRIDGE)
+                     + " |")
+        prev = vals
+    wb = {x: tie[("Base", "PV + 4h BESS", "implied_rtb" if x == "implied_raw" else x)][0] for x, _, _ in BRIDGE}
+    L.append("| **PV + 4 h, Base: the workbook (implied premium floored at 0)** | | "
+             + " | ".join(fmt(wb[x], u) for x, _, u in BRIDGE) + " |")
+    L += ["", "Notes on the steps:", "",
+          "- Row 2 vs row 1: the v1 quarterly structure (period-end flows, all project cash in the project IRR, FEP "
+          "taxed on the 12 % return, PSH land paid back); documented in SPEC v1 §13 and the v1 reconciliation.",
+          "- §13.6 (Aurora's 4 h block total instead of v3's 0.591-scaled stack) lifts the hold IRR; §13.16–17 then "
+          "price the PV at Aurora's direct and transfer prices (v3: 65 % of baseload on all output) and cut it back.",
+          "- The v2 dates move the exit five months later and the RtB XIRR falls accordingly; the SPV price 549 (to "
+          "FEP before the split, no return) and the DSA loan lower the RtB profit through the split.",
+          "- Annual timeline step: year-end dates on the grid, construction by calendar month share, the pre-COD cash "
+          "dated (RtB route) and mapped by year, the buyer reimbursements inside the JV split, guarantee fees paid at "
+          "release, deposits returned at COD on the hold route, no debt, one SPV tax.",
+          "- PPA step: 45 €/MWh nominal on all PV output for 5 years (Aurora's direct price is 98–108 €/MWh nominal in "
+          "2028–29 for the 4 h block), no balancing in those years.", "",
+          "## 3. The v2 shadow ties to the workbook", "",
+          "Workbook recalculated in LibreOffice with `Dash_Case` = Base, Low, High; every Dashboard result below "
+          "compared with `shadow.py` (EUR k, rates, multiples).", "",
+          "| Sensitivity | Master check | Results compared | Largest absolute difference | Largest relative difference |",
+          "|---|---:|---:|---:|---:|"]
+    for sens in ("Base", "Low", "High"):
+        diffs = [(abs(w - s), abs(w - s) / max(1e-9, abs(s))) for (se, c, k), (w, s) in tie.items()
+                 if se == sens and c != "master"]
+        L.append(f"| {sens} | {tie[(sens, 'master', 'check')][0]:g} | {len(diffs)} | {max(d for d, _ in diffs):.2e} | "
+                 f"{max(r for _, r in diffs):.2e} |")
+    L += ["", "Base results (workbook):", "", "| Result | " + " | ".join(CASES) + " |", "|---|---:|---:|---:|"]
+    units = {k: ("%" if "irr" in k or k.startswith("buyer") else "x" if "moic" in k else "k") for k, *_ in TIE}
+    route = lambda k: ("Sale at RtB: " if k.startswith(("rtb_", "psh_rtb", "buyer_rtb", "implied_rtb")) else  # noqa
+                       "Sale at COD: " if k.startswith(("cod_", "psh_cod", "buyer_cod", "implied_cod", "ev")) else
+                       "Hold: " if k.startswith(("hold_", "proj_")) else "")
+    for key, lab, nth, scale in TIE:
+        unit = " (GWh)" if scale == 1000 else ""
+        L.append(f"| {route(key)}{lab}{unit} | " + " | ".join(fmt(tie[("Base", c, key)][0], units[key]) for c in CASES)
+                 + " |")
+    L += ["", "## 4. Each §13 change inside the v3 structure (v3 shadow, cumulative; appendix)", "",
+          "Values in € m (profit, NPV, lifetime totals).", "",
           "| Step | " + " | ".join(lbl for _, lbl, _ in OLD_OUTS) + " |", "|---|" + "---:|" * len(OLD_OUTS)]
     prev = None
     for label, vals in old_bridge():
@@ -647,70 +622,7 @@ def report(set2, res, base, checks2, checks1, base_b):
         else:
             L.append(f"| + {label} | " + " | ".join(delta(prev[k], vals[k], u) for k, _, u in OLD_OUTS) + " |")
         prev = vals
-    L.append(f"| **v3 structure, all switchable fixes** | " + " | ".join(fmt(prev[k], u) for k, _, u in OLD_OUTS)
-             + " |")
-    L += ["", "Values in € m (profit, NPV, lifetime totals). At the price of 90 the share step changes nothing "
-          "(both rules give 60 %, user 22-Oct-2026).", "",
-          "## 3. New structure: reconciliation set → base set (workbook, cumulative)", "",
-          "Values in € k (profit, NPV, lifetime totals). Each step removes the set-2 override of the inputs named "
-          "(the set then inherits the base value) and re-runs Solver.bas.", "",
-          "| Step | SPEC | " + " | ".join(lbl for _, lbl, _, _ in OUTS) + " |", "|---|---|" + "---:|" * len(OUTS)]
-    prev = None
-    spec = {lbl: s for lbl, _, s in STEPS}
-    for label, vals in res:
-        if prev is None:
-            L.append(f"| {label} | §10 | " + " | ".join(fmt(vals[k], u) for k, _, u, _ in OUTS) + " |")
-        else:
-            L.append(f"| + {label} | {spec[label]} | " + " | ".join(delta(prev[k], vals[k], u) for k, _, u, _ in OUTS)
-                     + " |")
-        prev = vals
-    L.append("| **Workbook, base set** | | " + " | ".join(fmt(base[k], u) for k, _, u, _ in OUTS) + " |")
-    resid = max(abs((base[k] or 0) - (prev[k] or 0)) for k, _, _, _ in OUTS)
-    L += ["", f"Last step vs the base set: largest difference {resid:.2e} (the steps restore every set-2 override).",
-          "", "## 4. Independent shadow vs the workbook (set 2, Calc_1)", "",
-          "| Headline | Shadow | Workbook | Difference |", "|---|---:|---:|---:|"]
-    for k, lbl, u, _ in OUTS:
-        if k in sh2:
-            L.append(f"| {lbl} | {fmt(sh2[k], u)} | {fmt(res[0][1][k], u)} | {sh2[k] - res[0][1][k]:.2e} |")
-    L += ["", "## 5. Fix rounds 1–2 (22-Oct-2026): case B bridge, v1 → new base (shadow, cumulative)", "",
-          "Each step switches one change on in the independent shadow; the first line equals the v1 workbook (commit "
-          "5b343d2: hold 10.72 %, implied RtB 165.4 k€/MWp, buyer IRR 8.83 %), the last line is checked against the "
-          "new workbook (Calc_2, base set). The DSRA fix (COD sale only), D1 and D2 do not move these columns.", "",
-          "| Step | " + " | ".join(lbl for _, lbl, _ in FIX1_OUTS) + " |", "|---|" + "---:|" * len(FIX1_OUTS)]
-    prev = None
-    for label, vals in fix1_bridge():
-        if prev is None:
-            L.append(f"| {label} | " + " | ".join(fmt(vals[k], u) for k, _, u in FIX1_OUTS) + " |")
-        else:
-            L.append(f"| + {label} | " + " | ".join(delta(prev[k], vals[k], u) for k, _, u in FIX1_OUTS) + " |")
-        prev = vals
-    L.append("| **Shadow, new base** | " + " | ".join(fmt(prev[k], u) for k, _, u in FIX1_OUTS) + " |")
-    wbk = {"htm_irr": base_b["htm_irr"], "proj_irr": base_b["proj_irr"], "buyer_irr": base_b["buyer_irr"],
-           "rtb_profit": base_b["rtb_profit"]}
-    L.append("| **Workbook, Calc_2 base** | " + " | ".join(fmt(wbk.get(k), u) for k, _, u in FIX1_OUTS) + " |")
-    L += ["", f"Implied RtB price in the workbook (floored at 0): {base_b['implied_rtb']:.1f} k€/MWp.",
-          "", "## 6. Structural changes (§13 items without a switch)", "",
-          "- §13.1: Aurora_Curve!C8 = 'no ' breaks the v3 HTM chain; the [R] targets come from the patched copy.",
-          "- §13.4: the project IRR includes all project cash (v3 HTM_Model!D79 left out deposits, guarantees and "
-          "pre-RtB costs).",
-          "- §13.9: v3 has no debt; set 2 runs at 0 % gearing, the base at 55 % (Bana terms, SPEC §15.1).",
-          "- §13.10: HIPA and the innovation contribution are off in set 2; tax on the sale gain per deal form "
-          "(share deal, exempt; asset deal taxed); FEP pays CIT on the 12 % return as interest income. The SPV tax "
-          "base also carries IDC and pre-RtB costs (v3: construction capex only); the DSA and the SPV price are "
-          "shareholder-level and stay out. Unlevered views use an unlevered tax (no interest or fees).",
-          "- §13.11: one FX (400) for the HUF deposits and land payments.",
-          "- §13.12: one quarterly timeline from 01-Oct-2025 (v3: monthly RtB route, quarterly HTM); flows at "
-          "period ends; the exit quarter belongs to the seller; the 12 % return on a payment starts in the next "
-          "quarter (v3: in the month paid).",
-          "- §13.13: no typed values on calc sheets, no data tables, one break-even (the implied price at the buyer "
-          "target IRR), `n/a` plus a check instead of IFERROR(…,0).",
-          "- Not in §13, by design of the new structure: no working capital (v3: 30 days receivable and payable), "
-          "construction capex spread linearly over NTP → COD (v3: buyer-model monthly curve), case A COD = "
-          "31-Mar-2028 (v3 01-Apr-2028 = operations from the same day), degradation on a 365-day year.",
-          "", "## 7. v3 bugs not reproduced (SPEC §13)", "",
-          "Summary!D28 → RTB_Model!D75 instead of D78; Sensitivities!E39:E42 use D73/D74; Calculation!G225 omits "
-          "G221; Dyn_Inp!G24/H26:Y26 row offsets; Control!D26 overrides the construction-start default; stale notes. "
-          "Also found: the developer's proceeds (Calculation F225) omit the 150 land apport deducted at F155.", ""]
+    L.append("")
     (OUT / "reconciliation.md").write_text("\n".join(L))
     return OUT / "reconciliation.md"
 
@@ -719,11 +631,14 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--targets", action="store_true", help="write data/recon_targets.csv only")
     a = ap.parse_args()
-    path, sh = write_targets()
+    path, _ = write_targets()
     print(f"wrote {path}")
     if a.targets:
         return
-    print(report(*workbook_bridge()))
+    tie = tie_out()
+    worst = max(abs(w - s) / max(1e-9, abs(s)) for (se, c, k), (w, s) in tie.items() if c != "master")
+    print(f"tie-out: largest relative difference {worst:.2e}")
+    print(report(tie))
 
 
 if __name__ == "__main__":
