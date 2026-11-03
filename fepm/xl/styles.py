@@ -5,7 +5,7 @@ FONT = "Aptos Narrow"
 SIZE = 10
 
 BLUE, GREEN, BLACK, PURPLE, WHITE, DARK = "0000FF", "008000", "000000", "7030A0", "FFFFFF", "3C3C3B"
-FEP_DARK_GREEN, SUB_FILL, INPUT_FILL, MACRO_FILL, SEED_FILL = "00563C", "F2F2F2", "FFF2CC", "EDEDED", "F2F2F2"
+FEP_DARK_GREEN, SUB_FILL, INPUT_FILL, MACRO_FILL, SEED_FILL = "00563C", "E6F4EC", "FFF2CC", "EDEDED", "F2F2F2"
 GREY = "808080"
 OK_GREEN, CHECK_RED = "00B050", "FF0000"
 
@@ -18,6 +18,8 @@ FMT = {
     "date": "dd-mmm-yy",
     "flag": '0;-0;"–"',
     "factor": '0.000;(0.000);"–"',
+    "accrual": "0.0000",
+    "check": '"CHECK" 0;"CHECK" -0;"OK"',
     "int": "0",
     "text": "@",
     "general": "General",

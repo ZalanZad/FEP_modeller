@@ -21,6 +21,7 @@ ALLOWED_NUMBERS = {0.0, 1.0}
 FORBIDDEN = {"OFFSET", "INDIRECT"}
 MACRO_NAMES = re.compile(r"(_Paste$|^Stored_Results$|_Stored$)")   # written by vba/*.bas
 LEVER_NAMES = re.compile(r"^Dash_")                                # deal levers, on the Dashboard only
+BLUE = "0000FF"                                                     # input font (MODELLING_STANDARDS §5)
 MAX_LEN, MAX_DEPTH, MAX_NOTE = 100, 2, 60                          # g-long, g-note (MODELLING_STANDARDS §6.3)
 ERRORS = ("#DIV/0!", "#VALUE!", "#REF!", "#NAME?", "#N/A", "#NUM!", "#NULL!", "Err:")
 _XIRR_START = re.compile(r"XIRR\(\s*(\$?[A-Z]{1,3}\$?\d+):")
@@ -86,16 +87,23 @@ def _bid_sheet(title):
 
 def _constant_cells(wb):
     """Cells on calc-type sheets that may hold numbers: macro-written names (PASTE rows, stored results),
-    Dashboard deal levers (`Dash_*`) and the bid number in `Calc_<n>!A1`."""
+    blue input cells inside Dashboard lever ranges (`Dash_*`) and the bid number in `Calc_<n>!A1`."""
     cells = {(ws.title, 1, 1) for ws in wb.worksheets if _bid_sheet(ws.title)}
     for name, dn in wb.defined_names.items():
-        if MACRO_NAMES.search(name) or LEVER_NAMES.search(name):
+        lever = bool(LEVER_NAMES.search(name))
+        if MACRO_NAMES.search(name) or lever:
             for sheet, rng in dn.destinations:
-                if LEVER_NAMES.search(name) and sheet != "Dashboard":
+                if lever and sheet != "Dashboard":
                     continue
                 c1, r1, c2, r2 = range_boundaries(rng.replace("$", ""))
-                cells |= {(sheet, r, c) for r in range(r1, r2 + 1) for c in range(c1, c2 + 1)}
+                cells |= {(sheet, r, c) for r in range(r1, r2 + 1) for c in range(c1, c2 + 1)
+                          if not lever or _blue(wb[sheet].cell(r, c))}
     return cells
+
+
+def _blue(cell):
+    rgb = cell.font.color.rgb if cell.font and cell.font.color is not None else None
+    return isinstance(rgb, str) and rgb.upper().endswith(BLUE)
 
 
 def _name_targets(wb):
@@ -262,14 +270,20 @@ def _chain(wb, ws, cell, formula, toks, names) -> list[Finding]:
     return []
 
 
+def _source_col(ws):
+    """Column headed "Source" in rows 1-9 (Dashboard layout row 9; wind-format Inputs / Revenue bars), else None."""
+    for r in range(1, 10):
+        for c in ws[r]:
+            if c.value == "Source":
+                return c.column
+    return None
+
+
 def _notes(ws) -> list[Finding]:
-    """g-note: source / note cells (Inputs column D, the Dashboard "Source" column) over MAX_NOTE characters."""
-    if ws.title == "Inputs":
-        col = 4
-    elif ws.title == "Dashboard":
-        col = next((c.column for c in ws[9] if c.value == "Source"), None)
-    else:
+    """g-note: source / note cells (Inputs column D, or the column headed "Source") over MAX_NOTE characters."""
+    if ws.title not in ("Inputs", "Dashboard", "Revenue"):
         return []
+    col = _source_col(ws) or (4 if ws.title == "Inputs" else None)
     out = []
     for r in range(1, ws.max_row + 1) if col else ():
         v = ws.cell(r, col).value

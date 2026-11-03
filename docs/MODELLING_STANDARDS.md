@@ -71,13 +71,13 @@ Font: **Aptos Narrow 10** throughout. Number formats right-aligned.
 | Calculation | black `000000` | none |
 | Macro-written value (PASTE rows, stored scenario results) | purple `7030A0` | light grey `EDEDED` |
 | Section bar | white bold | FEP dark green `00563C` (full row) |
-| Sub-header | bold `3C3C3B` | light grey `F2F2F2` |
+| Sub-header | bold `3C3C3B` | light green `E6F4EC` |
 | Totals / key results | bold | top border |
 | Check cells | `"OK"` green / `"CHECK"` red via conditional formatting | none |
 
 Number formats:
 - Money: `#,##0;(#,##0);"–"`; money with 1 dp `#,##0.0;(#,##0.0);"–"`
-- Percent: `0.0%;(0.0%);"–"`; multiple: `0.00"x"`; date: `dd-mmm-yy`; flag: `0;-0;"–"`
+- Percent: `0.0%;(0.0%);"–"`; multiple: `0.00"x"`; date: `dd-mmm-yy`; flag: `0;-0;"–"`; factor `0.000`; accrual `0.0000`
 - Units: calculations in **EUR k** unless the SPEC says otherwise. Conversions use the named constants `Thousand` and `Million`.
 
 ## 6. Formula rules
