@@ -1,230 +1,190 @@
 {
- "MVM Szélenergia Korlátolt Felelősségű Társaság": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
+ "1": {
+  "group": "MVM-csoport (MVM Szélenergia)",
+  "note": "DUPLICATE: same site, MVA, MW and BESS submitted twice (#001 and #002, 38 min apart) – only one can stand. Same pattern as WOC. Owner: MVM group by name and Opten group listing (not verified on a registry extract)."
+ },
+ "2": {
+  "group": "MVM-csoport (MVM Szélenergia)",
+  "note": "DUPLICATE: same site, MVA, MW and BESS submitted twice (#001 and #002) – only one can stand. Owner: MVM group by name and Opten group listing (not verified on a registry extract)."
+ },
+ "3": {
+  "group": "ATH Windkraft (AT) – assumed",
+  "note": "If ATMP + VTT + AT Wind Hungary are one group: 36 + 28 + 36 = 100.0 MVA at this node, exactly at the group cap. Owner not found in the registry mirrors; grouping from the strategy sheet 3 label and the consecutive AT Wind tax numbers."
+ },
+ "4": {
+  "group": "MVM-csoport (MVM Szélenergia)",
+  "note": "Owner: MVM group by name and Opten group listing (not verified on a registry extract)."
+ },
+ "5": {
+  "group": "ATH Windkraft (AT) – assumed",
+  "note": "Owner not found in the registry mirrors; grouping from the strategy sheet 3 label and the consecutive AT Wind tax numbers."
+ },
+ "6": {
+  "group": "MVM-csoport (MVM Szélenergia)",
+  "note": "MVM total requested 220 MVA over 4 nodes (170 if #002 is dropped); 200 MVA total award cap. Owner: MVM group by name and Opten group listing (not verified on a registry extract)."
+ },
+ "7": {
+  "group": "MVM-csoport (MVM Szélenergia)",
+  "note": "Owner: MVM group by name and Opten group listing (not verified on a registry extract)."
+ },
+ "8": {
+  "group": "unknown (Vas county SPV, 2025)",
+  "note": "Owner not found; tax code -18 = Vas county."
+ },
+ "9": {
+  "group": "Terravis Zrt. / Trustify Impact I. fund",
+  "note": "Two bids by one company at one node, different sites and MVA (49.9 Gór / 49.0 Ölbő): distinct projects, 98.9 MVA ≤ 100 MVA group cap. Sold by Electron Holding in Feb 2026 to Terravis Zrt. (Trustify Impact I. private-equity fund); seat moved to Budapest; MD Kiss-Gál Gergely (Telex, HVG, Portfolio 2026; companywall). No longer in the Electron group."
+ },
+ "10": {
+  "group": "Terravis Zrt. / Trustify Impact I. fund",
+  "note": "Second Arrabona project (Ölbő); see #009. Sold by Electron Holding in Feb 2026 to Terravis Zrt. (Trustify Impact I. private-equity fund); seat moved to Budapest; MD Kiss-Gál Gergely (Telex, HVG, Portfolio 2026; companywall). No longer in the Electron group."
+ },
+ "11": {
+  "group": "unknown (Győr-Moson-Sopron SPV, 2025)",
+  "note": "Owner not found; tax code -08."
+ },
+ "12": {
+  "group": "BRKV Bádog-Tető Kft. circle (Győrság) – per Opten",
+  "note": "Opten lists BRK Wind as a related company of BRKV Bádog-Tető Kft. (roofing, Győrság); owner name not retrieved."
+ },
+ "13": {
+  "group": "unknown (Budapest SPV, 2025)",
+  "note": "Owner not found."
+ },
+ "14": {
+  "group": "n/a",
   "note": ""
  },
- "ATMP Szélenergia Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
+ "15": {
+  "group": "Hanság/Sárbag-Wind batch – owner not found",
+  "note": "Consecutive tax numbers 32758685/692/702 and one naming template: registered together; owner not found."
+ },
+ "16": {
+  "group": "Electron Holding Zrt. (Szücs Ádám)",
+  "note": "Named as an Electron Holding project company in Oct 2026 Fejér press (feol.hu, Kisapostag 7 MW); Kisapostag council refused preliminary consent on 30-Oct-2026."
+ },
+ "17": {
+  "group": "Electron Holding Zrt. – probable",
+  "note": "Consecutive 2025 tax numbers with Elara at the Komárom-Esztergom court and Electron's mythological SPV naming; owner not verified."
+ },
+ "18": {
+  "group": "8G Energy Holding Zrt. (Biggeorge / Nagygyörgy Tibor) – by name",
+  "note": "8G Energy Holding Zrt. founded 2022 by Biggeorge Holding and Energy Independence Kft.; SPV link by naming pattern only."
+ },
+ "19": {
+  "group": "Electron Holding Zrt. – probable",
+  "note": "Euronergy Thebe bid at three nodes (#019 Kisbér, #022 Komárom, #027 Ács): one node per bid, all can stand. Consecutive 2025 tax numbers with Elara at the Komárom-Esztergom court and Electron's mythological SPV naming; owner not verified."
+ },
+ "20": {
+  "group": "unknown – sheet 3 says Turkish",
+  "note": "Owner not found; only trace is an Opten sidebar listing. Turkish Alarko/Altek link is a hypothesis."
+ },
+ "21": {
+  "group": "Hanság/Sárbag-Wind batch – owner not found",
+  "note": "Consecutive tax numbers 32758685/692/702 and one naming template: registered together; owner not found."
+ },
+ "22": {
+  "group": "Electron Holding Zrt. – probable",
+  "note": "Consecutive 2025 tax numbers with Elara at the Komárom-Esztergom court and Electron's mythological SPV naming; owner not verified."
+ },
+ "23": {
+  "group": "'<name> Energy' batch – owner not found",
+  "note": "Consecutive tax numbers 33146472/489/496/513 and one naming template: registered together in Budapest; owner not found."
+ },
+ "24": {
+  "group": "Greenergy Holding Zrt. (KÉSZ Holding 51 %) – probable",
+  "note": "Naming and Budapest seat match the BSE-listed Greenergy Holding Vagyonkezelő Zrt. (KÉSZ Holding 51 %, Dajbukát L. 24.5 %, Dósai B. 24.5 %); not yet in the 2025 subsidiary list."
+ },
+ "25": {
+  "group": "WOC (us)",
   "note": ""
  },
- "VTT Szél Energia Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
+ "26": {
+  "group": "Hanság/Sárbag-Wind batch – owner not found",
+  "note": "Consecutive tax numbers 32758685/692/702 and one naming template: registered together; owner not found."
  },
- "Pannon Ventus Energy Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
+ "27": {
+  "group": "Electron Holding Zrt. – probable",
+  "note": "Consecutive 2025 tax numbers with Elara at the Komárom-Esztergom court and Electron's mythological SPV naming; owner not verified."
  },
- "Euronergy Arrabona Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
+ "28": {
+  "group": "Electron Holding Zrt. – probable",
+  "note": "Electron total across nodes 287 MVA (if Europa/Thebe/Kore are Electron): above the 200 MVA total award cap, so not all can win. Consecutive 2025 tax numbers with Elara at the Komárom-Esztergom court and Electron's mythological SPV naming; owner not verified."
  },
- "Magyar Power Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
+ "29": {
+  "group": "Greenergy Holding Zrt. (KÉSZ Holding 51 %) – probable",
+  "note": "Naming and Budapest seat match the BSE-listed Greenergy Holding Vagyonkezelő Zrt. (KÉSZ Holding 51 %, Dajbukát L. 24.5 %, Dósai B. 24.5 %); not yet in the 2025 subsidiary list."
  },
- "BRK Wind Kft": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
+ "30": {
+  "group": "ATH Windkraft (AT) – assumed",
+  "note": "Owner not found in the registry mirrors; grouping from the strategy sheet 3 label and the consecutive AT Wind tax numbers."
  },
- "TVI 01 Wind Kft": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
+ "31": {
+  "group": "Greenergy Holding Zrt. (KÉSZ Holding 51 %) – probable",
+  "note": "Naming and Budapest seat match the BSE-listed Greenergy Holding Vagyonkezelő Zrt. (KÉSZ Holding 51 %, Dajbukát L. 24.5 %, Dósai B. 24.5 %); not yet in the 2025 subsidiary list."
  },
- "-": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
+ "32": {
+  "group": "BLOCH3 GmbH (AT, Blochberger family) – probable",
+  "note": "Bloch3 also bid 43.2 MVA at Szombathely OVIT (#041): different nodes, both can stand. Only entity using the BLOCH3 brand: Austrian wind developer BLOCH3 GmbH, Krumbach (Franz, Andreas, Martin Blochberger); Hungarian Kft. not verified."
  },
- "Hanság-Wind Energetikai Two Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
+ "33": {
+  "group": "'<name> Energy' batch – owner not found",
+  "note": "Consecutive tax numbers 33146472/489/496/513 and one naming template: registered together in Budapest; owner not found."
  },
- "Euronergy Elara Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
+ "34": {
+  "group": "Greenergy Holding Zrt. (KÉSZ Holding 51 %) – probable",
+  "note": "Naming and Budapest seat match the BSE-listed Greenergy Holding Vagyonkezelő Zrt. (KÉSZ Holding 51 %, Dajbukát L. 24.5 %, Dósai B. 24.5 %); not yet in the 2025 subsidiary list."
  },
- "Euronergy Europa Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
+ "35": {
+  "group": "ATH Windkraft (AT) – assumed",
+  "note": "Owner not found in the registry mirrors; grouping from the strategy sheet 3 label and the consecutive AT Wind tax numbers."
  },
- "8G Energy Wind Two Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
+ "36": {
+  "group": "Cashline Holding Zrt. (Albrecht Ottó) – by name",
+  "note": "Cashline group (Albrecht Ottó) holds solar SPVs; wind SPV link by name only."
  },
- "Euronergy Thebe Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
+ "37": {
+  "group": "Greenergy Holding Zrt. (KÉSZ Holding 51 %)",
+  "note": "Greenergy Holding's 2025 consolidated report lists Greenergy Gemenc Távhő Kft. as a 100 % subsidiary; VAT-group code -4- fits."
  },
- "Altek Energy Hungary Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
+ "38": {
+  "group": "'<name> Energy' batch – owner not found",
+  "note": "Consecutive tax numbers 33146472/489/496/513 and one naming template: registered together in Budapest; owner not found."
  },
- "Sárbag-Wind Energetikai One Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
+ "39": {
+  "group": "'<name> Energy' batch – owner not found",
+  "note": "Consecutive tax numbers 33146472/489/496/513 and one naming template: registered together in Budapest; owner not found."
  },
- "DALMA Energy Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
+ "40": {
+  "group": "WOC (us)",
+  "note": "DUPLICATE: same site, MVA, MW and BESS submitted twice (#040 and #043, 35 min apart) – only one can stand. Second WOC bid would not fit the cap anyway on these two criteria."
  },
- "Greenergy Wind Alpha Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
+ "41": {
+  "group": "BLOCH3 GmbH (AT, Blochberger family) – probable",
+  "note": "Bloch3 also bid 20 MVA at Szombathely Észak (#032). Only entity using the BLOCH3 brand: Austrian wind developer BLOCH3 GmbH, Krumbach (Franz, Andreas, Martin Blochberger); Hungarian Kft. not verified."
  },
- "WOC Three Wind Development Holding Korlátolt Felelősségű Társaság": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
+ "42": {
+  "group": "unknown – tax number next to WOC Three Wind",
+  "note": "Tax number 33118707 is consecutive with WOC Three Wind (33118714): same registration batch? Owner not found."
  },
- "Sárbag-Wind Energetikai Two Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
+ "43": {
+  "group": "WOC (us)",
+  "note": "DUPLICATE: same site, MVA, MW and BESS submitted twice (#040 and #043) – only one can stand."
  },
- "Euronergy Kore Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
+ "44": {
+  "group": "Trantor SU batch – owner not found",
+  "note": "Consecutive tax numbers at the Jász-Nagykun-Szolnok court (-16); no indexed registry page."
  },
- "Greenergy Wind Beta Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
+ "45": {
+  "group": "Trantor SU batch – owner not found",
+  "note": "Consecutive tax numbers at the Jász-Nagykun-Szolnok court (-16); no indexed registry page."
  },
- "AT Wind Hungary Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
+ "46": {
+  "group": "Trantor SU batch – owner not found",
+  "note": "Consecutive tax numbers at the Jász-Nagykun-Szolnok court (-16); no indexed registry page."
  },
- "Greenergy Wind Gamma Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
- },
- "Bloch3 Alfa Kft": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
- },
- "GORDON Energy Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
- },
- "Greenergy Wind Delta Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
- },
- "AT Wind Investments Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
- },
- "CashlineWindfarm Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
- },
- "Greenergy Gemenc Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
- },
- "HELENA Energy Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
- },
- "IMRE Energy Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
- },
- "WOC Development Holding Korlátolt Felelőségű Társaság": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
- },
- "Cossava TWO Wind Development Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
- },
- "Trantor SU Beta Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
- },
- "Trantor SU Alpha Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
- },
- "Trantor SU Gamma Kft.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
- },
- "Future Green Zrt.": {
-  "group": "tbc",
-  "owner": "",
-  "source": "",
-  "note": ""
+ "47": {
+  "group": "unknown (Budapest Zrt., 2023)",
+  "note": "Owner not found."
  }
 }

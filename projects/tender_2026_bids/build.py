@@ -145,7 +145,7 @@ for node in order:
     r += 1
     first = r
     for b in rows:
-        o = owners.get(b["name"], {})
+        o = owners.get(str(b["no"]), {})
         valid = 1 if b["name"] != "-" and node != "n/a" else 0
         put(ws.cell(r, 2), node, "unit")
         put(ws.cell(r, 3), b["no"], "input", "int")
@@ -160,7 +160,7 @@ for node in order:
         put(ws.cell(r, 13), f"=INDEX({BAND_P},MATCH(K{r},{BAND_LB},1))*$G${R_W3}/100", "calc", "money1")
         put(ws.cell(r, 14), f"=INDEX({BAND_P},MATCH(L{r},{BAND_LB},1))*$G${R_W4}/100", "calc", "money1")
         put(ws.cell(r, 15), f"=M{r}+N{r}", "calc", "money1").font = Font(name=styles.FONT, size=styles.SIZE, bold=True)
-        note = " ".join(x for x in (b["note"], o.get("note", ""), o.get("source", "")) if x)
+        note = " ".join(x for x in (b["note"], o.get("note", "")) if x)
         put(ws.cell(r, 19), note, "label", "text", wrap=True)
         data_rows.append((r, valid, hr))
         r += 1
