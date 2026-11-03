@@ -444,6 +444,8 @@ V1_STEPS = [  # label, SPEC reference, switches on the v1 quarterly shadow (cumu
 ]
 V2_STEPS = [  # label, SPEC reference, shadow.py overrides (the last one is the base)
     ("Annual timeline, year-end dates (the RtB route keeps exact dates), unlevered, v2 JV split", "v2 §4, §6",
+     dict(ppa_years=0, hipa=0, innov=0, opex_mw=30.8, opex_mwh=0)),
+    ("BESS opex by duration: 18.70 k€/MW + 6.07 k€/MWh (Aurora; 4 h = 42.96)", "fix round M2",
      dict(ppa_years=0, hipa=0, innov=0)),
     ("HIPA 2 % and innovation contribution 0.3 % on revenue", "v2 §3.2", dict(ppa_years=0)),
     ("PPA 5 years at 45 €/MWh on all PV output = base", "v2 §5.2", {}),
@@ -479,19 +481,19 @@ TIE = [  # shadow key, Dashboard label, occurrence, scale (workbook = shadow / s
     ("buyer_rtb_pre", "Buyer IRR at our price, unlevered before tax", 0, 1),
     ("rtb_profit_pre", "FEP profit, pre-tax", 0, 1), ("rtb_profit", "FEP profit, post-tax", 0, 1),
     ("rtb_moic", "MOIC, pre-tax", 0, 1), ("rtb_irr_pre", "IRR, pre-tax", 0, 1), ("rtb_irr", "IRR, post-tax", 0, 1),
-    ("rtb_npv", "NPV at the discount rate, post-tax (to the acquisition date)", 0, 1), ("psh_rtb", "PSH profit", 0, 1),
+    ("rtb_npv", "NPV at the discount rate, post-tax (at acquisition)", 0, 1), ("psh_rtb", "PSH profit", 0, 1),
     ("implied_cod", "Implied COD price at the buyer target IRR (floored at 0)", 0, 1),
     ("ev", "Enterprise value used", 0, 1), ("buyer_cod", "Buyer IRR at our price, unlevered after tax", 1, 1),
     ("buyer_cod_pre", "Buyer IRR at our price, unlevered before tax", 1, 1),
     ("cod_contrib", "FEP contributions to COD", 0, 1), ("cod_proceeds", "FEP proceeds at COD", 0, 1),
     ("cod_profit_pre", "FEP profit, pre-tax", 1, 1), ("cod_profit", "FEP profit, post-tax", 1, 1),
     ("cod_moic", "MOIC, pre-tax", 1, 1), ("cod_irr_pre", "IRR, pre-tax", 1, 1), ("cod_irr", "IRR, post-tax", 1, 1),
-    ("cod_npv", "NPV at the discount rate, post-tax (to the acquisition date)", 1, 1), ("psh_cod", "PSH profit", 1, 1),
+    ("cod_npv", "NPV at the discount rate, post-tax (at acquisition)", 1, 1), ("psh_cod", "PSH profit", 1, 1),
     ("hold_equity", "FEP equity invested (incl. the 2048 repower)", 0, 1), ("hold_dist", "FEP distributions", 0, 1),
     ("hold_profit_pre", "FEP profit, pre-tax", 2, 1), ("hold_profit", "FEP profit, post-tax", 2, 1),
     ("hold_irr", "IRR, after tax", 0, 1), ("hold_irr_pre", "IRR, before tax", 0, 1),
-    ("hold_npv", "NPV at the discount rate, after tax (to the acquisition date)", 0, 1),
-    ("proj_irr", "Memo: project IRR, unlevered after tax (FEP's before the buy-out)", 0, 1),
+    ("hold_npv", "NPV at the discount rate, after tax (at acquisition)", 0, 1),
+    ("proj_irr", "Memo: project IRR, unlevered after tax (no buy-out)", 0, 1),
     ("proj_irr_pre", "Memo: project IRR, unlevered before tax", 0, 1)]
 CASES = ["PV only", "PV + 2h BESS", "PV + 4h BESS"]
 
@@ -567,7 +569,7 @@ def report(tie):
          "(HTM targets from the copy with Aurora_Curve!C8 = 0, SPEC v1 §3.2).", "",
          "## 2. Bridge: v3 → PV + 4 h column, Base, merchant BESS basis", "",
          "Rows 1–2 are values; each further row switches one change on (cumulative) and shows its effect. Rows 2–10 run on the v1 quarterly shadow (unlevered: gearing 0 "
-         "throughout), rows 11–13 on the v2 annual shadow; the last row is the workbook's PV + 4 h column (Base). The "
+         "throughout), rows 11–14 on the v2 annual shadow; the last row is the workbook's PV + 4 h column (Base). The "
          "implied premium is shown before the 0 floor; the workbook floors it at 0.", "",
          "| Step | SPEC | " + " | ".join(lbl for _, lbl, _ in BRIDGE) + " |", "|---|---|" + "---:|" * len(BRIDGE)]
     prev = None
@@ -591,6 +593,9 @@ def report(tie):
           "- Annual timeline step: year-end dates on the grid, construction by calendar month share, the pre-COD cash "
           "dated (RtB route) and mapped by year, the buyer reimbursements inside the JV split, guarantee fees paid at "
           "release, deposits returned at COD on the hold route, no debt, one SPV tax.",
+          "- BESS opex step (fix round M2): v3's 30.8 k€/MW is Aurora's 2 h figure (Control!D96 note). Aurora's own "
+          "table (Inputs rows 37–39, 2028 entry) gives 2 h 30.83 and 4 h 42.96 €/kW, i.e. 18.70 k€/MW + 6.07 k€/MWh; "
+          "the 4 h battery now carries 42.96 instead of 30.8.",
           "- PPA step: 45 €/MWh nominal on all PV output for 5 years (Aurora's direct price is 98–108 €/MWh nominal in "
           "2028–29 for the 4 h block), no balancing in those years.", "",
           "## 3. The v2 shadow ties to the workbook", "",

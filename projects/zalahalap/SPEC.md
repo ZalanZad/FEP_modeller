@@ -298,3 +298,10 @@ Report: sheet/row counts; the Base results per case and strategy; the Low/High s
 10. Early works treatment as a whole (user: to be revisited).
 11. Financing: out of scope for now; a term sheet brings it back (SPEC_v1 §8 debt design, Bana method).
 12. Sale costs 0 %, route-to-market fee 0 %, GoO 1.75 (Fable recommends 1.5 %, 2 %, 1.0).
+13. **Fix round (review of a4d876f).** Clipping is a per-case Dashboard lever: PV only 2 % (v3, fix 5; 63 MWp on
+    49.9 MVA with no battery to absorb it), BESS cases 0 % (DC-coupled) – placeholder. BESS fixed opex is split into
+    18.70 k€/MW + 6.07 k€/MWh a year (real 2025), derived from Aurora's own table that v3's 30.8 cites (Aurora Inputs
+    rows 37–39, 2028 entry: 2 h 30.83, 4 h 42.96 €/kW): the 2 h battery keeps 30.8, the 4 h battery carries 43.0
+    (v3 applied the 2 h figure to 4 h). Aurora's 10 % co-location opex saving is not applied – confirm with an O&M
+    quote. The PV-only price proxy (2 h block) is below v3's 65 % × baseload from 2031; the HU solar capture series is
+    requested from Aurora. Tolling starts at the later of the offer start and COD + 1 day and runs its full tenor.

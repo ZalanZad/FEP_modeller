@@ -21,16 +21,16 @@ YE = [D(y, 12, 31) for y in YEARS]
 SENS = {"Base": dict(cpv=0.0, cb=0.0, cy=0.0, cc=0.0, delay=0, buyer=0.08),
         "Low": dict(cpv=-0.2, cb=-0.2, cy=-0.02, cc=0.10, delay=12, buyer=0.09),
         "High": dict(cpv=0.2, cb=0.2, cy=0.02, cc=-0.05, delay=0, buyer=0.07)}
-CASES = {"PV only": dict(built=0, mw=0, hours=0), "PV + 2h BESS": dict(built=1, mw=50, hours=2),
-         "PV + 4h BESS": dict(built=1, mw=50, hours=4)}
+CASES = {"PV only": dict(built=0, mw=0, hours=0, clip=0.02), "PV + 2h BESS": dict(built=1, mw=50, hours=2, clip=0.0),
+         "PV + 4h BESS": dict(built=1, mw=50, hours=4, clip=0.0)}
 BLOCK = {2: "2027 solar DC 1.0cy 2h", 4: "2027 solar DC 1.0cy 4h"}
 
 
 def params(**over):
     p = dict(mwp=63, mva=49.9, yld=1265, ppa_price=45, ppa_index=0.0, ppa_years=5, basis="Merchant", rtb_price=90,
              cod_price=0, acq=D(2025, 11, 30), rtb=D(2026, 12, 31), exit=D(2027, 3, 31), ntp=D(2027, 6, 30),
-             cod=D(2028, 3, 31), life=35, avail=0.995, deg=0.003, clip=0.0, goo=1.75, pv_only_hours=2, rte=0.86,
-             haircut=0.0, afrr=0.0, bess_capex=110, repower=1, bess_opex=30.8, balancing=5.0, toll_start=D(2028, 1, 1),
+             cod=D(2028, 3, 31), life=35, avail=0.995, deg=0.003, clip=None, goo=1.75, pv_only_hours=2, rte=0.86,
+             haircut=0.0, afrr=0.0, bess_capex=110, repower=1, opex_mw=18.70, opex_mwh=6.07, balancing=5.0, toll_start=D(2028, 1, 1),
              toll_years=3, toll_fee=49.7, pv_capex=350, cable=3700, subst=9500, grid_fee=0, land=620, ew_ntp=725,
              om=14.96, cable_om=5, lease=96, hipa=0.02, innov=0.003, spv=549, trans=200, dsa=15,
              dsa_first=D(2025, 12, 31), pre_total=3182, pre_first=D(2026, 10, 31), pre_last=D(2027, 3, 31), fx=400,
@@ -122,6 +122,7 @@ def factor(d, end, r):
 def run(case="PV + 4h BESS", sens="Base", **over):
     p = params(**over)
     c, s = CASES[case], SENS[sens]
+    clip = c["clip"] if p["clip"] is None else p["clip"]
     built, mw = c["built"], c["mw"] * c["built"]
     hours = c["hours"]
     mwh = built * c["mw"] * hours
@@ -148,28 +149,29 @@ def run(case="PV + 4h BESS", sens="Base", **over):
         live = 1 - (1 - p["repower"]) * (y >= rep_year)
         repf = p["repower"] * (y == rep_year)
         idx = IDX[y]
-        gen = mwp * p["yld"] * (1 + s["cy"]) * (1 - p["clip"]) * p["avail"] * degf * osh
+        gen = mwp * p["yld"] * (1 + s["cy"]) * (1 - clip) * p["avail"] * degf * osh
         sent = min(gen, chg[y] * mw * osh * live)
         direct = gen - sent
         dis = min(dmw[y] * mw * osh * live, sent * p["rte"])
         # prices (Revenue bar 3)
         m0 = (y - codl.year) * 12 - codl.month
         opm = max(0, min(12, L12 - m0) - max(0, -m0))
-        t0 = (y - p["toll_start"].year) * 12 - p["toll_start"].month + 1
+        ts = max(p["toll_start"], codl + dt.timedelta(days=1))
+        t0 = (y - ts.year) * 12 - ts.month + 1
         md = pxd_m[y] * idx * (1 + s["cpv"])
         ms = pxs_m[y] * idx * (1 + s["cpv"])
         ppa = max(0, min(12, p["ppa_years"] * 12 - m0) - max(0, -m0)) / max(1, opm)
         ppx = p["ppa_price"] * (1 + p["ppa_index"]) ** (y - codl.year)
         pxd, pxs = md + ppa * (ppx - md), ms + ppa * (ppx - ms)
         upl = built * (1 - p["haircut"]) * (1 + s["cb"]) * st[y] * (pvo[y] + dcs[y] * p["afrr"]) * idx
-        tol = (p["basis"] == "Tolling") * max(0, min(12, p["toll_years"] * 12 - t0) - max(0, -t0)) / 12
+        tol = (p["basis"] == "Tolling") * max(0, min(12, p["toll_years"] * 12 - t0) - max(0, -t0)) / max(1, opm)
         bess_px = upl + tol * (p["toll_fee"] - upl)
         rpv = (direct * pxd + sent * pxs) / 1000
         rgoo = gen * p["goo"] * idx / 1000
         rbess = mw * bess_px * osh * live
         rev = rpv + rgoo + rbess
         opex = (-(p["om"] + p["cable_om"]) * mwp * idx * osh - gen * p["balancing"] * idx * (1 - ppa) / 1000
-                - p["lease"] * idx * osh - p["bess_opex"] * mw * idx * osh * live - rev * (p["hipa"] + p["innov"]))
+                - p["lease"] * idx * osh - (p["opex_mw"] * mw + p["opex_mwh"] * mwh) * idx * osh * live - rev * (p["hipa"] + p["innov"]))
         for k, v in (("gen", gen), ("sent", sent), ("direct", direct), ("dis", dis), ("rev", rev), ("rpv", rpv),
                      ("rbess", rbess), ("rgoo", rgoo), ("opex", opex), ("ebitda", rev + opex), ("oshare", osh),
                      ("yrs", yrs), ("ppa", ppa), ("pxd", pxd)):

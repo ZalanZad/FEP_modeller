@@ -28,7 +28,7 @@ placeholder (Bana wind terms or a default). "Rec." = Fable's recommendation wher
 | 12 | Specific yield | 1,265 (v3: 1,250) | kWh/kWp | Teaser p1 (79.7 GWh) | T | the offerors assume less: E.ON P50 73,141 MWh on 61 MWp = 1,199 (p3); MET 235,368 MWh / 3 y on 63 MWp = 1,245 (p3). **Use 1,245 until the yield report; keep 1,265 as High** |
 | 13 | PV availability | 99.5 % | % | v3 Control D56 | v3 | ok |
 | 14 | Degradation | 0.3 %/yr | % | v3 Control D57 | v3 | ok (0.4 % would be prudent for bifacial) |
-| 15 | Clipping / curtailment, cases B–C | 0 % (DC-coupled BESS absorbs the clipped energy); v3 case 2 % | % | placeholder; Aurora s+29 = 0 | P | depends on DC coupling being confirmed (§1.3 #20); yield report |
+| 15 | Clipping / curtailment, per case (Dashboard lever) | PV only 2 % (v3 fix 5: 63 MWp on 49.9 MVA, no battery); BESS cases 0 % (DC-coupled BESS absorbs the clipped energy) | % | v3 fix 5; Aurora s+29 = 0; placeholder | P | fix round 03-Nov-26; depends on DC coupling being confirmed (§1.3 #20); yield report |
 | 16 | Guarantee of origin price | 1.75 real 2025 | €/MWh | v3 Control D58 | v3, P | likely high for 2028+; E.ON offers to buy at 90 % of the HUPX GO auction price (p4) – use that under E.ON; otherwise 1.0 as Base |
 | 17 | PV sent to the BESS | `MIN(generation, Aurora charge-from-PV per MW × 50 MW)` ≈ 50.6 GWh of 79.3 (4 h) / 24.7 GWh (2 h) | MWh | Aurora s+13 | A | consequence of the 1:1:1 block; fine |
 
@@ -45,7 +45,7 @@ placeholder (Bana wind terms or a default). "Rec." = Fable's recommendation wher
 | 25 | Haircut on merchant BESS revenue | 0 % (Low: 20 %) | % | – | P | ok |
 | 26 | BESS capex | 110 | k€/MWh | v3 Control D94 | v3, P | an old figure; get a 2026 quote for 2 h and 4 h DC-coupled; Low 200 |
 | 27 | Augmentation | 110 k€/MWh, indexed, at the block's repower year 2048; "repowered" = yes | | v3 Control D100; Aurora s+1 | v3, A | ok; "no repower" is an Inputs flag |
-| 28 | BESS fixed opex | 30.8 | k€/MW/yr | v3 Control D96 | v3 | 7.7 €/kWh/yr for 4 h – plausible; halve for 2 h? keep per MW |
+| 28 | BESS fixed opex | 18.70 k€/MW + 6.07 k€/MWh a year (2 h: 30.8 k€/MW; 4 h: 43.0 k€/MW) | k€/yr real 2025 | Aurora Inputs rows 37–39, 2028 entry (2 h 30.83, 4 h 42.96 €/kW); v3 Control D96 = the 2 h figure | A | fix round 03-Nov-26: v3 applied the 2 h opex to the 4 h battery; Aurora's 10 % co-location saving not applied – O&M quote |
 | 29 | Grid charge on charging (offers that deduct it) | 0 | k€/MW | – | P | 0 is right without grid import |
 | 30 | BESS tax depreciation | 10 | years | placeholder | P | tax adviser |
 
