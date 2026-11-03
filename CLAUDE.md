@@ -40,3 +40,8 @@ Working language: English (code, workbooks, decks, docs). Chat replies to the us
   plus the source documents (tender call + FAQ, Bora devex, overbuild). Read-only.
 - `docs/domain/` the rules extracted from the source documents, each with citations. Read these instead of the raw PDFs/xlsx.
 - `projects/<name>/` SPEC.md, inputs, build script, outputs (`out/`).
+
+## User preferences (standing, from the user)
+- Streamlined and simple, always. Default to a single sheet; add a sheet only when the single sheet stops being readable.
+- House look is the FEP green style (`fepm/xl/styles.py`): no alternative palettes unless asked for that one deliverable.
+- Summaries break down by location (grid node) first: who bid, how much, then everything else.
