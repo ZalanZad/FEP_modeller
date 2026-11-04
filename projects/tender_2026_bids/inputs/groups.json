@@ -3,204 +3,246 @@
   "company": "MVM Szélenergia Korlátolt Felelősségű Társaság",
   "tax": "32977150-2-41",
   "group": "MVM-csoport",
-  "confidence": "valószínű",
-  "basis": "Név és Opten-csoportlista; cégkivonattal nem ellenőrzött."
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.)"
  },
  {
   "company": "Euronergy Elara Kft.",
   "tax": "33136868-2-11",
   "group": "Electron Holding (Szücs Ádám)",
-  "confidence": "igazolt (sajtó)",
-  "basis": "feol.hu, 2026. október: Electron Holding projektcég (Kisapostag, 7 MW)."
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.); Elara: feol.hu 2026.10."
  },
  {
   "company": "Euronergy Europa Kft.",
   "tax": "33136851-2-11",
   "group": "Electron Holding (Szücs Ádám)",
-  "confidence": "valószínű",
-  "basis": "Az Elarával egymást követő 2025-ös adószámok (Komárom-Esztergom), Electron mitológiai SPV-névminta; Europa az Opten szerint Electron-SPV-k mellett szerepel."
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.); Elara: feol.hu 2026.10."
  },
  {
   "company": "Euronergy Thebe Kft.",
   "tax": "33136882-2-11",
   "group": "Electron Holding (Szücs Ádám)",
-  "confidence": "valószínű",
-  "basis": "Az Elarával egymást követő 2025-ös adószámok (Komárom-Esztergom), Electron mitológiai SPV-névminta; Europa az Opten szerint Electron-SPV-k mellett szerepel."
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.); Elara: feol.hu 2026.10."
  },
  {
   "company": "Euronergy Kore Kft.",
   "tax": "33136875-2-11",
   "group": "Electron Holding (Szücs Ádám)",
-  "confidence": "valószínű",
-  "basis": "Az Elarával egymást követő 2025-ös adószámok (Komárom-Esztergom), Electron mitológiai SPV-névminta; Europa az Opten szerint Electron-SPV-k mellett szerepel."
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.); Elara: feol.hu 2026.10."
  },
  {
   "company": "Euronergy Arrabona Kft.",
   "tax": "28801072-2-42",
-  "group": "Terravis / Trustify Impact I. alap",
-  "confidence": "igazolt (sajtó, cégadatbázis)",
-  "basis": "Electron Holding 2026 februárjában eladta a Terravis Zrt.-nek; székhely Budapest, ügyvezető Kiss-Gál Gergely (Telex, HVG, Portfolio; companywall). Már nem Electron-csoport."
+  "group": "Trustify Impact I. alap (Terravis Zrt.)",
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.); sajtó: az Electron 2026 februárjában eladta a Terravisnak."
  },
  {
   "company": "Greenergy Wind Alpha Kft.",
   "tax": "33147112-2-41",
   "group": "Greenergy Holding (KÉSZ 51 %)",
-  "confidence": "valószínű",
-  "basis": "Névminta és budapesti székhely; a Greenergy Holding (KÉSZ 51 %, Dajbukát L. 24,5 %, Dósai B. 24,5 %) 2025-ös leánylistájában még nem szerepel."
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.)"
  },
  {
   "company": "Greenergy Wind Beta Kft.",
   "tax": "33147129-2-41",
   "group": "Greenergy Holding (KÉSZ 51 %)",
-  "confidence": "valószínű",
-  "basis": "Névminta és budapesti székhely; a Greenergy Holding (KÉSZ 51 %, Dajbukát L. 24,5 %, Dósai B. 24,5 %) 2025-ös leánylistájában még nem szerepel."
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.)"
  },
  {
   "company": "Greenergy Wind Gamma Kft.",
   "tax": "33147143-2-41",
   "group": "Greenergy Holding (KÉSZ 51 %)",
-  "confidence": "valószínű",
-  "basis": "Névminta és budapesti székhely; a Greenergy Holding (KÉSZ 51 %, Dajbukát L. 24,5 %, Dósai B. 24,5 %) 2025-ös leánylistájában még nem szerepel."
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.)"
  },
  {
   "company": "Greenergy Wind Delta Kft.",
   "tax": "33147136-2-41",
   "group": "Greenergy Holding (KÉSZ 51 %)",
-  "confidence": "valószínű",
-  "basis": "Névminta és budapesti székhely; a Greenergy Holding (KÉSZ 51 %, Dajbukát L. 24,5 %, Dósai B. 24,5 %) 2025-ös leánylistájában még nem szerepel."
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.)"
  },
  {
   "company": "Greenergy Gemenc Kft.",
   "tax": "32140758-4-41",
   "group": "Greenergy Holding (KÉSZ 51 %)",
-  "confidence": "igazolt (BÉT-jelentés)",
-  "basis": "A 2025-ös konszolidált jelentés a Greenergy Gemenc Távhő Kft.-t 100 %-os leányként listázza."
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.)"
  },
  {
   "company": "WOC Development Holding Korlátolt Felelőségű Társaság",
   "tax": "33106775-2-42",
-  "group": "WOC Development Holding",
+  "group": "Futureal (WOC Development)",
   "confidence": "igazolt",
-  "basis": "Azonos cégcsoport."
+  "basis": "a felhasználó jegyzete (2026.11.04.)"
  },
  {
   "company": "WOC Three Wind Development Holding Korlátolt Felelősségű Társaság",
   "tax": "33118714-2-42",
-  "group": "WOC Development Holding",
+  "group": "Futureal (WOC Development)",
   "confidence": "igazolt",
-  "basis": "Azonos cégcsoport."
+  "basis": "a felhasználó jegyzete (2026.11.04.)"
  },
  {
   "company": "Cossava TWO Wind Development Kft.",
   "tax": "33118707-2-41",
-  "group": "ismeretlen",
-  "confidence": "nem található",
-  "basis": "Adószáma (33118707) a WOC Three Wind (33118714) mellett áll: azonos alapítási csomag lehet."
+  "group": "Cossava",
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.)"
  },
  {
   "company": "ATMP Szélenergia Kft.",
   "tax": "33106957-2-41",
-  "group": "ATH Windkraft (AT)",
-  "confidence": "feltételezés",
-  "basis": "A stratégiai munkafüzet 3. lapjának címkéje (36 / 28 / 36 MW); az AT Wind cégek egymást követő adószáma. Cégadatbázisban nem található."
+  "group": "Osztrák – ATH Windkraft",
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.); a stratégiai munkafüzet 3. lapja: ATH Windkraft (36 / 28 / 36 MW)."
  },
  {
   "company": "VTT Szél Energia Kft.",
   "tax": "33021908-2-41",
-  "group": "ATH Windkraft (AT)",
-  "confidence": "feltételezés",
-  "basis": "A stratégiai munkafüzet 3. lapjának címkéje (36 / 28 / 36 MW); az AT Wind cégek egymást követő adószáma. Cégadatbázisban nem található."
+  "group": "Osztrák – ATH Windkraft",
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.); a stratégiai munkafüzet 3. lapja: ATH Windkraft (36 / 28 / 36 MW)."
  },
  {
   "company": "AT Wind Hungary Kft.",
   "tax": "33139816-2-41",
-  "group": "ATH Windkraft (AT)",
-  "confidence": "feltételezés",
-  "basis": "A stratégiai munkafüzet 3. lapjának címkéje (36 / 28 / 36 MW); az AT Wind cégek egymást követő adószáma. Cégadatbázisban nem található."
+  "group": "Osztrák – ATH Windkraft",
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.); a stratégiai munkafüzet 3. lapja: ATH Windkraft (36 / 28 / 36 MW)."
  },
  {
   "company": "AT Wind Investments Kft.",
   "tax": "33139847-2-41",
-  "group": "ATH Windkraft (AT)",
-  "confidence": "feltételezés",
-  "basis": "A stratégiai munkafüzet 3. lapjának címkéje (36 / 28 / 36 MW); az AT Wind cégek egymást követő adószáma. Cégadatbázisban nem található."
+  "group": "Osztrák – ATH Windkraft",
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.); a stratégiai munkafüzet 3. lapja: ATH Windkraft (36 / 28 / 36 MW)."
+ },
+ {
+  "company": "Magyar Power Kft.",
+  "tax": "33146049-2-08",
+  "group": "Osztrák – Magyar Power",
+  "confidence": "felhasználói jegyzet",
+  "basis": "a felhasználó jegyzete (2026.11.04.): osztrák; melyik csoport, nem ismert."
+ },
+ {
+  "company": "Bloch3 Alfa Kft",
+  "tax": "33148687-2-43",
+  "group": "Osztrák – BLOCH3 GmbH (Blochberger)",
+  "confidence": "valószínű",
+  "basis": "a felhasználó jegyzete (2026.11.04.): osztrákok?; a BLOCH3 márka az osztrák BLOCH3 GmbH-é (Krumbach)."
  },
  {
   "company": "Trantor SU Alpha Kft.",
   "tax": "33142557-2-16",
-  "group": "Trantor SU csomag – ismeretlen",
-  "confidence": "nem található",
-  "basis": "Egymást követő adószámok, Jász-Nagykun-Szolnok megyei cégbíróság (-16); indexelt cégoldal nincs."
+  "group": "Ventus-ARES",
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.)"
  },
  {
   "company": "Trantor SU Beta Kft.",
   "tax": "33142564-2-16",
-  "group": "Trantor SU csomag – ismeretlen",
-  "confidence": "nem található",
-  "basis": "Egymást követő adószámok, Jász-Nagykun-Szolnok megyei cégbíróság (-16); indexelt cégoldal nincs."
+  "group": "Ventus-ARES",
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.)"
  },
  {
   "company": "Trantor SU Gamma Kft.",
   "tax": "33142588-2-16",
-  "group": "Trantor SU csomag – ismeretlen",
-  "confidence": "nem található",
-  "basis": "Egymást követő adószámok, Jász-Nagykun-Szolnok megyei cégbíróság (-16); indexelt cégoldal nincs."
+  "group": "Ventus-ARES",
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.)"
+ },
+ {
+  "company": "Pannon Ventus Energy Kft.",
+  "tax": "33143754-2-18",
+  "group": "Ventus-ARES? (kérdéses)",
+  "confidence": "kérdéses",
+  "basis": "a felhasználó jegyzete (2026.11.04.): „ez nem a Ventus?” – ellenőrizendő."
  },
  {
   "company": "DALMA Energy Kft.",
   "tax": "33146472-2-41",
-  "group": "„<név> Energy” csomag – ismeretlen",
-  "confidence": "nem található",
-  "basis": "Egymást követő adószámok (33146472/489/496/513), azonos névsablon, Budapest."
+  "group": "ABO Wind",
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.)"
  },
  {
   "company": "GORDON Energy Kft.",
   "tax": "33146489-2-41",
-  "group": "„<név> Energy” csomag – ismeretlen",
-  "confidence": "nem található",
-  "basis": "Egymást követő adószámok (33146472/489/496/513), azonos névsablon, Budapest."
+  "group": "ABO Wind",
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.)"
  },
  {
   "company": "HELENA Energy Kft.",
   "tax": "33146496-2-41",
-  "group": "„<név> Energy” csomag – ismeretlen",
-  "confidence": "nem található",
-  "basis": "Egymást követő adószámok (33146472/489/496/513), azonos névsablon, Budapest."
+  "group": "ABO Wind",
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.)"
  },
  {
   "company": "IMRE Energy Kft.",
   "tax": "33146513-2-41",
-  "group": "„<név> Energy” csomag – ismeretlen",
-  "confidence": "nem található",
-  "basis": "Egymást követő adószámok (33146472/489/496/513), azonos névsablon, Budapest."
+  "group": "ABO Wind",
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.)"
  },
  {
   "company": "Hanság-Wind Energetikai Two Kft.",
   "tax": "32758692-2-41",
-  "group": "Hanság/Sárbag-Wind csomag – ismeretlen",
-  "confidence": "nem található",
-  "basis": "Egymást követő adószámok (32758685/692/702), azonos névsablon, Budapest."
+  "group": "Japán befektető (Hanság/Sárbag-Wind)",
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.): japán, 2025 februárjában alakult?"
  },
  {
   "company": "Sárbag-Wind Energetikai One Kft.",
   "tax": "32758685-2-41",
-  "group": "Hanság/Sárbag-Wind csomag – ismeretlen",
-  "confidence": "nem található",
-  "basis": "Egymást követő adószámok (32758685/692/702), azonos névsablon, Budapest."
+  "group": "Japán befektető (Hanság/Sárbag-Wind)",
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.): japán, 2025 februárjában alakult?"
  },
  {
   "company": "Sárbag-Wind Energetikai Two Kft.",
   "tax": "32758702-2-41",
-  "group": "Hanság/Sárbag-Wind csomag – ismeretlen",
-  "confidence": "nem található",
-  "basis": "Egymást követő adószámok (32758685/692/702), azonos névsablon, Budapest."
+  "group": "Japán befektető (Hanság/Sárbag-Wind)",
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.): japán, 2025 februárjában alakult?"
+ },
+ {
+  "company": "Altek Energy Hungary Kft.",
+  "tax": "33147930-2-41",
+  "group": "Altek – török magánszemély (1/1), valószínűleg stróman",
+  "confidence": "felhasználói jegyzet",
+  "basis": "a felhasználó jegyzete (2026.11.04.): török, nincs más cége, 1/1 tulajdonos, valószínűleg valakinek a strómanja."
+ },
+ {
+  "company": "Future Green Zrt.",
+  "tax": "32302466-2-42",
+  "group": "Future FM / MFB Invest / Budapest Airport kör",
+  "confidence": "felhasználói jegyzet",
+  "basis": "a felhasználó jegyzete (2026.11.04.)"
+ },
+ {
+  "company": "TVI 01 Wind Kft",
+  "tax": "33131863-2-43",
+  "group": "VPP Solar",
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.)"
  },
  {
   "company": "8G Energy Wind Two Kft.",
   "tax": "33149592-2-41",
   "group": "8G Energy Holding (Biggeorge)",
-  "confidence": "valószínű",
-  "basis": "Névminta (8G Energy ESCO One, Solutions stb.); a holdingot 2022-ben a Biggeorge Holding (Nagygyörgy Tibor) és az Energy Independence Kft. alapította."
+  "confidence": "igazolt",
+  "basis": "a felhasználó jegyzete (2026.11.04.)"
  },
  {
   "company": "CashlineWindfarm Kft.",
@@ -210,58 +252,16 @@
   "basis": "Névminta; a Cashline-csoport napelemes SPV-ket tart."
  },
  {
-  "company": "Bloch3 Alfa Kft",
-  "tax": "33148687-2-43",
-  "group": "BLOCH3 GmbH (AT, Blochberger)",
-  "confidence": "valószínű",
-  "basis": "A BLOCH3 márkát egyedül az osztrák BLOCH3 GmbH (Krumbach) használja; a magyar Kft. nem ellenőrzött."
- },
- {
   "company": "BRK Wind Kft",
   "tax": "33001632-2-43",
   "group": "BRKV Bádog-Tető köre (Győrság)",
   "confidence": "valószínű",
-  "basis": "Opten: a BRKV Bádog-Tető Kft. kapcsolt vállalkozása; tulajdonos neve nem került elő."
- },
- {
-  "company": "Altek Energy Hungary Kft.",
-  "tax": "33147930-2-41",
-  "group": "ismeretlen (3. lap: török)",
-  "confidence": "nem található",
-  "basis": "Egyetlen nyom egy Opten-oldalsáv; a török Alarko/Altek kapcsolat feltevés."
- },
- {
-  "company": "Pannon Ventus Energy Kft.",
-  "tax": "33143754-2-18",
-  "group": "ismeretlen",
-  "confidence": "nem található",
-  "basis": "Vas megyei SPV (adószám -18), 2025."
- },
- {
-  "company": "Magyar Power Kft.",
-  "tax": "33146049-2-08",
-  "group": "ismeretlen",
-  "confidence": "nem található",
-  "basis": "Győr-Moson-Sopron megyei SPV (adószám -08), 2025."
- },
- {
-  "company": "TVI 01 Wind Kft",
-  "tax": "33131863-2-43",
-  "group": "ismeretlen",
-  "confidence": "nem található",
-  "basis": "Budapesti SPV, 2025."
- },
- {
-  "company": "Future Green Zrt.",
-  "tax": "32302466-2-42",
-  "group": "Future FM / MFB Invest / Budapest Airport kör",
-  "confidence": "felhasználói információ",
-  "basis": "A felhasználó megjegyzése (2026.11.04.): Budapest Airport, MFB Invest, Future Facility Services kör. Cégkivonattal nem ellenőrzött."
+  "basis": "Opten: a BRKV Bádog-Tető Kft. kapcsolt vállalkozása. Üres e-akta."
  },
  {
   "company": "-",
   "tax": "-",
-  "group": "n/a",
+  "group": "Űrlap nélküli beadvány",
   "confidence": "",
   "basis": "Űrlap nélküli beadvány."
  }
