@@ -204,6 +204,9 @@ for i, gr in enumerate(groups):
     put(wg, r, 4, gr["group"], align="left")
     put(wg, r, 5, gr["confidence"], align="left")
     put(wg, r, 8, gr["basis"], wrap=True)
+    for c in range(2, 8):
+        al = wg.cell(r, c).alignment
+        wg.cell(r, c).alignment = Alignment(horizontal=al.horizontal, vertical="top")
 GR0, GR1 = 6, 5 + len(groups)
 put(wg, GR1 + 1, 2, "Összesen", bold=True)
 put(wg, GR1 + 1, 6, f"=SUM(F{GR0}:F{GR1})", "int", bold=True)
@@ -322,6 +325,8 @@ for i in range(len(groups)):
     rg = 6 + i
     put(wg, rg, 6, f"=COUNTIF(Összesítő!$C${R_FIRST}:$C${R_LAST},B{rg})", "int")
     put(wg, rg, 7, f"=SUMIF(Összesítő!$C${R_FIRST}:$C${R_LAST},B{rg},Összesítő!$F${R_FIRST}:$F${R_LAST})", "n1")
+    for c in (6, 7):
+        wg.cell(rg, c).alignment = Alignment(horizontal="right", vertical="top")
 
 R_GT = r
 total_row(ws, R_GT, WS)
