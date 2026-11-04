@@ -11,14 +11,14 @@ placeholder (Bana wind terms or a default). "Rec." = Fable's recommendation wher
 | # | Assumption | Value | Unit | Source | Status | Rec. |
 |---|---|---|---|---|---|---|
 | 1 | Acquisition / JV start, deposits paid | 30-Nov-2025 | date | v3 Stat_inp E39 | v3 | ok |
-| 2 | Ready to build (cases B, C) | 31-Dec-2026 | date | Teaser p6 "RTB Dec-2026" | T, P | two months away; confirm or move to Q1/Q2-2027 |
+| 2 | Ready to build = model date | 31-Dec-2026 | date | Teaser p6 "RTB Dec-2026"; user 04-Nov-2026 (v2.1) | U | spend before it is "spent to date": dated in the RtB block, one grid column "to 2026" |
 | 3 | RtB sale closing (exit) | 31-Mar-2027 | date | placeholder (teaser transaction timeline shows "Closing Aug-26", inconsistent with RTB Dec-26) | P | confirm; drives the 12 % accrual and the FEP IRR |
-| 4 | NTP (buyer's construction start) | 30-Jun-2027 | date | placeholder | P | confirm |
-| 5 | COD, PV and BESS together | 31-Mar-2028 | date | Teaser p6 "COD Mar-28"; E.ON p1 "2027 Q4–2028 Q1"; MET contracts from 01-Jan-2028 | T, P | 9 months NTP → COD for 63 MWp + BESS is tight; keep, but a +12-month case is in Low |
+| 4 | NTP; construction capex | 01-Jan-2027; all construction capex in 2027 (`Capex_Year`) | date | user 04-Nov-2026: "costs will arrive in 2027" | U | the NTP→COD spread is gone; E48/E49 at NTP (Jan-2027) |
+| 5 | COD, PV and BESS together | 01-Mar-2028 (production from March: 10/12 of 2028); PPA Mar-2028 → Feb-2033 | date | user 04-Nov-2026: "production starts 2028 march" | U | Low: COD +12 months (Mar-2029), capex still in 2027 |
 | 6 | Operating life | 35 | years | v3 Control D30 | v3 | long for PV (30 typical); BESS retires/repowers 2048 anyway |
 | 7 | Pre-RtB development cost window | Oct-2026 → Mar-2027 | dates | v3 Control D116:D117 | v3 | ok |
 | 8 | v3 case dates (column E only) | acq 30-Nov-25, RtB 31-Jul-26, exit 31-Oct-26, NTP 31-Mar-27, COD 31-Mar-28 | | v3 Control D19:D31 | v3 | reconciliation only |
-| 9 | Timeline | quarterly today → **annual** in v2 (SPEC_v2 §2.6) | | format | design | dated RtB flows keep exact dates |
+| 9 | Timeline | annual, year-end dates: "to 2026" \| 2027 … 2064 (v2.1 §12.1) | | format | design | dated RtB flows keep exact dates |
 
 ### 1.2 PV
 | # | Assumption | Value | Unit | Source | Status | Rec. |
@@ -97,14 +97,14 @@ placeholder (Bana wind terms or a default). "Rec." = Fable's recommendation wher
 | 61 | HIPA + innovation contribution | 2.0 % + 0.3 % of revenue | Bana | P | confirm Nyirád's rate; base is revenue less materials/subcontracting |
 | 62 | Opex change | 0 % | – | P | – |
 
-### 1.8 Financing (all placeholders: Bana wind indications, no ZHLP term sheet)
+### 1.8 Financing (levered case, v2.1 §12.2: user instruction 04-Nov-2026, not a bank term)
 | # | Assumption | Value | Status | Rec. |
 |---|---|---|---|---|
-| 63 | Gearing cap | 55 % of PV + BESS construction cost (v3 column: 0) | P | merchant PV+BESS: banks size on haircut curves; 50 % |
-| 64 | Sizing DSCR | 1.20 contracted / 1.35 merchant and BESS; sized on CFADS after unlevered tax (v2) | P | 1.30 / 1.45 |
-| 65 | Tenor / rate | 15 y level annuity from COD / 5.0 % all-in | P | 15–17 y; rate = swap + 2.0–2.5 % – ask the bank |
-| 66 | Fees / DSRA / sweep | 1.75 % upfront, 0.9 % commitment / 6 months / none | P | ok |
-| 67 | Debt per MWp cap | 0 (gearing only) | P | – |
+| 63 | Gearing | 60 % of the capex to COD (total uses incl. land and E48/E49; not development or deposits), per case lever; 0 = unlevered | U | user 04-Nov-2026; banks size merchant PV+BESS on DSCR – term sheet |
+| 64 | Sizing DSCR | none: debt = gearing × capex; min / average DSCR shown as information (PV only min 0.98 in Base) | U, P | a bank would cap the debt by DSCR |
+| 65 | Tenor / rate | 20 level annuities from 31-Dec-2028 (first one full) / 5.0 % all-in; straight-line not built | U | rate = swap + margin – ask the bank |
+| 66 | Fees / DSRA / sweep / IDC | none / none / none; IDC on mid-year 2027 draws capitalised; interest deductible (own loss carry-forward) | P | add with a term sheet |
+| 67 | Debt per MWp cap | none (gearing only) | P | – |
 
 ### 1.9 Tax (Hungary)
 | # | Assumption | Value | Source | Status | Rec. |

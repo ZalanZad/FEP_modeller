@@ -1,4 +1,5 @@
-"""Independent Python shadow of the Zalahaláp workbook (SPEC v2): one case, one sensitivity case, annual 2025–2064.
+"""Independent Python shadow of the Zalahaláp workbook (SPEC v2.1): one case, one sensitivity case; grid "to 2026",
+2027 … 2064, unlevered and levered.
 
 Coded from the SPEC (§4–§6) and the input values, not from the workbook's formulas; reconcile.py compares it with the
 recalculated workbook (machine precision) and uses its switches for the last steps of the v3 → v2 bridge.
@@ -16,7 +17,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 D = dt.date
-YEARS = list(range(2025, 2065))
+YEARS = list(range(2026, 2065))                 # first column = spend to the model date 31-Dec-2026
 YE = [D(y, 12, 31) for y in YEARS]
 SENS = {"Base": dict(cpv=0.0, cb=0.0, cy=0.0, cc=0.0, delay=0, buyer=0.08),
         "Low": dict(cpv=-0.2, cb=-0.2, cy=-0.02, cc=0.10, delay=12, buyer=0.09),
@@ -28,8 +29,8 @@ BLOCK = {2: "2027 solar DC 1.0cy 2h", 4: "2027 solar DC 1.0cy 4h"}
 
 def params(**over):
     p = dict(mwp=63, mva=49.9, yld=1265, ppa_price=45, ppa_index=0.0, ppa_years=5, basis="Merchant", rtb_price=90,
-             cod_price=0, acq=D(2025, 11, 30), rtb=D(2026, 12, 31), exit=D(2027, 3, 31), ntp=D(2027, 6, 30),
-             cod=D(2028, 3, 31), life=35, avail=0.995, deg=0.003, clip=None, goo=1.75, pv_only_hours=2, rte=0.86,
+             cod_price=0, acq=D(2025, 11, 30), rtb=D(2026, 12, 31), exit=D(2027, 3, 31), ntp=D(2027, 1, 1),
+             cod=D(2028, 3, 1), life=35, capex_year=2027, gearing=0.6, debt_rate=0.05, tenor=20, draw_timing=0.5, avail=0.995, deg=0.003, clip=None, goo=1.75, pv_only_hours=2, rte=0.86,
              haircut=0.0, afrr=0.0, bess_capex=110, repower=1, opex_mw=18.70, opex_mwh=6.07, balancing=5.0, toll_start=D(2028, 1, 1),
              toll_years=3, toll_fee=49.7, pv_capex=350, cable=3700, subst=9500, grid_fee=0, land=620, ew_ntp=725,
              om=14.96, cable_om=5, lease=96, hipa=0.02, innov=0.003, spv=549, trans=200, dsa=15,
@@ -54,6 +55,12 @@ def eomonth(d, n):
     m = d.month - 1 + n
     y, m = d.year + m // 12, m % 12 + 1
     return D(y, m, calendar.monthrange(y, m)[1])
+
+
+def edate(d, n):
+    m = d.month - 1 + n
+    y, m = d.year + m // 12, m % 12 + 1
+    return D(y, m, min(d.day, calendar.monthrange(y, m)[1]))
 
 
 def months_between(a, b):
@@ -97,12 +104,12 @@ AU = aurora()
 
 def series(name, block, sign=1):
     s = AU[(name, block)]
-    return {y: (0.0 if y == 2025 else sign * s[min(y, 2060)]) for y in YEARS}
+    return {y: sign * s[min(y, 2060)] for y in YEARS}
 
 
 def euro_index():
     s = AU[("euro_index", "Central")]
-    out = {2025: 1.0}
+    out = {2026: s[2026]}
     for y in YEARS[1:]:
         out[y] = s[y] if y <= 2060 else out[y - 1] * 1.02
     return out
@@ -127,7 +134,7 @@ def run(case="PV + 4h BESS", sens="Base", **over):
     hours = c["hours"]
     mwh = built * c["mw"] * hours
     mwp = p["mwp"]
-    codl = eomonth(p["cod"], s["delay"])
+    codl = edate(p["cod"], s["delay"])
     blk = BLOCK[hours] if built else BLOCK[p["pv_only_hours"]]
     rep_cnt = AU[("repower_count", blk)]
     rep_year = next(y for y in range(2026, 2061) if rep_cnt[y] >= 1)
@@ -135,15 +142,13 @@ def run(case="PV + 4h BESS", sens="Base", **over):
     st, pvo, dcs = series("storage_total", blk), series("pv_only_factor", blk), series("down_cap_share", blk)
     chg, dmw = series("charge_res", blk, -1), series("discharge", blk)
     L12 = p["life"] * 12
-    e_c = months_between(p["ntp"], codl)
     R = {k: [] for k in ("gen", "sent", "direct", "dis", "rev", "rpv", "rbess", "rgoo", "opex", "ebitda", "capt",
                          "capex", "ewntp", "aug", "tax", "lapse", "oshare", "yrs", "ppa", "pxd", "bal")}
     first_full = codl.year + 1
     for y in YEARS:
         yrs = y - codl.year
-        cmon = (y + 1 - p["ntp"].year) * 12 - p["ntp"].month
-        cshare = max(0, min(cmon, e_c) - max(cmon - 12, 0)) / e_c
-        omon = (y + 1 - codl.year) * 12 - codl.month
+        cshare = 1.0 * (y == p["capex_year"])                 # all construction capex in one year
+        omon = (y + 1 - codl.year) * 12 - codl.month + 1      # COD = first day of production
         osh = max(0, min(omon, L12) - max(omon - 12, 0)) / 12
         degf = (1 - p["deg"]) ** max(yrs - 1, 0)
         live = 1 - (1 - p["repower"]) * (y >= rep_year)
@@ -154,9 +159,9 @@ def run(case="PV + 4h BESS", sens="Base", **over):
         direct = gen - sent
         dis = min(dmw[y] * mw * osh * live, sent * p["rte"])
         # prices (Revenue bar 3)
-        m0 = (y - codl.year) * 12 - codl.month
+        m0 = (y - codl.year) * 12 - codl.month + 1
         opm = max(0, min(12, L12 - m0) - max(0, -m0))
-        ts = max(p["toll_start"], codl + dt.timedelta(days=1))
+        ts = max(p["toll_start"], codl)
         t0 = (y - ts.year) * 12 - ts.month + 1
         md = pxd_m[y] * idx * (1 + s["cpv"])
         ms = pxs_m[y] * idx * (1 + s["cpv"])
@@ -230,7 +235,8 @@ def run(case="PV + 4h BESS", sens="Base", **over):
     ret_x = sum(-a * (factor(d_, p["exit"], p["rate"]) - 1) * f for a, d_, f in lines)
     ret_c = sum(-a * (factor(d_, codl, p["rate"]) - 1) * f for a, d_, f in lines)
     codf = [1 if y == codl.year else 0 for y in YEARS]
-    pre = [sum(a for a, d_, _ in lines if d_.year == y) + cf * hold_at_cod for y, cf in zip(YEARS, codf)]
+    col = lambda d_: max(0, d_.year - YEARS[0])                              # noqa: E731 (to 2026 = first column)
+    pre = [sum(a for a, d_, _ in lines if col(d_) == i) + cf * hold_at_cod for i, cf in enumerate(codf)]
     # tax
     dep_base_b = k_bess
     dep_base = k_tot - k_bess - k_land + ew_total + pre_spent
@@ -243,6 +249,7 @@ def run(case="PV + 4h BESS", sens="Base", **over):
         dp = -dep_base * max(0, min(om, p["dep_years"] * 12) - max(om - 12, 0)) / (p["dep_years"] * 12)
         da = aug_total / p["dep_bess"] * (y >= rep_year) * (y < rep_year + p["dep_bess"])
         tb = R["ebitda"][i] + db + dp + da
+        R.setdefault("taxb", []).append(tb)
         add = max(0, -tb)
         use = -min(lo, p["loss_cap"] * max(0, tb))
         lapse = -(lo + add + use) * (y == lapse_year)
@@ -250,6 +257,36 @@ def run(case="PV + 4h BESS", sens="Base", **over):
         R["lapse"].append(lapse)
         R["tax"].append(-p["cit"] * (max(0, tb) + use) - p["rh"] * p["rh_rate"] * max(0, tb))
     n = len(YEARS)
+    # debt (levered case): drawn with the construction capex, IDC capitalised, level annuity from the COD year
+    g, r_, ten = p["gearing"], p["debt_rate"], p["tenor"]
+    draw = [-g * (R["capex"][i] + R["ewntp"][i]) for i in range(n)]
+    cb, idc = 0.0, []
+    for i in range(n):
+        x = (cb + draw[i] * p["draw_timing"]) * r_ * (R["yrs"][i] < 0)
+        idc.append(x)
+        cb += draw[i] + x
+    debt_cod = cb
+    ann = (debt_cod * r_ / (1 - (1 + r_) ** -ten) if r_ else debt_cod / ten) if debt_cod else 0.0
+    bal, dint, dprin, dclose = 0.0, [], [], []
+    for i in range(n):
+        win = (R["yrs"][i] >= 0) * (R["yrs"][i] < ten)
+        pr = win * min(bal, ann - bal * r_)
+        it = win * bal * r_
+        bal = bal + draw[i] + idc[i] - pr
+        dint.append(it)
+        dprin.append(pr)
+        dclose.append(bal)
+    dserv = [a + b for a, b in zip(dint, dprin)]
+    lo, taxl = 0.0, []
+    for i, y in enumerate(YEARS):
+        tb = R["taxb"][i] - dint[i]
+        add = max(0, -tb)
+        use = -min(lo, p["loss_cap"] * max(0, tb))
+        lapse = -(lo + add + use) * (y == lapse_year)
+        lo = lo + add + use + lapse
+        taxl.append(-p["cit"] * (max(0, tb) + use) - p["rh"] * p["rh_rate"] * max(0, tb))
+    cfads = [(R["ebitda"][i] + taxl[i] + R["aug"][i]) * (R["yrs"][i] >= 0) for i in range(n)]
+    dscr = [c / d for c, d in zip(cfads, dserv) if d > 0]
     pcf = [R["ebitda"][i] + R["capt"][i] + pre[i] for i in range(n)]
     pcft = [pcf[i] + R["tax"][i] for i in range(n)]
     # buyer at RtB: implied premium and IRR at our price
@@ -259,7 +296,7 @@ def run(case="PV + 4h BESS", sens="Base", **over):
     price = p["rtb_price"] if p["rtb_price"] > 0 else implied
     allin = price + buyer_reimb / mwp
     bxd = [max(t, p["exit"]) for t in YE]
-    bxp = [bx[i] - allin * mwp * (YEARS[i] == 2025) for i in range(n)]
+    bxp = [bx[i] - allin * mwp * (i == 0) for i in range(n)]
     buyer_rtb = xirr(bxp, bxd)
     buyer_rtb_pre = xirr([bxp[i] - R["tax"][i] for i in range(n)], bxd)
     # JV split at the RtB exit
@@ -307,6 +344,25 @@ def run(case="PV + 4h BESS", sens="Base", **over):
     # hold
     hold = [pcft[i] - pl * (YEARS[i] == p["exit"].year) for i in range(n)]
     holdp = [hold[i] - R["tax"][i] for i in range(n)]
+    holdl = [pcf[i] + taxl[i] + draw[i] - dserv[i] - pl * (YEARS[i] == p["exit"].year) for i in range(n)]
+    holdlp = [holdl[i] - taxl[i] for i in range(n)]
+    # COD sale, levered: FEP repays the debt from the price before the split
+    eq_cod = contrib - sum(draw)
+    cl_ev = ev - debt_cod
+    cl_sale = -min(cl_ev, p["sale_cod"] * ev)
+    cl_fund = -min(eq_cod, cl_ev + cl_sale)
+    cl_ret = -min(ret_c, cl_ev + cl_sale + cl_fund)
+    cl_dist = cl_ev + cl_sale + cl_fund + cl_ret
+    cl_fl = cl_dist * share
+    cl_pl = cl_dist - cl_fl
+    cl_fep = -(cl_fund + cl_ret) + cl_fl
+    codrl = [R["capt"][i] * (R["yrs"][i] <= 0) + pre[i] + draw[i] + cl_fep * codf[i] for i in range(n)]
+    cl_tax = -p["cit"] * (-cl_ret + p["gain_taxed"] * max(0, sum(codrl) + cl_ret))
+    codtl = [codrl[i] + cl_tax * codf[i] for i in range(n)]
+    # buyers, levered
+    bxl = [bx[i] - R["tax"][i] + taxl[i] + draw[i] - dserv[i] - allin * mwp * (i == 0) for i in range(n)]
+    bcl = [(R["ebitda"][i] + taxl[i] + R["aug"][i]) * (R["yrs"][i] >= 0) - dserv[i] - (ev - debt_cod) * codf[i]
+           for i in range(n)]
     dfa = 1 / (1 + p["disc"]) ** ((YE[0] - p["acq"]).days / 365)
     i_ffy = YEARS.index(first_full)
     return dict(
@@ -326,6 +382,15 @@ def run(case="PV + 4h BESS", sens="Base", **over):
         hold_equity=-sum(x for x in hold if x < 0), hold_dist=sum(x for x in hold if x > 0),
         hold_profit=sum(hold), hold_profit_pre=sum(holdp), hold_irr=xirr(hold, YE), hold_irr_pre=xirr(holdp, YE),
         hold_npv=xnpv(p["disc"], hold, YE) * dfa, proj_irr=xirr(pcft, YE), proj_irr_pre=xirr(pcf, YE),
+        debt_drawn=sum(draw), idc=sum(idc), debt_cod=debt_cod, annuity=ann, debt_end=dclose[-1],
+        dscr_min=min(dscr) if dscr else 0.0, dscr_avg=sum(dscr) / len(dscr) if dscr else 0.0, tax_life_l=sum(taxl),
+        hold_irr_l=xirr(holdl, YE), hold_irr_lp=xirr(holdlp, YE), hold_profit_l=sum(holdl),
+        hold_equity_l=-sum(x for x in holdl if x < 0),
+        hold_moic_l=sum(x for x in holdl if x > 0) / -sum(x for x in holdl if x < 0),
+        cod_irr_l=xirr(codtl, YE), cod_irr_lp=xirr(codrl, YE), cod_profit_l=sum(codtl),
+        cod_moic_l=sum(x for x in codrl if x > 0) / -sum(x for x in codrl if x < 0),
+        psh_cod_l=cl_pl + (p["dsa"] - p["psh_devex"]) * mwp - p["psh_land"],
+        buyer_rtb_l=xirr(bxl, bxd), buyer_cod_l=xirr(bcl[codcol:], YE[codcol:]),
         rows=R, pcft=pcft, hold=hold)
 
 

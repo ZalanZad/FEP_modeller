@@ -25,9 +25,11 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(HERE / "data" / "old_engine"))
 sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(HERE / "data"))
 
 import old_zhlp as V3  # noqa: E402
 import shadow as V2  # noqa: E402
+import shadow_v20 as V20  # noqa: E402  (frozen v2.0 shadow, before the v2.1 timeline rebase)
 
 DATA = HERE / "data"
 OUT = HERE / "out"
@@ -442,13 +444,18 @@ V1_STEPS = [  # label, SPEC reference, switches on the v1 quarterly shadow (cumu
     ("SPV price 549 (no return), DSA 945, no PSH land step", "v2 §6", dict(spv=549, spv_int=0, dsa=15, psh_step=0)),
     ("Tax defaults: BESS 10 years, losses lapse NTP + 5 years", "v2 §3.2", dict(dep_bess=10, loss_years=5)),
 ]
-V2_STEPS = [  # label, SPEC reference, shadow.py overrides (the last one is the base)
+V2_STEPS = [  # label, SPEC reference, shadow overrides (v2.0 shadow; the v2.1 steps follow in bridge())
     ("Annual timeline, year-end dates (the RtB route keeps exact dates), unlevered, v2 JV split", "v2 §4, §6",
      dict(ppa_years=0, hipa=0, innov=0, opex_mw=30.8, opex_mwh=0)),
     ("BESS opex by duration: 18.70 k€/MW + 6.07 k€/MWh (Aurora; 4 h = 42.96)", "fix round M2",
      dict(ppa_years=0, hipa=0, innov=0)),
     ("HIPA 2 % and innovation contribution 0.3 % on revenue", "v2 §3.2", dict(ppa_years=0)),
-    ("PPA 5 years at 45 €/MWh on all PV output = base", "v2 §5.2", {}),
+    ("PPA 5 years at 45 €/MWh on all PV output = v2.0 base (fe5a4fe)", "v2 §5.2", {}),
+]
+V21_STEPS = [  # label, SPEC reference, shadow.py overrides (v2.1)
+    ("Timeline rebase: spend to 31-Dec-26 in one column, all capex in 2027, COD 01-Mar-28 (unlevered)", "v2.1 §12.1",
+     dict(gearing=0)),
+    ("Levered case: 60 % gearing, 5 %, 20-year annuity (hold IRR levered; base)", "v2.1 §12.2", {}),
 ]
 BRIDGE = [("hold_irr", "FEP hold IRR", "%"), ("proj_irr", "Project IRR", "%"), ("rtb_profit", "RtB profit (k€)", "k"),
           ("rtb_irr", "RtB XIRR", "%"), ("implied_raw", "Implied RtB premium before the 0 floor (k€/MWp)", "k")]
@@ -466,7 +473,10 @@ def bridge():
         over.update(sw)
         rows.append((label, ref, v1(run(params(**over)))))
     for label, ref, kw in V2_STEPS:
-        rows.append((label, ref, V2.run("PV + 4h BESS", "Base", **kw)))
+        rows.append((label, ref, V20.run("PV + 4h BESS", "Base", **kw)))
+    for label, ref, kw in V21_STEPS:
+        r = V2.run("PV + 4h BESS", "Base", **kw)
+        rows.append((label, ref, dict(r, hold_irr=r["hold_irr_l"]) if not kw else r))
     return rows
 
 
@@ -494,7 +504,19 @@ TIE = [  # shadow key, Dashboard label, occurrence, scale (workbook = shadow / s
     ("hold_irr", "IRR, after tax", 0, 1), ("hold_irr_pre", "IRR, before tax", 0, 1),
     ("hold_npv", "NPV at the discount rate, after tax (at acquisition)", 0, 1),
     ("proj_irr", "Memo: project IRR, unlevered after tax (no buy-out)", 0, 1),
-    ("proj_irr_pre", "Memo: project IRR, unlevered before tax", 0, 1)]
+    ("proj_irr_pre", "Memo: project IRR, unlevered before tax", 0, 1),
+    ("debt_drawn", "Debt drawn in the capex year (gearing × total uses)", 0, 1),
+    ("idc", "Interest during construction, capitalised", 0, 1), ("debt_cod", "Debt at COD", 0, 1),
+    ("annuity", "Annual debt service (level annuity)", 0, 1), ("dscr_min", "Minimum DSCR (information)", 0, 1),
+    ("dscr_avg", "Average DSCR (information)", 0, 1), ("tax_life_l", "Lifetime corporate income tax, levered", 0, -1),
+    ("buyer_rtb_l", "Buyer IRR at our price, levered after tax (raises debt)", 0, 1),
+    ("buyer_cod_l", "Buyer IRR at our price, levered after tax (takes debt)", 0, 1),
+    ("cod_profit_l", "Levered: FEP profit, post-tax (debt repaid from price)", 0, 1),
+    ("cod_moic_l", "Levered: MOIC, pre-tax", 0, 1), ("cod_irr_lp", "Levered: IRR, pre-tax", 0, 1),
+    ("cod_irr_l", "Levered: IRR, post-tax", 0, 1), ("psh_cod_l", "Levered: PSH profit", 0, 1),
+    ("hold_equity_l", "Levered: FEP equity invested (uses less debt)", 0, 1),
+    ("hold_profit_l", "Levered: FEP profit, post-tax", 0, 1), ("hold_irr_l", "Levered: IRR, after tax", 0, 1),
+    ("hold_irr_lp", "Levered: IRR, before tax", 0, 1), ("hold_moic_l", "Levered: MOIC, after tax", 0, 1)]
 CASES = ["PV only", "PV + 2h BESS", "PV + 4h BESS"]
 
 
@@ -525,7 +547,11 @@ def tie_out(sensitivities=("Base", "Low", "High")):
             for i, case in enumerate(CASES):
                 sh = V2.run(case, sens)
                 for key, (r, scale) in cells.items():
-                    res[(sens, case, key)] = (lo.get(f"Dashboard!{'EFG'[i]}{r}"), sh[key] / scale)
+                    w = lo.get(f"Dashboard!{'EFG'[i]}{r}")
+                    if sh[key] is None:                      # IRR undefined (no sign change): workbook shows n/a
+                        assert w == "n/a", (sens, case, key, w)
+                        continue
+                    res[(sens, case, key)] = (w, sh[key] / scale)
             res[(sens, "master", "check")] = (mc, 0)
     return res
 
@@ -569,7 +595,8 @@ def report(tie):
          "(HTM targets from the copy with Aurora_Curve!C8 = 0, SPEC v1 §3.2).", "",
          "## 2. Bridge: v3 → PV + 4 h column, Base, merchant BESS basis", "",
          "Rows 1–2 are values; each further row switches one change on (cumulative) and shows its effect. Rows 2–10 run on the v1 quarterly shadow (unlevered: gearing 0 "
-         "throughout), rows 11–14 on the v2 annual shadow; the last row is the workbook's PV + 4 h column (Base). The "
+         "throughout), rows 11–14 on the frozen v2.0 annual shadow (`data/shadow_v20.py`), rows 15–16 on the v2.1 shadow; "
+         "the hold IRR is levered from row 16 on; the last row is the workbook's PV + 4 h column (Base). The "
          "implied premium is shown before the 0 floor; the workbook floors it at 0.", "",
          "| Step | SPEC | " + " | ".join(lbl for _, lbl, _ in BRIDGE) + " |", "|---|---|" + "---:|" * len(BRIDGE)]
     prev = None
@@ -580,7 +607,8 @@ def report(tie):
             L.append(f"| + {label} | {ref} | " + " | ".join(delta(prev.get(x), vals.get(x), u) for x, _, u in BRIDGE)
                      + " |")
         prev = vals
-    wb = {x: tie[("Base", "PV + 4h BESS", "implied_rtb" if x == "implied_raw" else x)][0] for x, _, _ in BRIDGE}
+    key = {"implied_raw": "implied_rtb", "hold_irr": "hold_irr_l"}
+    wb = {x: tie[("Base", "PV + 4h BESS", key.get(x, x))][0] for x, _, _ in BRIDGE}
     L.append("| **PV + 4 h, Base: the workbook (implied premium floored at 0)** | | "
              + " | ".join(fmt(wb[x], u) for x, _, u in BRIDGE) + " |")
     L += ["", "Notes on the steps:", "",
@@ -596,6 +624,11 @@ def report(tie):
           "- BESS opex step (fix round M2): v3's 30.8 k€/MW is Aurora's 2 h figure (Control!D96 note). Aurora's own "
           "table (Inputs rows 37–39, 2028 entry) gives 2 h 30.83 and 4 h 42.96 €/kW, i.e. 18.70 k€/MW + 6.07 k€/MWh; "
           "the 4 h battery now carries 42.96 instead of 30.8.",
+          "- Timeline rebase (v2.1 §12.1): spend to 31-Dec-2026 in one column at its year end, all construction capex "
+          "in 2027 (was spread NTP 30-Jun-27 → COD 31-Mar-28), COD 01-Mar-2028 (10 months of production in 2028), "
+          "tolling from the later of 01-Jan-28 and COD.",
+          "- Levered row: 60 % of the capex to COD drawn in 2027, IDC on mid-year draws capitalised, 20 level "
+          "annuities from 31-Dec-2028, interest deductible; the hold IRR is the levered FEP IRR.",
           "- PPA step: 45 €/MWh nominal on all PV output for 5 years (Aurora's direct price is 98–108 €/MWh nominal in "
           "2028–29 for the 4 h block), no balancing in those years.", "",
           "## 3. The v2 shadow ties to the workbook", "",

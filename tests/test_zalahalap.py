@@ -70,3 +70,13 @@ def test_shadow_ties_to_the_workbook(built, tmp_path):
         sh = shadow.run(case, "Base")
         for key, (r, scale) in rec.dashboard_cells().items():
             assert ws.cell(r, 5 + i).value == pytest.approx(sh[key] / scale, rel=1e-9, abs=1e-7), (case, key)
+
+
+def test_gearing_zero_reproduces_the_unlevered_case():
+    shadow = _load("zalahalap_shadow", PROJECT / "shadow.py")
+    for case in shadow.CASES:
+        r = shadow.run(case, "Base", gearing=0)
+        assert r["debt_cod"] == 0
+        for lev, unl in (("hold_irr_l", "hold_irr"), ("cod_irr_l", "cod_irr"), ("buyer_rtb_l", "buyer_rtb"),
+                         ("buyer_cod_l", "buyer_cod"), ("cod_profit_l", "cod_profit")):
+            assert r[lev] == pytest.approx(r[unl], abs=1e-12), (case, lev)

@@ -22,7 +22,7 @@ HERE = Path(__file__).resolve().parent
 DATA = HERE / "data"
 NAME = "Zalahalap_Model"
 D = dt.date
-FIRST_YEAR, N_YEARS = 2025, 40                          # 2025 … 2064 (the Low case's 12-month delay runs to 2064)
+FIRST_YEAR, N_YEARS = 2026, 39                          # "to 2026", 2027 … 2064 (Low: COD +12 months runs to 2064)
 YEARS = list(range(FIRST_YEAR, FIRST_YEAR + N_YEARS))
 CASES = ["PV only", "PV + 2h BESS", "PV + 4h BESS"]
 BLOCKS = {"DC 4h": "2027 solar DC 1.0cy 4h", "DC 2h": "2027 solar DC 1.0cy 2h"}     # code -> Aurora block
@@ -61,9 +61,10 @@ def aurora():
     return out
 
 
-def _years(vals, first=None, grow=None):
-    """Aurora 2026–2060 → model years: 2025 = `first` (blank), flat real after 2060 (or grown by `grow`)."""
-    out = [first] + list(vals)
+def _years(vals, grow=None):
+    """Aurora 2026–2060 → model years 2026–2064 (the first column "to 2026" carries 2026), flat real after 2060 (or
+    grown by `grow`)."""
+    out = list(vals)
     while len(out) < N_YEARS:
         out.append(out[-1] * (1 + grow) if grow else out[-1])
     return out
@@ -104,6 +105,11 @@ def dashboard_top(book):
     lv("COD_Price", "COD price (0 = implied)", "EUR k/MWp", [0, 0, 0], source="Implied at the buyer target IRR")
     d.row("toll_cfg", "Tolling offer ≠ built battery (1 = fee not scaled)", "flag",
           cases='=N(AND({c}$20="Tolling",{c}$14<>Offer_MET_MWh))', source="MET offer: 50 MW / 90 MWh", src_col="J")
+    fin = "User instruction 04-Nov-2026, not a bank term"
+    lv("Gearing", "Gearing: debt share of capex to COD (0 = unlevered)", "%", [0.6, 0.6, 0.6], source=fin)
+    lv("Debt_Rate", "Debt rate, all-in", "%", [0.05, 0.05, 0.05], source=fin)
+    lv("Tenor", "Debt tenor: level annuity from the COD year end", "years", [20, 20, 20],
+       source="Annuity; straight-line is the alternative (not built)")
     rows = {k: d.row_of(k) for k in ("MWp", "MVA", "BESS_On", "BESS_MW", "Hours", "MWh", "block", "pblock",
                                       "PPA_Years", "Basis", "RtB_Price", "COD_Price")}
     assert rows == {"MWp": 7, "MVA": 8, "BESS_On": 11, "BESS_MW": 12, "Hours": 13, "MWh": 14, "block": 15,
@@ -120,7 +126,7 @@ def dashboard_top(book):
             ("BESS", "BESS revenue change", "%", [0, -0.2, 0.2], "SPEC v2 §7", None),
             ("Yield", "Yield change", "%", [0, -0.02, 0.02], "SPEC v2 §7", None),
             ("Capex", "Capex change", "%", [0, 0.1, -0.05], "SPEC v2 §7", None),
-            ("COD_Delay", "COD delay", "months", [0, 12, 0], "SPEC v2 §7", None),
+            ("COD_Delay", "COD delay (capex stays in the capex year)", "months", [0, 12, 0], "SPEC v2 §7, §12.1", None),
             ("Buyer_IRR", "Buyer target IRR, unlevered after tax", "%", [0.08, 0.09, 0.07],
              "ZHLP v3 Control D9; " + PH, None)]:
         d.row("s_" + key, label, unit, e=vals[0], f=vals[1], g=vals[2], h=live, inputs=("E", "F", "G"), source=src,
@@ -148,14 +154,17 @@ def inputs(book):
     a("Months_In_Year", "Months in a year", "months", 12, "Calendar")
     a("Hours_In_Year", "Hours in a year", "h", 8760, "Grid export check (365 × 24)")
     a("Tolerance", "Check tolerance", "#", 0.000001, "Checks", fmt="general")
-    a("First_Year", "First year of the timeline", "year", FIRST_YEAR, "Acquisition year")
+    a("First_Year", "First grid column: spend to the model date", "year", FIRST_YEAR, "SPEC v2.1 §12.1 ('to 2026')")
 
     i.sub("Dates")
     a("Acq_Date", "Acquisition, JV start, deposits paid", "date", D(2025, 11, 30), "ZHLP v3 Stat_inp E39")
     a("RtB_Date", "Ready to build (last DSA draw)", "date", RTB, "Teaser p6; " + PH)
+    a("Model_Date", "Model date (spend to date before it)", "date", D(2026, 12, 31), "User 04-Nov-2026 (= RtB)")
     a("Exit_Date", "RtB sale closing (exit)", "date", D(2027, 3, 31), PH)
-    a("NTP_Date", "Notice to proceed (construction start)", "date", D(2027, 6, 30), PH)
-    a("COD_Date", "COD, PV and BESS (operations from the next day)", "date", D(2028, 3, 31), "Teaser p6; " + PH)
+    a("NTP_Date", "Notice to proceed (construction start)", "date", D(2027, 1, 1), "User 04-Nov-2026: costs in 2027")
+    a("Capex_Year", "Construction capex paid in (all of it)", "year", 2027, "User 04-Nov-2026: costs in 2027")
+    a("COD_Date", "COD, PV and BESS (first day of production)", "date", D(2028, 3, 1),
+      "User 04-Nov-2026: production from Mar-2028")
     a("Life", "Operating life", "years", 35, "ZHLP v3 Control D30")
     a("Aurora_First", "Aurora's first year (2025 blank; flat real after 2060)", "year", 2026, "Aurora Q2-26 databook")
 
@@ -212,6 +221,7 @@ def inputs(book):
     a("FX", "FX rate", "HUF/EUR", 400, "ZHLP v3 Stat_inp E23 (Aurora 397.77)")
     a("BG_Base", "Bank guarantee fee: 1M EURIBOR", "%", 0.0187, "ZHLP v3 Dyn_Inp G50:Y50", fmt="0.00%")
     a("BG_Margin", "Bank guarantee fee: margin", "%", 0.0175, "ZHLP v3 Stat_inp E110", fmt="0.00%")
+    a("Draw_Timing", "Debt drawn mid-year: share of a year's IDC on draws", "%", 0.5, "Pro rata with capex in 2027")
     a("Loan_Rate", "FEP return on loans and costs (act/365, 31-Dec)", "%", 0.12, "JV sheet G30; v3 Stat_inp E69")
     a("Share_Low", "FEP share of the distributable, price ≤ threshold", "%", 0.6, "User 22-Oct-26")
     a("Share_High", "FEP share of the distributable, price > threshold", "%", 0.5, "User 22-Oct-26")
@@ -312,7 +322,7 @@ def revenue(book):
         cells = {L(10 + k): v for k, v in enumerate(vals) if v is not None}
         r = rv.row(key, label, unit, e=code, inputs=tuple(cells) + (("E",) if code else ()), extra=cells,
                    fmt=fmt, source=_src(src), fmts={"E": "general"})
-    vals = _years(au[("euro_index", "Central")][0], first=1.0, grow=0.02)
+    vals = _years(au[("euro_index", "Central")][0], grow=0.02)
     cells = {L(10 + k): v for k, v in enumerate(vals)}
     rv.row("idx", "Aurora euro index (2025 = 1; +2 % a year after 2060)", "factor", inputs=tuple(cells),
            extra=cells, fmt="0.0000", source="Aurora Common Assumptions row 14")
@@ -342,11 +352,10 @@ def revenue(book):
     rv.row("yr", "Year", "year", t="={c}$4", fmt="int", bold=True)
     rv.sub("Contract timing (live case)")
     rv.row("m0", "Months from COD to the start of the year", "months", t="=({year}-YEAR(COD_Live))*Months_In_Year"
-                                                                          "-MONTH(COD_Live)", fmt="int")
+                                                                          "-MONTH(COD_Live)+1", fmt="int")
     rv.row("opm", "Operating months in the year", "months",
            t="=MAX(0,MIN(Months_In_Year,Life*Months_In_Year-{m0})-MAX(0,-{m0}))", fmt="int")
-    rv.row("ts", "Tolling start: later of the offer start and COD + 1 day", "date",
-           e="=MAX(Toll_Start,COD_Live+1)")
+    rv.row("ts", "Tolling start: later of the offer start and COD", "date", e="=MAX(Toll_Start,COD_Live)")
     rv.row("t0", "Months from the tolling start to the start of the year", "months",
            t="=({year}-YEAR({ts.E}))*Months_In_Year-MONTH({ts.E})+1", fmt="int")
     rv.row("bfac", "BESS revenue factor: (1 − haircut) × (1 + case)", "factor",
@@ -459,6 +468,7 @@ def calc(book):
     c.row("dfc", "Discount factor to the COD year end (buyer target)", "factor",
           t="=(1+Case_Buyer_IRR)^(({codcol.F}-{yend})/Days_In_Year)")
     c.row("bxd", "Buyer at RtB: flow dates (year end, not before the exit)", "date", t="=MAX({yend},Exit_Date)")
+    c.row("bcd", "Buyer at COD: flow dates (not before the COD year end)", "date", t="=MAX({yend},{codcol.F})")
     c.row("dfa", "Discount factor, first year end to acquisition (NPV)", "factor",
           e="=1/(1+Discount_Rate)^(($J$5-Acq_Date)/Days_In_Year)")
     rev = book.rev
@@ -471,12 +481,8 @@ def calc(book):
         c.sub("Timing")
         c.row("yrs", "Years from the COD year (E: first full operating year)", "years",
               e="=YEAR(COD_Live)+1", t="={year}-YEAR(COD_Live)", fmts={"E": "int"})
-        c.row("cmon", "Construction months by year end (E: NTP to COD)", "months",
-              e='=DATEDIF(NTP_Date,COD_Live,"m")', t="=({year}+1-YEAR(NTP_Date))*Months_In_Year-MONTH(NTP_Date)")
-        c.row("cshare", "Construction share of the year (NTP to COD)", "%", h="=SUM({self.all})",
-              t="=MAX(0,MIN({cmon},{cmon.E})-MAX({cmon}-Months_In_Year,0))/{cmon.E}", fmts={"H": "money2"})
         c.row("omon", "Months operated by year end (E: operating life)", "months", e="=Life*Months_In_Year",
-              t="=({year}+1-YEAR(COD_Live))*Months_In_Year-MONTH(COD_Live)")
+              t="=({year}+1-YEAR(COD_Live))*Months_In_Year-MONTH(COD_Live)+1")
         c.row("oshare", "Operating share of the year (COD to the end of life)", "%", h="=SUM({self.all})",
               t="=MAX(0,MIN({omon},{omon.E})-MAX({omon}-Months_In_Year,0))/Months_In_Year", fmts={"H": "money2"})
         c.row("codf", "COD-year flag", "flag", t="=N({yrs}=0)")
@@ -523,7 +529,7 @@ def calc(book):
         c.row("ebitda", "EBITDA", "EUR k", e=ffy, h=tot, t="={rev}+{opex}", bold=True)
         c.sub("Capex")
         c.row("capex", "Construction capex (E: total uses, F: of which at NTP)", "EUR k",
-              e="=" + lv("Capex_Total"), f="=" + lv("Capex_EW"), h=tot, t="=-({self.E}-{self.F})*{cshare}")
+              e="=" + lv("Capex_Total"), f="=" + lv("Capex_EW"), h=tot, t="=-({self.E}-{self.F})*N({year}=Capex_Year)")
         c.row("ewntp", "Early works at NTP (E48/E49)", "EUR k", h=tot, t="=-{capex.F}*N({year}=YEAR(NTP_Date))")
         c.row("aug", "BESS augmentation at the repower year (indexed)", "EUR k", h=tot,
               t=f"=-{{bess.F}}*BESS_Capex*{idx}*{{rep}}")
@@ -546,9 +552,40 @@ def calc(book):
         c.row("lc", "Tax losses: closing", "EUR k", t="=SUM({lo}:{lapse})")
         c.row("tax", "Corporate income tax (and Robin Hood when switched on)", "EUR k", h=tot, bold=True,
               t="=-CIT_Rate*(MAX(0,{taxb})+{luse})-Robin_Hood*RH_Rate*MAX(0,{taxb})")
+        c.sub("Debt (levered case; no fees, no DSRA, no sweep)")
+        c.row("fin", "Gearing (E), debt rate (F), tenor in years (G)", "%", e="=" + lv("Dash_Gearing"),
+              f="=" + lv("Dash_Debt_Rate"), g="=" + lv("Dash_Tenor"), fmts={"G": "int"})
+        c.row("draw", "Debt drawn, pro rata with the construction capex", "EUR k", h=tot,
+              t="=-{fin.E}*({capex}+{ewntp})")
+        c.row("cbo", "Construction debt: opening (draws and IDC to date)", "EUR k", t=f"={{p}}{c.r + 2}")
+        c.row("idc", "Interest during construction, capitalised (mid-year)", "EUR k", h=tot,
+              t="=({cbo}+{draw}*Draw_Timing)*{fin.F}*N({yrs}<0)")
+        c.row("cbc", "Construction debt: closing (E: debt at COD)", "EUR k", e="=MAX({self.all})",
+              t="={cbo}+{draw}+{idc}")
+        c.row("dwin", "Repayment window (COD year + tenor)", "flag", t="=N({yrs}>=0)*N({yrs}<{fin.G})")
+        c.row("dopen", "Debt: opening balance (previous closing)", "EUR k", t=f"={{p}}{c.r + 2}")
+        c.row("dprin", "Principal repaid (E: level annuity on the debt at COD)", "EUR k", h=tot,
+              e="=PMT({fin.F},{fin.G},-{cbc.E})", t="={dwin}*MIN({dopen},{self.E}-{dopen}*{fin.F})")
+        c.row("dclose", "Debt: closing balance", "EUR k", t="={dopen}+{draw}+{idc}-{dprin}", bold=True)
+        c.row("dint", "Interest paid (deductible)", "EUR k", h=tot, t="={dwin}*{dopen}*{fin.F}")
+        c.row("dserv", "Debt service", "EUR k", h=tot, t="={dint}+{dprin}", bold=True)
+        c.sub("Tax, levered case (interest deductible; own loss carry-forward)")
+        c.row("taxbl", "Tax base before losses, levered", "EUR k", h=tot, t="={taxb}-{dint}")
+        c.row("llo", "Tax losses, levered: opening", "EUR k", t=f"={{p}}{c.r + 4}")
+        c.row("lladd", "Losses added", "EUR k", h=tot, t="=MAX(0,-{taxbl})")
+        c.row("lluse", "Losses used (capped)", "EUR k", h=tot, t="=-MIN({llo},Loss_Cap*MAX(0,{taxbl}))")
+        c.row("llapse", "Losses lapsed (same date)", "EUR k", h=tot, t="=-SUM({llo}:{lluse})*N({year}={lapse.E})")
+        c.row("llc", "Tax losses, levered: closing", "EUR k", t="=SUM({llo}:{llapse})")
+        c.row("taxl", "Corporate income tax, levered", "EUR k", h=tot, bold=True,
+              t="=-CIT_Rate*(MAX(0,{taxbl})+{lluse})-Robin_Hood*RH_Rate*MAX(0,{taxbl})")
+        c.row("cfads", "CFADS: EBITDA, levered tax, augmentation (from COD)", "EUR k", h=tot,
+              t="=({ebitda}+{taxl}+{aug})*N({yrs}>=0)")
+        c.row("dscr", "DSCR (E: minimum, F: average; information)", "x", e='=IF(COUNT({self.all})=0,0,MIN({self.all}))',
+              f='=IF(COUNT({self.all})=0,0,AVERAGE({self.all}))', t='=IF({dserv}>0,{cfads}/{dserv},"")')
         c.sub("Cash flows")
         c.row("pre", "Pre-COD outlays: development, deposits, fees (by year)", "EUR k", h=tot,
-              t=f"=SUMPRODUCT((YEAR(Dated_Dates)={{year}})*INDEX(Dated_Amounts,0,{blk.case}))+{{codf}}*Hold_At_COD")
+              t=f"=SUMPRODUCT((Dated_Dates>{{p}}$5)*(Dated_Dates<={{yend}})*INDEX(Dated_Amounts,0,{blk.case}))"
+                f"+{{codf}}*Hold_At_COD")
         c.row("pcf", "Project cash flow before tax", "EUR k", h=tot, t="={ebitda}+{capt}+{pre}", bold=True)
         c.row("pcft", "Project cash flow after tax", "EUR k", h=tot, t="={pcf}+{tax}", bold=True)
         c.row("hold", "FEP hold: cash flow after tax (E: PSH buy-out)", "EUR k", h=tot,
@@ -569,6 +606,17 @@ def calc(book):
         c.row("bcp", "Buyer at COD at our price (E: price, at COD year end)", "EUR k",
               e="=" + lv("COD_EV"), t="={bc}-{self.E}*{codf}")
         c.row("bcpp", "Buyer at COD at our price, before tax", "EUR k", t="={bcp}-{tax}*N({yrs}>=0)")
+        c.row("holdl", "FEP hold, levered: cash flow after tax", "EUR k", h=tot, bold=True,
+              t="={pcf}+{taxl}+{draw}-{dserv}-{hold.E}*N({year}=YEAR(Exit_Date))")
+        c.row("holdlp", "FEP hold, levered: cash flow before tax", "EUR k", h=tot, t="={holdl}-{taxl}")
+        c.row("codrl", "FEP COD sale, levered: before FEP tax (E: equity to COD)", "EUR k", h=tot,
+              e="={codr.E}-{draw.H}", t=f"={{capt}}*N({{yrs}}<=0)+{{pre}}+{{draw}}+{lv('CODL_FEP_Total')}*{{codf}}")
+        c.row("codtl", "FEP COD sale, levered: after FEP tax", "EUR k", h=tot, bold=True,
+              t=f"={{codrl}}+{lv('CODL_FEP_Tax')}*{{codf}}")
+        c.row("bxl", "Buyer at RtB, levered (raises the debt), at our price", "EUR k",
+              t="={bx}-{tax}+{taxl}+{draw}-{dserv}-{bxp.E}*N({year}=First_Year)")
+        c.row("bcl", "Buyer at COD, levered (equity in the first column)", "EUR k",
+              t="=({ebitda}+{taxl}+{aug})*N({yrs}>=0)-{dserv}-({bcp.E}-{cbc.E})*N({year}=First_Year)")
         c.sub("Returns (E: after tax, F: before tax)")
         dates = "$J$5:$" + last + "$5"
         x = lambda k: f"=XIRR({{{k}.all}},{dates})"          # noqa: E731
@@ -587,6 +635,12 @@ def calc(book):
         rc, rp = c.row_of("bcp"), c.row_of("bcpp")
         xc = lambda r: f"=XIRR(INDEX($J${r}:${last}${r},{cc}):${last}${r},INDEX({dates},{cc}):${last}$5)"  # noqa: E731
         c.row("r_bc", "Buyer IRR at COD at our price", "%", e=xc(rc), f=xc(rp))
+        c.row("r_holdl", "FEP IRR, hold, levered", "%", e=x("holdl"), f=x("holdlp"), bold=True)
+        c.row("r_codl", "FEP IRR, sale at COD, levered", "%", e=x("codtl"), f=x("codrl"))
+        c.row("r_bl", "Buyer IRR at RtB, levered, after tax", "%", e=f"=XIRR({{bxl.all}},{bxd})")
+        bcd = f"$J${c.row_of('bcd')}:${last}${c.row_of('bcd')}"
+        c.row("r_bcl", "Buyer IRR at COD, levered (n/a: price below debt)", "%",
+              e=f'=IFERROR(XIRR({{bcl.all}},{bcd}),"n/a")')
 
     blocks = Block(c, 3).build(lambda i: f"Case {i}: annual calculation (EUR k)", rows)
     for i, blk in enumerate(blocks, 1):
@@ -677,6 +731,17 @@ def dashboard(book, d, R):
         d.name_row(nm, k)
 
     d.blank()
+    d.bar("Financing, levered case (EUR k; no fees, DSRA or sweep)", e=cl)
+    pc("Debt drawn in the capex year (gearing × total uses)", "EUR k", lambda b: f"=Calc!$H${b['draw']}")
+    pc("Interest during construction, capitalised", "EUR k", lambda b: f"=Calc!$H${b['idc']}")
+    pc("Debt at COD", "EUR k", lambda b: f"=Calc!$E${b['cbc']}", key="f_debt", bold=True)
+    pc("Equity to COD, levered (total uses less debt drawn)", "EUR k", lambda b: f"=Calc!$E${b['codrl']}")
+    pc("Annual debt service (level annuity)", "EUR k", lambda b: f"=Calc!$E${b['dprin']}")
+    pc("Minimum DSCR (information)", "x", lambda b: f"=Calc!$E${b['dscr']}", key="f_dmin")
+    pc("Average DSCR (information)", "x", lambda b: f"=Calc!$F${b['dscr']}")
+    pc("Lifetime corporate income tax, levered", "EUR k", lambda b: f"=-Calc!$H${b['taxl']}")
+
+    d.blank()
     d.bar("Returns", e=cl)
     d.sub("Sale at RtB (dated flows to the exit; XIRR)")
     d.row("p_rtb", "RtB price used (premium)", "EUR k/MWp", cases=f"=IF({{c}}$21>0,{{c}}$21,{{c}}{r('imp')})", bold=True)
@@ -687,6 +752,7 @@ def dashboard(book, d, R):
     d.name_row("RtB_AllIn", "allin")
     pc("Buyer IRR at our price, unlevered after tax", "%", lambda b: f"=Calc!$E${b['r_bx']}")
     pc("Buyer IRR at our price, unlevered before tax", "%", lambda b: f"=Calc!$F${b['r_bx']}")
+    pc("Buyer IRR at our price, levered after tax (raises debt)", "%", lambda b: f"=Calc!$E${b['r_bl']}")
     d.row(None, "FEP exposure (cash to RtB less deposits returned)", "EUR k",
           cases=f"=-{{c}}{r('dl_out')}-$E${r('n_ret')}")
     d.row(None, "FEP proceeds at the exit", "EUR k", cases=f"={{c}}{r('jv_fep')}")
@@ -705,6 +771,7 @@ def dashboard(book, d, R):
     d.name_row("COD_EV", "ev")
     pc("Buyer IRR at our price, unlevered after tax", "%", lambda b: f"=Calc!$E${b['r_bc']}")
     pc("Buyer IRR at our price, unlevered before tax", "%", lambda b: f"=Calc!$F${b['r_bc']}")
+    pc("Buyer IRR at our price, levered after tax (takes debt)", "%", lambda b: f"=Calc!$E${b['r_bcl']}")
     pc("FEP contributions to COD", "EUR k", lambda b: f"=Calc!$E${b['codr']}")
     d.row(None, "FEP proceeds at COD", "EUR k", cases=f"={{c}}{r('c_fep')}")
     pc("FEP profit, pre-tax", "EUR k", lambda b: f"=Calc!$H${b['codr']}")
@@ -715,6 +782,12 @@ def dashboard(book, d, R):
     pc("IRR, post-tax", "%", lambda b: f"=Calc!$E${b['r_cod']}", bold=True)
     pc("NPV at the discount rate, post-tax (at acquisition)", "EUR k", lambda b: f"=Calc!$E${b['v_cod']}")
     d.row(None, "PSH profit", "EUR k", cases=f"={{c}}{r('c_pl')}+(DSA_Per_MWp-PSH_Devex)*{{c}}$7-PSH_Land")
+    pc("Levered: FEP profit, post-tax (debt repaid from price)", "EUR k", lambda b: f"=Calc!$H${b['codtl']}")
+    pc("Levered: MOIC, pre-tax", "x", lambda b: f'=SUMIF(Calc!$J${b["codrl"]}:${book.last_col}${b["codrl"]},">0")'
+                                              f'/-SUMIF(Calc!$J${b["codrl"]}:${book.last_col}${b["codrl"]},"<0")')
+    pc("Levered: IRR, pre-tax", "%", lambda b: f"=Calc!$F${b['r_codl']}")
+    pc("Levered: IRR, post-tax", "%", lambda b: f"=Calc!$E${b['r_codl']}", bold=True)
+    d.row(None, "Levered: PSH profit", "EUR k", cases=f"={{c}}{r('cl_pl')}+(DSA_Per_MWp-PSH_Devex)*{{c}}$7-PSH_Land")
     d.sub("Hold (FEP keeps the project; PSH bought out at the exit)")
     last = book.last_col
     pc("FEP equity invested (incl. the 2048 repower)", "EUR k",
@@ -729,6 +802,14 @@ def dashboard(book, d, R):
     pc("Memo: project IRR, unlevered after tax (no buy-out)", "%",
        lambda b: f"=Calc!$E${b['r_proj']}", italic=True)
     pc("Memo: project IRR, unlevered before tax", "%", lambda b: f"=Calc!$F${b['r_proj']}", italic=True)
+    pc("Levered: FEP equity invested (uses less debt)", "EUR k",
+       lambda b: f'=-SUMIF(Calc!$J${b["holdl"]}:${last}${b["holdl"]},"<0")', key="hl_eq")
+    pc("Levered: FEP distributions", "EUR k",
+       lambda b: f'=SUMIF(Calc!$J${b["holdl"]}:${last}${b["holdl"]},">0")', key="hl_dist")
+    pc("Levered: FEP profit, post-tax", "EUR k", lambda b: f"=Calc!$H${b['holdl']}")
+    pc("Levered: IRR, after tax", "%", lambda b: f"=Calc!$E${b['r_holdl']}", bold=True)
+    pc("Levered: IRR, before tax", "%", lambda b: f"=Calc!$F${b['r_holdl']}")
+    d.row(None, "Levered: MOIC, after tax", "x", cases="={hl_dist}/{hl_eq}")
     d.row(None, "PSH buy-out at RtB entitlement, pending JV confirmation", "EUR k", cases=f"={{c}}{r('jv_pl')}")
     d.row(None, "PSH profit", "EUR k", cases=f"={{c}}{r('jv_pl')}+(DSA_Per_MWp-PSH_Devex)*{{c}}$7-PSH_Land")
 
@@ -786,7 +867,7 @@ def dashboard(book, d, R):
     db.header("RtB route: FEP dated cash flows and the 12 % return (EUR k)")
     db.end("x", "Accrual end: sale closing (L: factor in the exit year)", "=Exit_Date", "L")
     rc = db.end("c", "Accrual end: COD, live case (M: factor in COD year)",
-                "=EOMONTH(COD_Date,Case_COD_Delay)", "M")
+                "=EDATE(COD_Date,Case_COD_Delay)", "M")
     book.define("COD_Live", f"Dashboard!$J${rc}")
     d.row("dsa_n", "DSA: monthly draws from the first draw to RtB", "months",
           e="=(YEAR(RtB_Date)-YEAR(DSA_First))*Months_In_Year+MONTH(RtB_Date)-MONTH(DSA_First)+1")
@@ -880,6 +961,23 @@ def dashboard(book, d, R):
     pc("FEP tax at COD: CIT on the return (and gain if taxed)", "EUR k",
        lambda b: f"=-CIT_Rate*(-{{c_ret}}+Gain_Taxed*MAX(0,Calc!$H${b['codr']}+{{c_ret}}))", key="c_tax")
     d.name_row("COD_FEP_Tax", "c_tax")
+
+    d.blank()
+    d.bar("Sale at COD, levered: FEP repays the debt from the price, then the JV split", e=cl)
+    pc("Price less the debt repaid at COD", "EUR k", lambda b: f"={{ev}}-Calc!$E${b['cbc']}", key="cl_ev")
+    d.row("cl_sale", "Less sale costs (on the price)", "EUR k", cases="=-MIN({cl_ev},Sale_Cost_COD*{ev})")
+    pc("Less FEP equity returned (equity to COD)", "EUR k",
+       lambda b: f"=-MIN(Calc!$E${b['codrl']},SUM({{cl_ev}}:{{cl_sale}}))", key="cl_fund")
+    d.row("cl_ret", "Less the 12 % return to COD", "EUR k", cases="=-MIN({dl_retc},SUM({cl_ev}:{cl_fund}))")
+    d.row("cl_dist", "Distributable", "EUR k", cases="=SUM({cl_ev}:{cl_ret})", bold=True, top=True)
+    d.row("cl_fl", "FEP lot (RtB-price share rule)", "EUR k", cases="={cl_dist}*{c_share}")
+    d.row("cl_pl", "PSH lot", "EUR k", cases="={cl_dist}-{cl_fl}")
+    d.row("cl_fep", "FEP total at COD, levered (equity, return, lot)", "EUR k",
+          cases="=-SUM({cl_fund}:{cl_ret})+{cl_fl}", bold=True)
+    d.name_row("CODL_FEP_Total", "cl_fep")
+    pc("FEP tax at COD, levered: CIT on the return (and gain)", "EUR k",
+       lambda b: f"=-CIT_Rate*(-{{cl_ret}}+Gain_Taxed*MAX(0,Calc!$H${b['codrl']}+{{cl_ret}}))", key="cl_tax")
+    d.name_row("CODL_FEP_Tax", "cl_tax")
     d.group(g0, d.r - 1)
     d.end()
     return d
@@ -954,13 +1052,36 @@ def checks(book):
     ck("Tax: losses carried forward never negative",
        lambda i, b, C: f"=N(MIN(Calc!J{b['lc']}:{last}{b['lc']})<-Tolerance)")
     ck("Returns: every IRR on Calc is a number",
-       lambda i, b, C: f"=N(COUNT(Calc!$E${b['r_proj']}:$F${b['r_bc']})<COUNTA(Calc!$E${b['r_proj']}:$F${b['r_bc']}))")
+       lambda i, b, C: f"=N(COUNT(Calc!$E${b['r_proj']}:$F${b['r_bl']})<COUNTA(Calc!$E${b['r_proj']}:$F${b['r_bl']}))")
     ck("Returns: the RtB-route XIRRs are numbers",
        lambda i, b, C: f"=N(COUNT(Dashboard!{C}{dr('dl_irr_pre')}:{C}{dr('dl_irr')})<COUNTA(Dashboard!{C}"
                        f"{dr('dl_irr_pre')}:{C}{dr('dl_irr')}))")
     ck("Summary: net cash flow = investment + EBITDA + tax",
        lambda i, b, C: f"=N(ABS(Dashboard!$H${dr(f'a{i}_net')}-Dashboard!$H${dr(f'a{i}_inv')}"
                        f"-Dashboard!$H${dr(f'a{i}_ebitda')}-Calc!$H${b['tax']})>Tolerance)")
+    gr = D_.row_of("Gearing")
+    a, z = dr("l_spv"), dr("l_fee_last")
+    ck("Timeline: first grid year end = the model date", lambda i, b, C: "=N(Calc!$J$5<>Model_Date)", shared=True)
+    ck("Timeline: first column = dated spend to the model date",
+       lambda i, b, C: f'=--(ABS(Calc!$J${b["pre"]}-SUMIF(Dated_Dates,"<="&Model_Date,Dashboard!{C}{a}:{C}{z}))'
+                       f'>Tolerance)')
+    ck("Capex: all construction capex in the capex year",
+       lambda i, b, C: f"=--(ABS(INDEX(Calc!$J${b['capex']}:${last}${b['capex']},Capex_Year-First_Year+1)"
+                       f"-Calc!$H${b['capex']})>Tolerance)")
+    ck("Debt: drawn = gearing × total uses to COD",
+       lambda i, b, C: f"=N(ABS(Calc!$H${b['draw']}-Calc!$E${b['fin']}*Calc!$E${b['capex']})>Tolerance)")
+    ck("Debt: balance before the COD year = debt at COD",
+       lambda i, b, C: f"=--(ABS(INDEX(Calc!$J${b['dclose']}:${last}${b['dclose']},Calc!$E$8-1)"
+                       f"-Calc!$E${b['cbc']})>Tolerance)")
+    ck("Debt: repaid by the last annuity and never negative",
+       lambda i, b, C: f"=N(ABS(Calc!${last}${b['dclose']})>Tolerance)+N(MIN(Calc!J{b['dclose']}:{last}"
+                       f"{b['dclose']})<-Tolerance)")
+    ck("Debt: gearing 0 reproduces the unlevered IRRs",
+       lambda i, b, C: f"=N(Dashboard!{C}{gr}=0)*N(ABS(Calc!E{b['r_holdl']}-Calc!E{b['r_hold']})"
+                       f"+ABS(Calc!E{b['r_codl']}-Calc!E{b['r_cod']})>Tolerance)")
+    ck("JV at COD, levered: FEP + PSH + costs = price − debt",
+       lambda i, b, C: f"=N(ABS(Dashboard!{C}{dr('cl_fep')}+Dashboard!{C}{dr('cl_pl')}-Dashboard!{C}{dr('cl_sale')}"
+                       f"-Dashboard!{C}{dr('cl_ev')})>Tolerance)")
     lastc = k.r - 1
     k.blank()
     r = k.row(None, "Master check (sum of the check rows)", "flag", h=f"=SUM(H{first}:H{lastc})", bold=True,
@@ -971,6 +1092,11 @@ def checks(book):
     k.sub("Information (economic outcomes, not errors: outside the master check)")
     ck("Implied RtB premium floored at 0",
        lambda i, b, C: f"=Dashboard!{C}{dr('impneg')}")
+    ck("Levered buyer IRR at COD n/a (price below the debt)",
+       lambda i, b, C: f"=N(ISTEXT(Calc!$E${b['r_bcl']}))")
+    ck("Years with CFADS below debt service (DSCR < 1)",
+       lambda i, b, C: f"=SUMPRODUCT(--(Calc!J{b['cfads']}:{last}{b['cfads']}<Calc!J{b['dserv']}:{last}{b['dserv']}"
+                       f"-Tolerance))")
     ck("Tolling fee applied to a battery other than offered",
        lambda i, b, C: f"=Dashboard!{C}{D_.row_of('toll_cfg')}")
     k.end()
@@ -992,6 +1118,8 @@ def model(R=None):
     checks(book)
     outputs(book, d)
     _label_widths(book)
+    for sh, r in (("Revenue", 4), ("Calc", 4), ("Dashboard", d.row_of("yr"))):
+        book.sheets[sh].ws.cell(r, 10).number_format = '"to "0'      # first column: spend to the model date
     return book
 
 
@@ -1011,7 +1139,9 @@ HEADLINES = [  # Out_<name>_<case> for the audit: (name, Dashboard label, occurr
     ("COD_IRR", "IRR, post-tax", 1), ("COD_Profit", "FEP profit, post-tax", 1),
     ("Implied_RtB", "Implied premium at the buyer target IRR (floored at 0)", 0),
     ("Implied_COD", "Implied COD price at the buyer target IRR (floored at 0)", 0),
-    ("Buyer_RtB_IRR", "Buyer IRR at our price, unlevered after tax", 0)]
+    ("Buyer_RtB_IRR", "Buyer IRR at our price, unlevered after tax", 0),
+    ("Hold_IRR_Lev", "Levered: IRR, after tax", 0), ("Debt_COD", "Debt at COD", 0),
+    ("Min_DSCR", "Minimum DSCR (information)", 0)]
 
 
 def outputs(book, d):
