@@ -305,3 +305,46 @@ Report: sheet/row counts; the Base results per case and strategy; the Low/High s
     (v3 applied the 2 h figure to 4 h). Aurora's 10 % co-location opex saving is not applied – confirm with an O&M
     quote. The PV-only price proxy (2 h block) is below v3's 65 % × baseload from 2031; the HU solar capture series is
     requested from Aurora. Tolling starts at the later of the offer start and COD + 1 day and runs its full tenor.
+
+## 12. v2.1 – timeline rebase and the levered case (user, 04-Nov-2026)
+User, verbatim: "now it is the end of 2026 so make the model based on that the costs will arrive in 2027 and
+production strats 2028 march" and "also make a levered case with 60% gearing 5% cost 20 years amortisation".
+
+### 12.1 Timeline rebase (replaces §4)
+- Model date 31-Dec-2026 = RtB. Everything paid before it (SPV price, DSA draws, early works, pre-RtB development,
+  deposits, guarantee fees) is **spent to date**: it keeps its actual dates in the dated RtB block (XIRR needs them)
+  and sits in one annual column "to 2026" on the grid. No cost is moved; only the first grid column changes.
+- Grid columns: "to 2026" | 2027 | 2028 | … | 2063, year-end dates. First full operating year 2029 (unchanged).
+- NTP = 01-Jan-2027. **All construction capex in 2027** (one `In_Capex_Year` lever: 2027; the straight-line NTP→COD
+  spread goes). E48/E49 (725 k€) at NTP, i.e. Jan-2027.
+- COD = 01-Mar-2028; production from March 2028 (10/12 of a year in 2028). PPA window Mar-2028 → Feb-2033. The
+  COD lever and the Low case's +12 months keep working (COD Mar-2029, capex still 2027 – say so in the note).
+- RtB sale closing stays a lever (default 31-Mar-2027) so the 12 % accrual runs from the actual dates to the exit.
+- Checks: the first-column sum = the dated block's sum to 31-Dec-2026; capex sum = `In_Capex_Year` column.
+
+### 12.2 Levered case (new financing block; unlevered rows stay)
+- Levers on the Dashboard, per case: `Gearing` 60 % (0 = unlevered), `Debt rate` 5.0 % all-in, `Tenor` 20 years,
+  `Repayment` = annuity (level debt service; a note says straight-line is the alternative). Pending a term sheet:
+  flagged "user instruction 04-Nov-2026, not a bank term".
+- Debt = Gearing × construction capex to COD (PV + BESS + grid + E48/E49; not development, not deposits), drawn pro
+  rata with the capex (2027). IDC at the rate, capitalised into the debt at COD. No fees, no DSRA, no sweep (one note).
+- Repayment: 20 annual annuities from the first year-end after COD (2028, prorated? No – first instalment 31-Dec-2028,
+  full annuity; keep it simple and say so). Interest on the opening balance; interest deductible for CIT; the HIPA base
+  unchanged.
+- Rows per case on `Calc`: draw, IDC, opening balance, interest, principal, closing balance, debt service, CFADS,
+  DSCR. `Dashboard`: min and average DSCR (information, no check), debt at COD, and the levered rows:
+  - Hold: FEP levered IRR pre/post-tax, levered MOIC, levered profit (equity = capex − debt).
+  - COD sale: buyer levered IRR at the implied price (buyer assumes the debt: equity = price − debt at COD).
+  - RtB sale: buyer levered IRR at 90 k€/MWp (buyer raises the debt on the capex).
+  The implied prices stay unlevered (8 % unlevered target), as §6; FEP's COD/RtB proceeds are unchanged by the debt
+  except the COD-sale case where FEP repays the debt from the price before the JV split (price − debt at COD).
+- Low/High: unchanged; gearing is not a sensitivity.
+- Checks: debt closing balance = 0 after the last annuity; sources (equity + debt + IDC) = uses; CFADS ≥ debt service
+  flagged as information (a DSCR < 1 is not an error in an unlevered-target model).
+
+### 12.3 Opus tasks
+1. Rebase the timeline per §12.1 (Inputs dates, the "to 2026" column, capex year lever); keep the dated RtB block.
+2. Financing block per §12.2 on Calc and the Dashboard; the levered rows next to the unlevered ones.
+3. Audit as §8/§10.5 plus: gearing 0 reproduces the unlevered figures exactly; the Base/Low/High and lever flips.
+4. reconcile.py / shadow.py: add the debt rows to the shadow; refresh out/reconciliation.md (timeline step).
+5. ASSUMPTIONS.md: dates and financing rows updated; SPEC §11 open items. Commit and push.
