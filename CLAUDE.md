@@ -42,6 +42,9 @@ Working language: English (code, workbooks, decks, docs). Chat replies to the us
 - `projects/<name>/` SPEC.md, inputs, build script, outputs (`out/`).
 
 ## User preferences (standing, from the user)
-- Streamlined and simple, always. Default to a single sheet; add a sheet only when the single sheet stops being readable.
-- House look is the FEP green style (`fepm/xl/styles.py`): no alternative palettes unless asked for that one deliverable.
+- Streamlined and simple, always, the way a person would lay it out. One or two sheets: the tables, and the inputs
+  with sources on a second sheet when they would clutter the first.
+- House look is the FEP green style (`fepm/xl/styles.py`) for the bars; otherwise plain black text on white.
+  In summary workbooks no input fill and no blue font (that convention stays for the investment models).
+- Summary workbooks for the user are in Hungarian (labels, notes); the code and the models stay in English.
 - Summaries break down by location (grid node) first: who bid, how much, then everything else.
