@@ -87,35 +87,47 @@ def dashboard_top(book):
     lv("BESS_On", "BESS built (1 = yes)", "flag", [0, 1, 1], source="User 03-Nov-2026", options=[0, 1])
     lv("BESS_MW", "BESS power", "MW", [0, 50, 50], source="Teaser p1")
     lv("Hours", "BESS duration (2 or 4 hours)", "h", [0, 2, 4], source="User 03-Nov-2026", options=[0, 2, 4])
-    d.row("MWh", "BESS energy", "MWh", cases="={c}$11*{c}$12*{c}$13")
+    d.row("MWh", "BESS energy", "MWh", cases="={BESS_On}*{BESS_MW}*{Hours}")
     book.define("BESS_MWh", d.ref("MWh", "cases"))
     d.row("block", "Aurora block (BESS revenue and volumes)", "text",
-              cases='=IF({c}$11=1,"DC "&{c}$13&"h","–")', fmt="general")
+          cases='=IF({BESS_On}=1,"DC "&{Hours}&"h","–")', fmt="general")
     book.define("Block_Code", d.ref("block", "cases"))
-    d.row("pblock", "Aurora block for the PV prices (PV only: 2 h proxy)", "text",
-          cases="=IF({c}$11=1,{c}$15,PV_Only_Block)", fmt="general")
+    lv("Structure", "Revenue structure (PPA uplift, Fixed + share, Merchant)", "text", ["Fixed + share"] * 3,
+       source="Terms: Revenue table; PV-only charging ≈ 0.6 cycles/day", options="Structures")
+    pick = lambda name, per_case: {c: f"=INDEX({name}{'_' + str(i + 1) if per_case else ''},MATCH({{Structure}},Structures,0))"
+                                   for i, c in enumerate("efg")}
+    d.row("Basis", "BESS revenue basis (from the structure)", "text", **pick("Str_Basis", False), fmt="general",
+          source="None = PPA uplift only: no charging, no BESS revenue", src_col="J")
+    book.define("Dash_Basis", d.ref("Basis", "cases"))
+    d.row("pblock", "Aurora block for the PV prices (2 h proxy if no BESS)", "text",
+          cases='=IF(AND({BESS_On}=1,{Basis}<>"None"),{block},PV_Only_Block)', fmt="general")
     book.define("Price_Block", d.ref("pblock", "cases"))
-    lv("PPA_Price", "PPA price, nominal", "EUR/MWh", [80, 80, 80],
-       source="User instruction 05-Nov-2026 (offers: Revenue)", fmt="money2")
+    d.row("PPA_Price", "PPA price, nominal (from the structure)", "EUR/MWh", **pick("Str_PPA", True), fmt="money2",
+          source="User 05/06-Nov-2026 (offers: Revenue)", src_col="J")
+    book.define("Dash_PPA_Price", d.ref("PPA_Price", "cases"))
     lv("PPA_Index", "PPA indexation", "%/yr", [0, 0, 0], source="MVM: none stated")
-    lv("PPA_Years", "PPA tenor from COD, then merchant", "years", [8, 8, 8], source="User instruction 05-Nov-2026")
-    lv("Basis", "BESS revenue basis (Merchant or Tolling)", "text", ["Merchant"] * 3,
-       source="Aurora merchant or MET tolling", options="Merchant,Tolling")
+    d.row("PPA_Years", "PPA tenor from COD, then merchant (from the structure)", "years",
+          **pick("Str_PPA_Years", False), source="User instruction 05-Nov-2026", src_col="J")
+    book.define("Dash_PPA_Years", d.ref("PPA_Years", "cases"))
+    d.row("Fix_Price", "BESS fixed price, €/MWh discharged (Fixed + share)", "EUR/MWh", **pick("Str_Fixed", True),
+          fmt="money1", source="User 06-Nov-2026: 70 (2 h) / 55 (4 h)", src_col="J")
+    d.row("Fix_Cycles", "BESS fixed cycles per day (Fixed + share)", "#", **pick("Str_Cycles", False), fmt="money1",
+          source="User 06-Nov-2026: 1 cycle/day", src_col="J")
+    d.row("Fix_Share", "Our share of BESS revenue above the fixed cycles", "%", **pick("Str_Share", False),
+          source="User 06-Nov-2026: 70/30 to us", src_col="J")
+    d.row("Fix_Years", "BESS fixed tenor from COD (Fixed + share)", "years", **pick("Str_Fixed_Years", False),
+          source="Equal to the PPA tenor (user did not say)", src_col="J")
     lv("RtB_Price", "RtB price, premium (0 = implied)", "EUR k/MWp", [90, 90, 90],
        source="ZHLP v3 Stat_inp E24; " + PH)
     lv("COD_Price", "COD price (0 = implied)", "EUR k/MWp", [0, 0, 0], source="Implied at the buyer target IRR")
     d.row("toll_cfg", "Tolling offer ≠ built battery (1 = fee not scaled)", "flag",
-          cases='=N(AND({c}$20="Tolling",{c}$14<>Offer_MET_MWh))', source="MET offer: 50 MW / 90 MWh", src_col="J")
+          cases='=N(AND({Basis}="Tolling",{MWh}<>Offer_MET_MWh))', source="MET offer: 50 MW / 90 MWh", src_col="J")
     fin = "User instruction 04-Nov-2026, not a bank term"
     lv("Gearing", "Gearing: debt share of capex to COD (0 = unlevered)", "%", [0.6, 0.6, 0.6], source=fin)
     lv("Debt_Rate", "Debt rate, all-in", "%", [0.05, 0.05, 0.05], source=fin)
     lv("Tenor", "Debt tenor: level annuity from the COD year end", "years", [20, 20, 20],
        source="Annuity; straight-line is the alternative (not built)")
     book.lever_rows = dict(d.rows)
-    rows = {k: d.row_of(k) for k in ("MWp", "MVA", "BESS_On", "BESS_MW", "Hours", "MWh", "block", "pblock",
-                                      "PPA_Years", "Basis", "RtB_Price", "COD_Price")}
-    assert rows == {"MWp": 7, "MVA": 8, "BESS_On": 11, "BESS_MW": 12, "Hours": 13, "MWh": 14, "block": 15,
-                    "pblock": 16, "PPA_Years": 19, "Basis": 20, "RtB_Price": 21, "COD_Price": 22}, rows
     d.blank()
     cb = d.bar("Sensitivity case: Base, Low, High", e=["Base", "Low", "High"], h="Live", key="case_bar")
     r = d.row("case_sel", "Case selected (Base, Low or High)", "case", h="Base", inputs=("H",))
@@ -190,7 +202,14 @@ def inputs(book):
     a("BESS_Opex_MWh", "BESS fixed opex per MWh, real 2025", "EUR k/MWh/yr", 6.07,
       "Aurora Inputs r38-39: (42.96 − 30.83) ÷ 2 h")
 
-    i.sub("Contracts (PPA price and tenor: Dashboard levers; offer terms: Revenue)")
+    i.sub("BESS revenue basis options (list for the structures table and the checks)")
+    first = i.r
+    for label, v in (("Aurora merchant stack (PV-only factor)", "Merchant"), ("MET full tolling, then merchant", "Tolling"),
+                     ("No BESS revenue: PPA uplift only, no charging", "None"),
+                     ("Fixed €/MWh on the fixed cycles, share above", "Fixed + share")):
+        i.row(None, label, "text", e=v, inputs=("E",), source="SPEC v2.4 §13.1", fmt="general")
+    book.define("Basis_Options", f"Inputs!$E${first}:$E${i.r - 1}")
+    i.sub("Contracts (terms: Revenue structures table and offers)")
     a("Balancing", "Balancing cost, merchant years only, real 2025", "EUR/MWh", 5, "ZHLP v3 Control D60")
     a("Toll_Start", "Tolling start (fixed fee, then merchant)", "date", D(2028, 1, 1), "MET offer p5")
     a("Toll_Years", "Tolling tenor", "years", 3, "MET offer p5 (4-year option 46.4)")
@@ -355,6 +374,9 @@ def revenue(book):
     offers(book, rv)
 
     rv.blank()
+    structures(book, rv)
+
+    rv.blank()
     rv.bar("Resulting prices by case, nominal – PPA in its tenor, then the Aurora merchant tail",
            e=_case_links(book, rv))
     rv.row("yr", "Year", "year", t="={c}$4", fmt="int", bold=True)
@@ -384,8 +406,11 @@ def revenue(book):
         rv.ws.cell(r, 3, f"=Dashboard!${col}${dl['Name']}")
         rv.ws.cell(r, 5).number_format = '"Case "0'
         rv.scope = f"c{k}_"
+        rv.row("bflag", "BESS basis: valued (E), fixed + share (F) (1/0)", "flag",
+               e=f'=N({dash("Basis")}<>"None")', f=f'=N({dash("Basis")}="Fixed + share")')
         rv.row("pos", "Merchant PV price, direct (E: block, F: BESS factor)", "EUR/MWh",
-               e=f"=MATCH({dash('pblock')},Aurora_Blocks,0)", f=f"={dash('BESS_On')}*$E${rv.row_of('bfac')}",
+               e=f"=MATCH({dash('pblock')},Aurora_Blocks,0)",
+               f=f"={dash('BESS_On')}*{{bflag.E}}*$E${rv.row_of('bfac')}",
                t=f"=INDEX({pair('pvd')},{{self.E}})*{idx}*(1+Case_PV_Price)", fmts={"E": "int", "F": "factor"})
         rv.row("pvs", "Merchant PV price, stored energy (transfer price)", "EUR/MWh",
                t=f"=INDEX({pair('pvt')},{{pos.E}})*{idx}*(1+Case_PV_Price)")
@@ -410,12 +435,50 @@ def revenue(book):
                e=f'=N({dash("Basis")}="Tolling")', t="={self.E}*IF({opm}=0,0,{tolm}/{opm})", fmts={"E": "flag"})
         rv.row("bess", "BESS revenue received", "EUR k/MW", t="={tol}*Offer_Tolling_MET_3y+(1-{tol})*{upl}",
                bold=True)
+        rv.row("real", "Aurora realised price per MWh discharged", "EUR/MWh",
+               t="=IF({dmw}=0,0,{upl}*Thousand/{dmw})")
+        rv.row("fcum", "Fixed BESS months to year end (E: tenor in months)", "months",
+               e=f"={dash('Fix_Years')}*Months_In_Year", t="=MIN({self.E},{ocum})", fmt="int")
+        rv.row("fm", "Fixed BESS months in the year", "months", t="={fcum}-{fcum.prev}", fmt="int")
+        rv.row("fts", "Fixed-tenor share of the operating months", "factor",
+               t="={bflag.F}*IF({opm}=0,0,{fm}/{opm})")
         rows.append({k2[len(rv.scope):]: v for k2, v in rv.rows.items() if k2.startswith(rv.scope)})
         rv.scope = ""
         prev = r
     rv.end()
     book.rev = rows
     return rv
+
+
+STRUCTURES = ["PPA uplift", "Fixed + share", "Merchant"]
+STRUCT_ROWS = [  # name, label, unit, values (PPA uplift, Fixed + share, Merchant), fmt, source
+    ("Str_PPA_1", "PPA price, case E (PV only)", "EUR/MWh", [55, 45, 80], "money1", "User 06-Nov-2026 / 05-Nov-2026"),
+    ("Str_PPA_2", "PPA price, case F (PV + 2 h)", "EUR/MWh", [80, 45, 80], "money1", "User 06-Nov-2026 / 05-Nov-2026"),
+    ("Str_PPA_3", "PPA price, case G (PV + 4 h)", "EUR/MWh", [85, 45, 80], "money1", "User 06-Nov-2026 / 05-Nov-2026"),
+    ("Str_PPA_Years", "PPA tenor from COD", "years", [8, 8, 8], "int", "User 05/06-Nov-2026"),
+    ("Str_Basis", "BESS revenue basis (Inputs: options)", "text", ["None", "Fixed + share", "Merchant"], "general",
+     "User 06-Nov-2026; Tolling can be typed in"),
+    ("Str_Fixed_1", "BESS fixed price, case E (no BESS)", "EUR/MWh", [None, 0, None], "money1", "No BESS"),
+    ("Str_Fixed_2", "BESS fixed price, case F (2 h), per MWh discharged", "EUR/MWh", [None, 70, None], "money1",
+     "User 06-Nov-2026"),
+    ("Str_Fixed_3", "BESS fixed price, case G (4 h), per MWh discharged", "EUR/MWh", [None, 55, None], "money1",
+     "User 06-Nov-2026"),
+    ("Str_Cycles", "Fixed cycles per day", "#", [None, 1, None], "money1", "User 06-Nov-2026"),
+    ("Str_Share", "Our share of the revenue above the fixed cycles", "%", [None, 0.7, None], "pct", "User 06-Nov-2026"),
+    ("Str_Fixed_Years", "BESS fixed tenor from COD", "years", [None, 8, None], "int", "Equal to the PPA tenor; user did not say"),
+]
+
+
+def structures(book, rv):
+    """Commercial structures: blue terms per structure; the Dashboard picks a column per case (like Base/Low/High)."""
+    r = rv.bar("Commercial structures – the Dashboard's per-case selector picks a column", e=STRUCTURES, h="Source")
+    book.define("Structures", f"Revenue!$E${r}:$G${r}")
+    for name, label, unit, vals, fmt, src in STRUCT_ROWS:
+        cols = tuple(c for c, v in zip("EFG", vals) if v is not None)
+        rr = rv.row(None, label, unit, e=vals[0], f=vals[1], g=vals[2], inputs=cols, fmt=fmt, source=src)
+        book.define(name, f"Revenue!$E${rr}:$G${rr}")
+        if name == "Str_Basis":
+            rv.validate(f"E{rr}:G{rr}", "Basis_Options")
 
 
 def _src(src):
@@ -533,18 +596,31 @@ def calc(book, R):
         tot = "=SUM({self.all})"
         c.row("gen", "PV generation (E: first full year)", "MWh", e=ffy, h=tot,
               t="={cap.E}*{cap.F}*PV_Avail*{deg}*{oshare}")
-        c.row("chcap", "BESS charging capacity from PV", "MWh", t=f"={ref('chg')}*{{bess.E}}*{{oshare}}*{{live}}")
+        c.row("bval", "BESS valued in revenue (E: 1/0; None = no charging)", "flag", e=f"=Revenue!$E${rr['bflag']}")
+        c.row("chcap", "BESS charging capacity from PV", "MWh",
+              t=f"={ref('chg')}*{{bess.E}}*{{oshare}}*{{live}}*{{bval.E}}")
         c.row("sent", "PV energy sent to the BESS", "MWh", e=ffy, h=tot, t="=MIN({gen},{chcap})")
         c.row("direct", "PV energy exported directly", "MWh", e=ffy, h=tot, t="={gen}-{sent}")
         c.row("dcap", "BESS discharge capacity", "MWh", t=f"={ref('dmw')}*{{bess.E}}*{{oshare}}*{{live}}")
         c.row("dis", "BESS discharge (≤ PV charged × RTE, no grid charging)", "MWh", e=ffy, h=tot,
               t="=MIN({dcap},{sent}*BESS_RTE)")
+        c.row("fct", "Fixed + share: cycles/day (E), €/MWh (F), our share (G)", "#", e=f"={lever('Fix_Cycles')}",
+              f=f"={lever('Fix_Price')}", g=f"={lever('Fix_Share')}", fmts={"E": "money1", "F": "money1", "G": "pct"})
+        c.row("fcap", "Fixed-cycle discharge cap", "MWh", t="={fct.E}*{bess.F}*Days_In_Year*{oshare}*{live}")
+        c.row("dfix", "Discharge at the fixed price (up to the cap)", "MWh", e=ffy, h=tot, t="=MIN({dis},{fcap})")
+        c.row("dabove", "Discharge above the fixed cycles", "MWh", e=ffy, h=tot, t="={dis}-{dfix}")
         c.sub("Revenue")
         c.row("rpvd", "PV revenue, direct export", "EUR k", e=ffy, h=tot, t=f"={{direct}}*{ref('pxd')}/Thousand")
         c.row("rpvs", "PV revenue, energy sent to the BESS", "EUR k", e=ffy, h=tot, t=f"={{sent}}*{ref('pxs')}/Thousand")
         c.row("rgoo", "Guarantees of origin", "EUR k", e=ffy, h=tot, t=f"={{gen}}*GoO_Price*{idx}/Thousand")
-        c.row("rbess", "BESS revenue", "EUR k", e=ffy, h=tot, t=f"={{bess.E}}*{ref('bess')}*{{oshare}}*{{live}}")
-        c.row("rev", "Revenue", "EUR k", e=ffy, h=tot, t="=SUM({rpvd}:{rbess})", bold=True, top=True)
+        c.row("rbfix", "BESS revenue: fixed price on the fixed cycles", "EUR k", e=ffy, h=tot,
+              t=f"={{fct.F}}*{{dfix}}*{ref('fts')}/Thousand")
+        c.row("rbsh", "BESS revenue: our share above the fixed cycles", "EUR k", e=ffy, h=tot,
+              t=f"={{fct.G}}*{ref('real')}*{{dabove}}*{ref('fts')}/Thousand")
+        c.row("rbm", "BESS revenue: merchant or tolling (after fixed tenor)", "EUR k", e=ffy, h=tot,
+              t=f"={{bess.E}}*{ref('bess')}*{{oshare}}*{{live}}*(1-{ref('fts')})")
+        c.row("rbess", "BESS revenue", "EUR k", e=ffy, h=tot, t="=SUM({rbfix}:{rbm})")
+        c.row("rev", "Revenue", "EUR k", e=ffy, h=tot, t="={rpvd}+{rpvs}+{rgoo}+{rbess}", bold=True, top=True)
         c.sub("Opex (real 2025 × the Aurora euro index)")
         c.row("om", "PV O&M", "EUR k", e=ffy, h=tot, t=f"=-OM_Cost*{{cap.E}}*{idx}*{{oshare}}")
         c.row("omc", "MV cable O&M", "EUR k", e=ffy, h=tot, t=f"=-Cable_OM*{{cap.E}}*{idx}*{{oshare}}")
@@ -663,34 +739,36 @@ def calc(book, R):
               t="={self.E}*{f_first}")
         c.row("bcl", "Buyer at COD, levered (assumes the debt)", "EUR k",
               t="=({ebitda}+{taxl}+{aug})*{f_from}-{dserv}-{cequity}")
-        c.sub("Returns (E: after tax, F: before tax; G: MOIC after tax)")
+        c.sub("Returns (E: after tax; F: before tax; G: MOIC; H: XIRR start guess)")
         dates = "$J$5:$" + last + "$5"
-        gx = "MIN(XIRR_Guess,{self.G}-1)"                    # Excel's XIRR returns ~0 when it fails: start guess
-        x = lambda k, d_=dates: f"=XIRR({{{k}.all}},{d_},{gx})"          # noqa: E731
+        gx = "=MIN(XIRR_Guess,{self.G}-1)"                   # Excel's XIRR returns ~0 when it fails: start guess
+        gb = "=MIN(Case_Buyer_IRR,{self.G}-1)"               # buyer at a fixed RtB premium: may sit far below target
+        x = lambda k, d_=dates: f'=IFERROR(XIRR({{{k}.all}},{d_},{{self.H}}),"n/a")'   # noqa: E731
         mo = lambda k: f'=SUMIF({{{k}.all}},">0")/-SUMIF({{{k}.all}},"<0")'   # noqa: E731
-        c.row("r_proj", "Project IRR, unlevered", "%", e=x("pcft"), f=x("pcf"), g=mo("pcft"), bold=True,
-              fmts={"G": "mult"})
-        c.row("r_hold", "FEP IRR, hold", "%", e=x("hold"), f=x("holdp"), g=mo("hold"), bold=True, fmts={"G": "mult"})
+        pct = {"G": "mult", "H": "pct"}
+        c.row("r_proj", "Project IRR, unlevered", "%", e=x("pcft"), f=x("pcf"), g=mo("pcft"), h=gx, bold=True,
+              fmts=pct)
+        c.row("r_hold", "FEP IRR, hold", "%", e=x("hold"), f=x("holdp"), g=mo("hold"), h=gx, bold=True, fmts=pct)
         v = lambda k: f"=XNPV(Discount_Rate,{{{k}.all}},{dates})*$E${c.row_of('dfa')}"   # noqa: E731
         c.row("v_hold", "FEP NPV at the discount rate, hold (at acquisition)", "EUR k", e=v("hold"),
               f=v("holdp"))
-        c.row("r_cod", "FEP IRR, sale at COD", "%", e=x("codt"), f=x("codr"), g=mo("codt"), bold=True,
-              fmts={"G": "mult"})
+        c.row("r_cod", "FEP IRR, sale at COD", "%", e=x("codt"), f=x("codr"), g=mo("codt"), h=gx, bold=True,
+              fmts=pct)
         c.row("v_cod", "FEP NPV at the discount rate, COD sale (at acquisition)", "EUR k", e=v("codt"),
               f=v("codr"))
         bxd = f"$J${c.row_of('bxd')}:${last}${c.row_of('bxd')}"
         bcd = f"$J${c.row_of('bcd')}:${last}${c.row_of('bcd')}"
         c.row("r_bx", "Buyer IRR at RtB at our all-in price", "%", e=x("bxp", bxd), f=x("bxpp", bxd), g=mo("bxp"),
-              fmts={"G": "mult"})
+              h=gb, fmts=pct)
         c.row("r_bc", "Buyer IRR at COD at our price", "%", e=x("bcp", bcd), f=x("bcpp", bcd), g=mo("bcp"),
-              fmts={"G": "mult"})
-        c.row("r_holdl", "FEP IRR, hold, levered", "%", e=x("holdl"), f=x("holdlp"), g=mo("holdl"), bold=True,
-              fmts={"G": "mult"})
-        c.row("r_codl", "FEP IRR, sale at COD, levered", "%", e=x("codtl"), f=x("codrl"), g=mo("codtl"),
-              fmts={"G": "mult"})
-        c.row("r_bl", "Buyer IRR at RtB, levered, after tax", "%", e=x("bxl", bxd), g=mo("bxl"), fmts={"G": "mult"})
-        c.row("r_bcl", "Buyer IRR at COD, levered (n/a: price below debt)", "%",
-              e=f'=IFERROR(XIRR({{bcl.all}},{bcd},XIRR_Guess),"n/a")')
+              h="=Case_Buyer_IRR", fmts=pct)
+        c.row("r_holdl", "FEP IRR, hold, levered", "%", e=x("holdl"), f=x("holdlp"), g=mo("holdl"), h=gx, bold=True,
+              fmts=pct)
+        c.row("r_codl", "FEP IRR, sale at COD, levered", "%", e=x("codtl"), f=x("codrl"), g=mo("codtl"), h=gx,
+              fmts=pct)
+        c.row("r_bl", "Buyer IRR at RtB, levered, after tax", "%", e=x("bxl", bxd), g=mo("bxl"), h=gb, fmts=pct)
+        c.row("r_bcl", "Buyer IRR at COD, levered (n/a: price below debt)", "%", e=x("bcl", bcd),
+              h="=Case_Buyer_IRR", fmts={"H": "pct"})
 
     blocks = Block(c, 3).build(lambda i: f"Case {i}: annual calculation (EUR k)", rows)
     for i, blk in enumerate(blocks, 1):
@@ -726,6 +804,9 @@ def dashboard(book, d, R):
     pc("BESS discharge", "GWh", lambda b: f"=Calc!$E${b['dis']}/Thousand")
     pc("BESS full cycles", "#", lambda b: f"=IF(Calc!$F${b['bess']}>0,Calc!$E${b['dis']}/Calc!$F${b['bess']},0)",
        fmt="money1")
+    pc("BESS cycles per day", "#", lambda b: f"=IF(Calc!$F${b['bess']}>0,Calc!$E${b['dis']}/Calc!$F${b['bess']},0)"
+                                          "/Days_In_Year", fmt="money2")
+    pc("BESS discharge above the fixed cycles", "GWh", lambda b: f"=Calc!$E${b['dabove']}/Thousand")
     pc("PV price received, all output (blended)", "EUR/MWh",
        lambda b: f"=(Calc!$E${b['rpvd']}+Calc!$E${b['rpvs']})*Thousand/Calc!$E${b['gen']}")
     pc("BESS revenue per MW", "EUR k/MW", lambda b: f"=IF(Calc!$E${b['bess']}>0,Calc!$E${b['rbess']}/Calc!$E${b['bess']},0)")
@@ -736,6 +817,8 @@ def dashboard(book, d, R):
         d.sub(title)
         pc("PV revenue (PPA, then merchant)", "EUR k", lambda b: f"=Calc!${col}${b['rpvd']}+Calc!${col}${b['rpvs']}")
         pc("BESS revenue", "EUR k", lambda b: f"=Calc!${col}${b['rbess']}")
+        pc("of which fixed price on the fixed cycles", "EUR k", lambda b: f"=Calc!${col}${b['rbfix']}", italic=True)
+        pc("of which our share above the fixed cycles", "EUR k", lambda b: f"=Calc!${col}${b['rbsh']}", italic=True)
         pc("Guarantees of origin", "EUR k", lambda b: f"=Calc!${col}${b['rgoo']}")
         pc("Revenue", "EUR k", lambda b: f"=Calc!${col}${b['rev']}", key=f"rev_{col}", bold=True, top=True)
         pc("Opex", "EUR k", lambda b: f"=Calc!${col}${b['opex']}")
@@ -768,15 +851,15 @@ def dashboard(book, d, R):
     d.blank()
     d.bar("Capex to COD (EUR k, live sensitivity case)", e=cl)
     cx = "*(1+Case_Capex)"
-    d.row("k_pv", "PV equipment and balance of plant", "EUR k", cases="=PV_Capex*{c}$7" + cx)
+    d.row("k_pv", "PV equipment and balance of plant", "EUR k", cases="=PV_Capex*{MWp}" + cx)
     d.row("k_cab", "MV cable", "EUR k", cases="=Cable_Capex" + cx)
     d.row("k_sub", "HV substation, bay and grid connection fee", "EUR k", cases="=(Substation+Grid_Fee)" + cx)
     d.row("k_land", "Land", "EUR k", cases="=Land_Capex" + cx)
-    d.row("k_bess", "BESS (MWh × capex)", "EUR k", cases="=BESS_Capex*{c}$14" + cx)
+    d.row("k_bess", "BESS (MWh × capex)", "EUR k", cases="=BESS_Capex*{MWh}" + cx)
     d.row("k_ew", "Early works at NTP (E48/E49; to be revisited)", "EUR k", cases="=EW_NTP" + cx)
     d.row("k_tot", "Total uses to COD (= equity, unlevered)", "EUR k", cases="=SUM({k_pv}:{k_ew})", bold=True,
           top=True)
-    d.row(None, "Total uses per MWp", "EUR k/MWp", cases="={k_tot}/{c}$7")
+    d.row(None, "Total uses per MWp", "EUR k/MWp", cases="={k_tot}/{MWp}")
     for nm, k in (("Capex_Land", "k_land"), ("Capex_BESS", "k_bess"), ("Capex_EW", "k_ew"), ("Capex_Total", "k_tot")):
         d.name_row(nm, k)
 
@@ -794,13 +877,13 @@ def dashboard(book, d, R):
     d.blank()
     d.bar("Returns", e=cl)
     d.sub("Sale at RtB (dated flows to the exit; XIRR)")
-    d.row("p_rtb", "RtB price used (premium)", "EUR k/MWp", cases=f"=IF({{c}}$21>0,{{c}}$21,{{c}}{r('imp')})", bold=True)
+    d.row("p_rtb", "RtB price used (premium)", "EUR k/MWp", cases=f"=IF({{RtB_Price}}>0,{{RtB_Price}},{{c}}{r('imp')})", bold=True)
     pc("Buyer value at the exit (post-exit flows at the target)", "EUR k", lambda b: f"=Calc!$E${b['bx']}",
        key="bval")
     d.row("imp", "Implied premium at the buyer target IRR (floored at 0)", "EUR k/MWp",
-          cases="=MAX(0,({bval}-Buyer_Reimb)/{c}$7)")
+          cases="=MAX(0,({bval}-Buyer_Reimb)/{MWp})")
     d.row("impneg", "Implied premium below zero (1 = floored)", "flag", cases="=N({bval}<Buyer_Reimb)")
-    d.row("allin", "All-in price incl. reimbursements", "EUR k/MWp", cases="={p_rtb}+Buyer_Reimb/{c}$7")
+    d.row("allin", "All-in price incl. reimbursements", "EUR k/MWp", cases="={p_rtb}+Buyer_Reimb/{MWp}")
     d.name_row("RtB_AllIn", "allin")
     pc("Buyer IRR at our price, unlevered after tax", "%", lambda b: f"=Calc!$E${b['r_bx']}")
     pc("Buyer IRR at our price, unlevered before tax", "%", lambda b: f"=Calc!$F${b['r_bx']}")
@@ -816,10 +899,10 @@ def dashboard(book, d, R):
     d.row(None, "NPV at the discount rate, post-tax (at acquisition)", "EUR k", cases=f"={{c}}{r('dl_npv')}")
     d.row(None, "PSH profit", "EUR k", cases=f"={{c}}{r('psh_profit')}")
     d.sub("Sale at COD (buyer pays at COD year end; receives the COD-year operating cash)")
-    d.row("p_cod", "COD price used", "EUR k/MWp", cases=f"=IF({{c}}$22>0,{{c}}$22,{{c}}{r('impc')})", bold=True)
+    d.row("p_cod", "COD price used", "EUR k/MWp", cases=f"=IF({{COD_Price}}>0,{{COD_Price}},{{c}}{r('impc')})", bold=True)
     pc("Implied COD price at the buyer target IRR (floored at 0)", "EUR k/MWp",
-       lambda b: f"=MAX(0,Calc!$E${b['bc']}/{{c}}$7)", key="impc")
-    d.row("ev", "Enterprise value used", "EUR k", cases="={p_cod}*{c}$7")
+       lambda b: f"=MAX(0,Calc!$E${b['bc']}/{{MWp}})", key="impc")
+    d.row("ev", "Enterprise value used", "EUR k", cases="={p_cod}*{MWp}")
     d.name_row("COD_EV", "ev")
     pc("Buyer IRR at our price, unlevered after tax", "%", lambda b: f"=Calc!$E${b['r_bc']}")
     pc("Buyer IRR at our price, unlevered before tax", "%", lambda b: f"=Calc!$F${b['r_bc']}")
@@ -867,7 +950,7 @@ def dashboard(book, d, R):
 
     d.blank()
     d.bar("JV split at the RtB exit (EUR k)", e=cl)
-    d.row("jv_cons", "Consideration (premium × MWp)", "EUR k", cases="={p_rtb}*{c}$7")
+    d.row("jv_cons", "Consideration (premium × MWp)", "EUR k", cases="={p_rtb}*{MWp}")
     d.row("jv_reimb", "Buyer reimbursements (reimbursed and returned principal)", "EUR k", cases="=Buyer_Reimb")
     d.row("jv_avail", "Cash available", "EUR k", cases="={jv_cons}+{jv_reimb}", bold=True, top=True)
     d.row("jv_sale", "Less sale costs", "EUR k", cases="=-MIN({jv_avail},Sale_Cost_RtB*{jv_cons})")
@@ -922,7 +1005,7 @@ def dashboard(book, d, R):
                 "=EDATE(COD_Date,Case_COD_Delay)", "M")
     book.define("COD_Live", f"Dashboard!$J${rc}")
     d.sub("Amounts used by the lines below", extra={"J": "Date"})
-    d.row("dsa_amt", "DSA: amount per monthly draw", "EUR k", cases="=DSA_Per_MWp*{c}$7/DSA_Months")
+    d.row("dsa_amt", "DSA: amount per monthly draw", "EUR k", cases="=DSA_Per_MWp*{MWp}/DSA_Months")
     d.row("pre_amt", "Pre-RtB development: amount per month", "EUR k", e="=PreRtB_Total/PreRtB_Months")
     d.row("bg_rate", "Bank guarantee fee rate (EURIBOR + margin)", "%", e="=BG_Base+BG_Margin", fmt="0.00%")
     book.define("BG_Rate", d.ref("bg_rate", "E"))
@@ -999,7 +1082,7 @@ def dashboard(book, d, R):
     d.sub("PSH, sale at RtB (per case; DSA received over the DSA draws)", extra={"J": "Date"})
     d.row("psh_land", "PSH land apport (in kind)", "EUR k", cases="=-PSH_Land", extra={"J": "=Acq_Date"},
           fmts={"J": "date"})
-    d.row("psh_dsa", "DSA received less PSH's own development costs", "EUR k", cases="=(DSA_Per_MWp-PSH_Devex)*{c}$7")
+    d.row("psh_dsa", "DSA received less PSH's own development costs", "EUR k", cases="=(DSA_Per_MWp-PSH_Devex)*{MWp}")
     d.row("psh_net", "PSH net own contribution (DSA − devex − land)", "EUR k", cases="={psh_land}+{psh_dsa}")
     d.row("psh_lot", "PSH lot at the exit", "EUR k", cases=f"={{c}}{r('jv_pl')}", extra={"J": "=Exit_Date"},
           fmts={"J": "date"})
@@ -1054,6 +1137,7 @@ def checks(book):
     k = book.sheet("Checks", "Zalahaláp – checks (0 = OK), mirrored at Dashboard H3")
     k.bar("Checks (0 = OK)", e=_case_links(book, k), h="Total")
     B, D_, rv = book.blocks, book.sheets["Dashboard"], book.rev
+    LR = book.lever_rows
     last = book.last_col
     dr = D_.row_of
     first = k.r
@@ -1069,10 +1153,17 @@ def checks(book):
         k.row(None, label, "flag", **cells, h="=SUM({self.cases})", fmt="flag")
 
     ck("Lever: BESS duration has an Aurora block (2 h or 4 h)",
-       lambda i, b, C: f"=Dashboard!{C}$11*ISNA(MATCH(Dashboard!{C}$15,Aurora_Blocks,0))")
-    ck("Lever: BESS revenue basis is Merchant or Tolling",
-       lambda i, b, C: f'=N(AND(Dashboard!{C}$20<>"Merchant",Dashboard!{C}$20<>"Tolling"))')
-    ck("Lever: PPA tenor within the operating life", lambda i, b, C: f"=N(Dashboard!{C}$19>Life)")
+       lambda i, b, C: f"=Dashboard!{C}${LR['BESS_On']}*ISNA(MATCH(Dashboard!{C}${LR['block']},Aurora_Blocks,0))")
+    ck("Lever: BESS basis is one of the options (Inputs)",
+       lambda i, b, C: f"=N(COUNTIF(Basis_Options,Dashboard!{C}${LR['Basis']})=0)")
+    ck("Lever: revenue structure is one of the table's columns",
+       lambda i, b, C: f"=--ISNA(MATCH(Dashboard!{C}${LR['Structure']},Structures,0))")
+    ck("Lever: the structure's PPA price is positive",
+       lambda i, b, C: f"=N(Dashboard!{C}${LR['PPA_Price']}<=0)")
+    ck("Lever: Fixed + share terms complete (all above 0)",
+       lambda i, b, C: f'=N(Dashboard!{C}${LR["Basis"]}="Fixed + share")*Dashboard!{C}${LR["BESS_On"]}'
+                       f'*N(MIN(Dashboard!{C}${LR["Fix_Price"]}:{C}${LR["Fix_Years"]})<=0)')
+    ck("Lever: PPA tenor within the operating life", lambda i, b, C: f"=N(Dashboard!{C}${LR['PPA_Years']}>Life)")
     ck("Timing: COD year not before Aurora's first year", lambda i, b, C: "=N(YEAR(COD_Live)<Aurora_First)",
        shared=True)
     ck("Timing: operating life inside the timeline", lambda i, b, C: f"=N(ABS(Calc!$H${b['oshare']}-Life)>Tolerance)")
@@ -1081,11 +1172,13 @@ def checks(book):
     ck("Energy: discharge ≤ PV charged × RTE, every year",
        lambda i, b, C: f"=SUMPRODUCT(--(Calc!J{b['dis']}:{last}{b['dis']}>Calc!J{b['sent']}:{last}{b['sent']}"
                        f"*BESS_RTE+Tolerance))")
+    ck("Energy: discharge at the fixed price + above = discharge",
+       lambda i, b, C: f"=N(ABS(Calc!$H${b['dfix']}+Calc!$H${b['dabove']}-Calc!$H${b['dis']})>Tolerance)")
     ck("Grid: direct export ≤ MVA × 8,760 h × operating share",
-       lambda i, b, C: f"=SUMPRODUCT(--(Calc!J{b['direct']}:{last}{b['direct']}>Dashboard!{C}$8*Hours_In_Year"
+       lambda i, b, C: f"=SUMPRODUCT(--(Calc!J{b['direct']}:{last}{b['direct']}>Dashboard!{C}${LR['MVA']}*Hours_In_Year"
                        f"*Calc!J{b['oshare']}:{last}{b['oshare']}))")
     ck("BESS rows are zero when no BESS is built",
-       lambda i, b, C: f"=(1-Dashboard!{C}$11)*N(ABS(Calc!$H${b['sent']})+ABS(Calc!$H${b['dis']})"
+       lambda i, b, C: f"=(1-Dashboard!{C}${LR['BESS_On']})*N(ABS(Calc!$H${b['sent']})+ABS(Calc!$H${b['dis']})"
                        f"+ABS(Calc!$H${b['rbess']})>Tolerance)")
     ck("Revenue: PV price received = PPA price inside the tenor",
        lambda i, b, C: f"=SUMPRODUCT((Revenue!J{rv[i]['ppa']}:{last}{rv[i]['ppa']}=1)"
@@ -1096,7 +1189,7 @@ def checks(book):
     ck("Dated outlays all mapped to the annual grid",
        lambda i, b, C: f"=N(ABS(Calc!$H${b['pre']}-Hold_At_COD-Dashboard!{C}{dr('dl_out')})>Tolerance)")
     ck("Dated: DSA draws add up to the DSA loan",
-       lambda i, b, C: f"=N(ABS(Dashboard!{C}{dr('dl_dsa')}-DSA_Per_MWp*Dashboard!{C}$7)>Tolerance)")
+       lambda i, b, C: f"=N(ABS(Dashboard!{C}{dr('dl_dsa')}-DSA_Per_MWp*Dashboard!{C}${LR['MWp']})>Tolerance)")
     ck("Dated: pre-RtB development months add up to the total",
        lambda i, b, C: "=N(ABS(PreRtB_Spent-PreRtB_Total)>Tolerance)", shared=True)
     ck("Dated: the cases share the outlays (returns per line)",
@@ -1123,8 +1216,9 @@ def checks(book):
                        f">Tolerance)+N(Dashboard!{C}{dr('c_dist')}<-Tolerance)")
     ck("Tax: losses carried forward never negative",
        lambda i, b, C: f"=N(MIN(Calc!J{b['lc']}:{last}{b['lc']})<-Tolerance)")
-    ck("Returns: every IRR on Calc is a number",
-       lambda i, b, C: f"=N(COUNT(Calc!$E${b['r_proj']}:$F${b['r_bl']})<COUNTA(Calc!$E${b['r_proj']}:$F${b['r_bl']}))")
+    ck("Returns: IRR n/a only when the money multiple is below 1",
+       lambda i, b, C: f'=COUNTIFS(Calc!$E${b["r_proj"]}:$E${b["r_bl"]},"n/a",Calc!$G${b["r_proj"]}:$G${b["r_bl"]},'
+                       f'">=1")')
     ck("Returns: the RtB-route XIRRs are numbers",
        lambda i, b, C: f"=N(COUNT(Dashboard!{C}{dr('dl_irr_pre')}:{C}{dr('dl_irr')})<COUNTA(Dashboard!{C}"
                        f"{dr('dl_irr_pre')}:{C}{dr('dl_irr')}))")
@@ -1148,8 +1242,8 @@ def checks(book):
        lambda i, b, C: f"=N(ABS(Calc!${last}${b['dclose']})>Tolerance)+N(MIN(Calc!J{b['dclose']}:{last}"
                        f"{b['dclose']})<-Tolerance)")
     ck("Debt: gearing 0 reproduces the unlevered IRRs",
-       lambda i, b, C: f"=N(Dashboard!{C}{gr}=0)*N(ABS(Calc!E{b['r_holdl']}-Calc!E{b['r_hold']})"
-                       f"+ABS(Calc!E{b['r_codl']}-Calc!E{b['r_cod']})>Tolerance)")
+       lambda i, b, C: f"=N(Dashboard!{C}{gr}=0)*--(ABS(N(Calc!E{b['r_holdl']})-N(Calc!E{b['r_hold']}))"
+                       f"+ABS(N(Calc!E{b['r_codl']})-N(Calc!E{b['r_cod']}))>Tolerance)")
     ck("JV at COD, levered: FEP + PSH + costs = price − debt",
        lambda i, b, C: f"=N(ABS(Dashboard!{C}{dr('cl_fep')}+Dashboard!{C}{dr('cl_pl')}-Dashboard!{C}{dr('cl_sale')}"
                        f"-Dashboard!{C}{dr('cl_ev')})>Tolerance)")
@@ -1165,6 +1259,8 @@ def checks(book):
        lambda i, b, C: f"=Dashboard!{C}{dr('impneg')}")
     ck("Levered buyer IRR at COD n/a (price below the debt)",
        lambda i, b, C: f"=N(ISTEXT(Calc!$E${b['r_bcl']}))")
+    ck("IRRs n/a: flows never pay back (money multiple below 1)",
+       lambda i, b, C: f'=COUNTIF(Calc!$E${b["r_proj"]}:$F${b["r_bl"]},"n/a")')
     ck("Years with CFADS below debt service (DSCR < 1)",
        lambda i, b, C: f"=SUMPRODUCT(--(Calc!J{b['cfads']}:{last}{b['cfads']}<Calc!J{b['dserv']}:{last}{b['dserv']}"
                        f"-Tolerance))")

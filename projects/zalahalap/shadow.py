@@ -28,7 +28,8 @@ BLOCK = {2: "2027 solar DC 1.0cy 2h", 4: "2027 solar DC 1.0cy 4h"}
 
 
 def params(**over):
-    p = dict(mwp=63, mva=49.9, yld=1265, ppa_price=80, ppa_index=0.0, ppa_years=8, basis="Merchant", rtb_price=90,
+    p = dict(mwp=63, mva=49.9, yld=1265, structure="Fixed + share", ppa_price=None, ppa_index=0.0, ppa_years=None,
+             basis=None, fix_price=None, fix_cycles=None, fix_share=None, fix_years=None, rtb_price=90,
              cod_price=0, acq=D(2025, 11, 30), rtb=D(2026, 12, 31), exit=D(2027, 3, 31), ntp=D(2027, 1, 1),
              cod=D(2028, 3, 1), life=35, capex_year=2027, gearing=0.6, debt_rate=0.05, tenor=20, draw_timing=0.5, avail=0.995, deg=0.003, clip=None, goo=1.75, pv_only_hours=2, rte=0.86,
              haircut=0.0, afrr=0.0, bess_capex=110, repower=1, opex_mw=18.70, opex_mwh=6.07, balancing=5.0, toll_start=D(2028, 1, 1),
@@ -74,11 +75,18 @@ def xnpv(rate, flows, dates):
     return sum(f / (1 + rate) ** ((t - t0).days / 365.0) for f, t in zip(flows, dates))
 
 
-def xirr(flows, dates, lo=-0.99, hi=10.0):
+def xirr(flows, dates, lo=-0.99, hi=10.0, start=None):
+    """Root of XNPV by bisection; with several sign changes on a grid, the root nearest the workbook's start guess
+    MIN(10 %, MOIC − 1) (where Newton in Excel / LibreOffice lands)."""
     f = lambda r: xnpv(r, flows, dates)        # noqa: E731
-    flo, fhi = f(lo), f(hi)
-    if flo * fhi > 0:
+    grid = [lo + (hi - lo) * (k / 400) ** 3 for k in range(401)]
+    vals = [f(r) for r in grid]
+    brackets = [(a, b) for (a, fa), (b, fb) in zip(zip(grid, vals), zip(grid[1:], vals[1:])) if fa * fb <= 0]
+    if not brackets:
         return None
+    g = guess(flows) if start is None else start
+    lo, hi = min(brackets, key=lambda ab: abs((ab[0] + ab[1]) / 2 - g))
+    flo = f(lo)
     for _ in range(300):
         mid = (lo + hi) / 2
         fm = f(mid)
@@ -154,16 +162,32 @@ def factor(d, end, r):
 
 
 # ------------------------------------------------------------------------------------------- model
+STRUCT = {  # Revenue sheet "Commercial structures" (v2.4): per case PPA price and BESS fixed price
+    "PPA uplift": dict(ppa=(55, 80, 85), ppa_years=8, basis="None", fixed=(0, 0, 0), cycles=0, share=0, fix_years=0),
+    "Fixed + share": dict(ppa=(45, 45, 45), ppa_years=8, basis="Fixed + share", fixed=(0, 70, 55), cycles=1,
+                          share=0.7, fix_years=8),
+    "Merchant": dict(ppa=(80, 80, 80), ppa_years=8, basis="Merchant", fixed=(0, 0, 0), cycles=0, share=0, fix_years=0)}
+
+
 def run(case="PV + 4h BESS", sens="Base", **over):
     p = params(**over)
     c, s = CASES[case], SENS[sens]
+    k = list(CASES).index(case)
+    t = STRUCT[p["structure"]]
+    for key, val in (("ppa_price", t["ppa"][k]), ("ppa_years", t["ppa_years"]), ("basis", t["basis"]),
+                     ("fix_price", t["fixed"][k]), ("fix_cycles", t["cycles"]), ("fix_share", t["share"]),
+                     ("fix_years", t["fix_years"])):
+        if p[key] is None:
+            p[key] = val
+    valued = p["basis"] != "None"
+    fixed_on = p["basis"] == "Fixed + share"
     clip = c["clip"] if p["clip"] is None else p["clip"]
     built, mw = c["built"], c["mw"] * c["built"]
     hours = c["hours"]
     mwh = built * c["mw"] * hours
     mwp = p["mwp"]
     codl = edate(p["cod"], s["delay"])
-    blk = BLOCK[hours] if built else BLOCK[p["pv_only_hours"]]
+    blk = BLOCK[hours] if built and valued else BLOCK[p["pv_only_hours"]]
     rep_cnt = AU[("repower_count", blk)]
     rep_year = next(y for y in range(2026, 2061) if rep_cnt[y] >= 1)
     pxd_m, pxs_m = series("direct_price", blk), series("transfer_price", blk)
@@ -183,7 +207,7 @@ def run(case="PV + 4h BESS", sens="Base", **over):
         repf = p["repower"] * (y == rep_year)
         idx = IDX[y]
         gen = mwp * p["yld"] * (1 + s["cy"]) * (1 - clip) * p["avail"] * degf * osh
-        sent = min(gen, chg[y] * mw * osh * live)
+        sent = min(gen, chg[y] * mw * osh * live * valued)
         direct = gen - sent
         dis = min(dmw[y] * mw * osh * live, sent * p["rte"])
         # prices (Revenue bar 3)
@@ -196,12 +220,21 @@ def run(case="PV + 4h BESS", sens="Base", **over):
         ppa = max(0, min(12, p["ppa_years"] * 12 - m0) - max(0, -m0)) / max(1, opm)
         ppx = p["ppa_price"] * (1 + p["ppa_index"]) ** (y - codl.year)
         pxd, pxs = md + ppa * (ppx - md), ms + ppa * (ppx - ms)
-        upl = built * (1 - p["haircut"]) * (1 + s["cb"]) * st[y] * (pvo[y] + dcs[y] * p["afrr"]) * idx
+        upl = built * valued * (1 - p["haircut"]) * (1 + s["cb"]) * st[y] * (pvo[y] + dcs[y] * p["afrr"]) * idx
         tol = (p["basis"] == "Tolling") * max(0, min(12, p["toll_years"] * 12 - t0) - max(0, -t0)) / max(1, opm)
         bess_px = upl + tol * (p["toll_fee"] - upl)
         rpv = (direct * pxd + sent * pxs) / 1000
         rgoo = gen * p["goo"] * idx / 1000
-        rbess = mw * bess_px * osh * live
+        fm = max(0, min(12, p["fix_years"] * 12 - m0) - max(0, -m0))
+        fts = fixed_on * fm / opm if opm else 0.0
+        real = upl * 1000 / dmw[y] if dmw[y] else 0.0
+        dfix = min(dis, p["fix_cycles"] * mwh * 365 * osh * live)
+        dabove = dis - dfix
+        rbfix = p["fix_price"] * dfix * fts / 1000
+        rbsh = p["fix_share"] * real * dabove * fts / 1000
+        rbess = rbfix + rbsh + mw * bess_px * osh * live * (1 - fts)
+        R.setdefault("rbfix", []).append(rbfix)
+        R.setdefault("dabove", []).append(dabove)
         rev = rpv + rgoo + rbess
         opex = (-(p["om"] + p["cable_om"]) * mwp * idx * osh - gen * p["balancing"] * idx * (1 - ppa) / 1000
                 - p["lease"] * idx * osh - (p["opex_mw"] * mw + p["opex_mwh"] * mwh) * idx * osh * live - rev * (p["hipa"] + p["innov"]))
@@ -325,8 +358,9 @@ def run(case="PV + 4h BESS", sens="Base", **over):
     allin = price + buyer_reimb / mwp
     bxd = [max(t, p["exit"]) for t in YE]
     bxp = [bx[i] - allin * mwp * (i == 0) for i in range(n)]
-    buyer_rtb = xirr(bxp, bxd)
-    buyer_rtb_pre = xirr([bxp[i] - R["tax"][i] for i in range(n)], bxd)
+    bstart = guess(bxp, cap=s["buyer"])                 # fixed premium: the buyer can sit far below its target
+    buyer_rtb = xirr(bxp, bxd, start=bstart)
+    buyer_rtb_pre = xirr([bxp[i] - R["tax"][i] for i in range(n)], bxd, start=bstart)
     # JV split at the RtB exit
     cons = price * mwp
     avail = cons + buyer_reimb
@@ -367,8 +401,8 @@ def run(case="PV + 4h BESS", sens="Base", **over):
     c_tax = -p["cit"] * (-c_ret + p["gain_taxed"] * max(0, sum(codr) + c_ret))
     codt = [codr[i] + c_tax * codf[i] for i in range(n)]
     bcp = [bc[i] - ev * codf[i] for i in range(n)]
-    buyer_cod = xirr(bcp[codcol:], YE[codcol:])
-    buyer_cod_pre = xirr([bcp[i] - R["tax"][i] * (R["yrs"][i] >= 0) for i in range(n)][codcol:], YE[codcol:])
+    buyer_cod = xirr(bcp[codcol:], YE[codcol:], start=s["buyer"])
+    buyer_cod_pre = xirr([bcp[i] - R["tax"][i] * (R["yrs"][i] >= 0) for i in range(n)][codcol:], YE[codcol:], start=s["buyer"])
     # hold
     hold = [pcft[i] - pl * (YEARS[i] == p["exit"].year) for i in range(n)]
     holdp = [hold[i] - R["tax"][i] for i in range(n)]
@@ -395,7 +429,8 @@ def run(case="PV + 4h BESS", sens="Base", **over):
     i_ffy = YEARS.index(first_full)
     return dict(
         case=case, sens=sens,
-        gen_ffy=R["gen"][i_ffy], sent_ffy=R["sent"][i_ffy], dis_ffy=R["dis"][i_ffy], rev_ffy=R["rev"][i_ffy],
+        gen_ffy=R["gen"][i_ffy], rbess_ffy=R["rbess"][i_ffy], rbfix_ffy=R["rbfix"][i_ffy],
+        dabove_ffy=R["dabove"][i_ffy], cycles_day=R["dis"][i_ffy] / mwh / 365 if mwh else 0.0, sent_ffy=R["sent"][i_ffy], dis_ffy=R["dis"][i_ffy], rev_ffy=R["rev"][i_ffy],
         ebitda_ffy=R["ebitda"][i_ffy], rev_life=sum(R["rev"]), ebitda_life=sum(R["ebitda"]), tax_life=sum(R["tax"]),
         capex_total=k_tot, cash_to_rtb=-sum(a for a, _, _ in lines), buyer_reimb=buyer_reimb,
         implied_rtb=implied, implied_raw=(ev_x - buyer_reimb) / mwp, rtb_price=price, allin=allin, buyer_rtb=buyer_rtb, buyer_rtb_pre=buyer_rtb_pre,
@@ -418,7 +453,9 @@ def run(case="PV + 4h BESS", sens="Base", **over):
         cod_irr_l=xirr(codtl, YE), cod_irr_lp=xirr(codrl, YE), cod_profit_l=sum(codtl),
         cod_moic_l=sum(x for x in codrl if x > 0) / -sum(x for x in codrl if x < 0),
         psh_cod_l=cl_pl + (p["dsa"] - p["psh_devex"]) * mwp - p["psh_land"],
-        buyer_rtb_l=xirr(bxl, bxd), buyer_cod_l=xirr(bcl[codcol:], YE[codcol:]),
+        buyer_rtb_l=xirr(bxl, bxd, start=guess(bxl, cap=s["buyer"])),
+        buyer_cod_l=xirr(bcl[codcol:], YE[codcol:], start=s["buyer"]),
+        buyer_start=s["buyer"],
         irr_flows={"proj": (pcft, YE), "proj_pre": (pcf, YE), "hold": (hold, YE), "hold_pre": (holdp, YE),
                    "cod": (codt, YE), "cod_pre": (codr, YE), "hold_l": (holdl, YE), "hold_lp": (holdlp, YE),
                    "cod_l": (codtl, YE), "cod_lp": (codrl, YE), "buyer_rtb": (bxp, bxd), "buyer_rtb_l": (bxl, bxd),

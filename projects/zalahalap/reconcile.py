@@ -454,10 +454,13 @@ V2_STEPS = [  # label, SPEC reference, shadow overrides (v2.0 shadow; the v2.1 s
 ]
 V21_STEPS = [  # label, SPEC reference, shadow.py overrides (v2.1)
     ("Timeline rebase: spend to 31-Dec-26 in one column, all capex in 2027, COD 01-Mar-28 (unlevered)", "v2.1 §12.1",
-     dict(gearing=0, ppa_price=45, ppa_years=5, om=14.96, cable_om=5)),
+     dict(gearing=0, structure="Merchant", ppa_price=45, ppa_years=5, om=14.96, cable_om=5)),
     ("PPA 80 €/MWh for 8 years from COD, then merchant (user 05-Nov-2026; unlevered)", "v2.2",
-     dict(gearing=0, om=14.96, cable_om=5)),
-    ("O&M 10 k€/MWp/yr all-in, MV cable O&M inside it (user 05-Nov-2026; unlevered)", "v2.3", dict(gearing=0)),
+     dict(gearing=0, structure="Merchant", om=14.96, cable_om=5)),
+    ("O&M 10 k€/MWp/yr all-in, MV cable O&M inside it (user 05-Nov-2026; unlevered)", "v2.3",
+     dict(gearing=0, structure="Merchant")),
+    ("Side row: PPA uplift (55/80/85, no BESS value; vs Merchant 80)", "v2.4 §13", dict(gearing=0, structure="PPA uplift")),
+    ("Fixed + share (PV 45, BESS 70/55 on 1 cycle, 70 % above; vs Merchant 80)", "v2.4 §13", dict(gearing=0)),
     ("Levered case: 60 % gearing, 5 %, 20-year annuity (hold IRR levered; base)", "v2.1 §12.2", {}),
 ]
 BRIDGE = [("hold_irr", "FEP hold IRR", "%"), ("proj_irr", "Project IRR", "%"), ("rtb_profit", "RtB profit (k€)", "k"),
@@ -481,6 +484,9 @@ def bridge():
         r = V2.run("PV + 4h BESS", "Base", **kw)
         rows.append((label, ref, dict(r, hold_irr=r["hold_irr_l"]) if not kw else r))
     return rows
+
+
+SIDE = "Side row"      # a side row shows its effect against the row before it; the next row starts from there too
 
 
 # =========================================================================================== tie-out
@@ -519,7 +525,11 @@ TIE = [  # shadow key, Dashboard label, occurrence, scale (workbook = shadow / s
     ("cod_irr_l", "Levered: IRR, post-tax", 0, 1), ("psh_cod_l", "Levered: PSH profit", 0, 1),
     ("hold_equity_l", "Levered: FEP equity invested (uses less debt)", 0, 1),
     ("hold_profit_l", "Levered: FEP profit, post-tax", 0, 1), ("hold_irr_l", "Levered: IRR, after tax", 0, 1),
-    ("hold_irr_lp", "Levered: IRR, before tax", 0, 1), ("hold_moic_l", "Levered: MOIC, after tax", 0, 1)]
+    ("hold_irr_lp", "Levered: IRR, before tax", 0, 1), ("hold_moic_l", "Levered: MOIC, after tax", 0, 1),
+    ("cycles_day", "BESS cycles per day", 0, 1), ("dabove_ffy", "BESS discharge above the fixed cycles", 0, 1000),
+    ("rbess_ffy", "BESS revenue", 0, 1), ("rbfix_ffy", "of which fixed price on the fixed cycles", 0, 1)]
+RUNS = [("Base", "Fixed + share"), ("Low", "Fixed + share"), ("High", "Fixed + share"), ("Base", "PPA uplift"),
+        ("Base", "Merchant")]
 CASES = ["PV only", "PV + 2h BESS", "PV + 4h BESS"]
 
 
@@ -537,25 +547,31 @@ def dashboard_cells():
     return rows
 
 
-def tie_out(sensitivities=("Base", "Low", "High")):
-    """Workbook (LibreOffice) vs shadow for every case and sensitivity: {(sens, case, key): (wb, shadow)}."""
+def tie_out(runs=RUNS):
+    """Workbook (LibreOffice) vs shadow for every case, per (sensitivity, structure): {(run, case, key): (wb, sh)}."""
     from fepm.recalc import Office
+    import openpyxl
     cells = dashboard_cells()
+    ws = openpyxl.load_workbook(XLSX)["Dashboard"]
+    srow = next(r for r in range(1, 40) if str(ws.cell(r, 3).value).startswith("Revenue structure"))
     res = {}
     with Office(XLSX) as lo:
-        for sens in sensitivities:
+        for sens, struct in runs:
             lo.set("Dash_Case", sens)
+            for col in "EFG":
+                lo.set(f"Dashboard!{col}{srow}", struct)
             lo.calculate()
             mc = lo.get("Master_Check")
+            run = sens if struct == "Fixed + share" else f"{sens}, {struct}"
             for i, case in enumerate(CASES):
-                sh = V2.run(case, sens)
+                sh = V2.run(case, sens, structure=struct)
                 for key, (r, scale) in cells.items():
                     w = lo.get(f"Dashboard!{'EFG'[i]}{r}")
                     if sh[key] is None:                      # IRR undefined (no sign change): workbook shows n/a
                         assert w == "n/a", (sens, case, key, w)
                         continue
-                    res[(sens, case, key)] = (w, sh[key] / scale)
-            res[(sens, "master", "check")] = (mc, 0)
+                    res[(run, case, key)] = (w, sh[key] / scale)
+            res[(run, "master", "check")] = (mc, 0)
     return res
 
 
@@ -598,8 +614,8 @@ def report(tie):
          "(HTM targets from the copy with Aurora_Curve!C8 = 0, SPEC v1 §3.2).", "",
          "## 2. Bridge: v3 → PV + 4 h column, Base, merchant BESS basis", "",
          "Rows 1–2 are values; each further row switches one change on (cumulative) and shows its effect. Rows 2–10 run on the v1 quarterly shadow (unlevered: gearing 0 "
-         "throughout), rows 11–14 on the frozen v2.0 annual shadow (`data/shadow_v20.py`), rows 15–18 on the v2.1+ shadow; "
-         "the hold IRR is levered in row 18 and the last row; the last row is the workbook's PV + 4 h column (Base). The "
+         "throughout), rows 11–14 on the frozen v2.0 annual shadow (`data/shadow_v20.py`), rows 15–20 on the v2.1+ shadow (the PPA uplift row is a side "
+         "row against Merchant 80); the hold IRR is levered in the levered row and the last row; the last row is the workbook's PV + 4 h column (Base). The "
          "implied premium is shown before the 0 floor; the workbook floors it at 0.", "",
          "| Step | SPEC | " + " | ".join(lbl for _, lbl, _ in BRIDGE) + " |", "|---|---|" + "---:|" * len(BRIDGE)]
     prev = None
@@ -609,7 +625,8 @@ def report(tie):
         else:
             L.append(f"| + {label} | {ref} | " + " | ".join(delta(prev.get(x), vals.get(x), u) for x, _, u in BRIDGE)
                      + " |")
-        prev = vals
+        if not label.startswith(SIDE):                     # a side row does not move the base of the next step
+            prev = vals
     key = {"implied_raw": "implied_rtb", "hold_irr": "hold_irr_l"}
     wb = {x: tie[("Base", "PV + 4h BESS", key.get(x, x))][0] for x, _, _ in BRIDGE}
     L.append("| **PV + 4 h, Base: the workbook (implied premium floored at 0)** | | "
@@ -638,11 +655,11 @@ def report(tie):
           "- PPA step: 45 €/MWh nominal on all PV output for 5 years (Aurora's direct price is 98–108 €/MWh nominal in "
           "2028–29 for the 4 h block), no balancing in those years.", "",
           "## 3. The v2 shadow ties to the workbook", "",
-          "Workbook recalculated in LibreOffice with `Dash_Case` = Base, Low, High; every Dashboard result below "
-          "compared with `shadow.py` (EUR k, rates, multiples).", "",
+          "Workbook recalculated in LibreOffice: Base, Low, High on the default structure (Fixed + share) and Base on "
+          "the PPA-uplift and Merchant structures; every Dashboard result below compared with `shadow.py`.", "",
           "| Sensitivity | Master check | Results compared | Largest absolute difference | Largest relative difference |",
           "|---|---:|---:|---:|---:|"]
-    for sens in ("Base", "Low", "High"):
+    for sens in sorted({k[0] for k in tie}, key=lambda x: (len(x), x)):
         diffs = [(abs(w - s), abs(w - s) / max(1e-9, abs(s))) for (se, c, k), (w, s) in tie.items()
                  if se == sens and c != "master"]
         L.append(f"| {sens} | {tie[(sens, 'master', 'check')][0]:g} | {len(diffs)} | {max(d for d, _ in diffs):.2e} | "

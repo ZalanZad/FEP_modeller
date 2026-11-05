@@ -83,13 +83,21 @@ def test_gearing_zero_reproduces_the_unlevered_case():
 
 
 def test_excel_xirr_converges_from_the_workbook_guess():
-    """Excel's XIRR (Newton) returns ~0 when it fails: from the workbook's start guess MIN(10 %, MOIC − 1) every IRR
-    of the shadow converges to the exact root (Base, Low, High; all cases and routes)."""
+    """Excel's XIRR (Newton) returns ~0 when it fails: from the workbook's start guess (MIN(10 %, MOIC − 1); buyer at
+    RtB: MIN(target, MOIC − 1); buyer at COD: the target) every IRR of the shadow converges to the exact root, and
+    where no root exists (the workbook shows n/a) the money multiple is below 1 (Base, Low, High; all cases, routes
+    and revenue structures)."""
     shadow = _load("zalahalap_shadow", PROJECT / "shadow.py")
-    for case in shadow.CASES:
-        for sens in ("Base", "Low", "High"):
-            for key, (flows, dates) in shadow.run(case, sens)["irr_flows"].items():
-                exact = shadow.xirr(flows, dates)
-                assert exact is not None, (case, sens, key)
-                got = shadow.xirr_excel(flows, dates, shadow.guess(flows))
-                assert got == pytest.approx(exact, abs=1e-7), (case, sens, key)
+    for st in shadow.STRUCT:
+        for case in shadow.CASES:
+            for sens in ("Base", "Low", "High"):
+                res = shadow.run(case, sens, structure=st)
+                for key, (flows, dates) in res["irr_flows"].items():
+                    cap = res["buyer_start"] if key.startswith("buyer_rtb") else 0.1
+                    start = res["buyer_start"] if key == "buyer_cod" else shadow.guess(flows, cap=cap)
+                    exact = shadow.xirr(flows, dates, start=start)
+                    if exact is None:
+                        assert shadow.guess(flows, cap=1.0) < 0, (st, case, sens, key)
+                        continue
+                    got = shadow.xirr_excel(flows, dates, start)
+                    assert got == pytest.approx(exact, abs=1e-7), (st, case, sens, key)
