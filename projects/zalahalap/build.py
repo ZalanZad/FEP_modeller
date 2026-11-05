@@ -206,8 +206,10 @@ def inputs(book):
     a("EW_NTP", "Early works at NTP (E48 650 + E49 75)", "EUR k", 725, "ZHLP v3 Stat_inp E48:E49; " + EW_NOTE)
 
     i.sub("Opex (real 2025, × the Aurora euro index)")
-    a("OM_Cost", "O&M and fixed opex", "EUR k/MWp/yr", 14.96, "ZHLP v3 Control D59")
-    a("Cable_OM", "MV cable O&M", "EUR k/MWp/yr", 5, "ZHLP v3 Control D62")
+    a("OM_Cost", "O&M, all-in (PV, BoP, MV cable, insurance, management)", "EUR k/MWp/yr", 10,
+      "User 05-Nov-2026: 10 k€/MWp/yr all-in (v3: 14.96)")
+    a("Cable_OM", "MV cable O&M (inside the all-in O&M above)", "EUR k/MWp/yr", 0,
+      "Inside the 10 (user 05-Nov-2026; v3: 5)")
     a("Lease", "Land lease from COD", "EUR k", 96, "ZHLP v3 Control D61")
     a("HIPA", "Local business tax (HIPA), on revenue", "%", 0.02, "Bana; " + PH)
     a("Innovation", "Innovation contribution, on revenue", "%", 0.003, "Act LXXVI/2014; " + PH, fmt="0.00%")

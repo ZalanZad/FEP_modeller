@@ -33,7 +33,7 @@ def params(**over):
              cod=D(2028, 3, 1), life=35, capex_year=2027, gearing=0.6, debt_rate=0.05, tenor=20, draw_timing=0.5, avail=0.995, deg=0.003, clip=None, goo=1.75, pv_only_hours=2, rte=0.86,
              haircut=0.0, afrr=0.0, bess_capex=110, repower=1, opex_mw=18.70, opex_mwh=6.07, balancing=5.0, toll_start=D(2028, 1, 1),
              toll_years=3, toll_fee=49.7, pv_capex=350, cable=3700, subst=9500, grid_fee=0, land=620, ew_ntp=725,
-             om=14.96, cable_om=5, lease=96, hipa=0.02, innov=0.003, spv=549, trans=200, dsa=15,
+             om=10, cable_om=0, lease=96, hipa=0.02, innov=0.003, spv=549, trans=200, dsa=15,
              dsa_first=D(2025, 12, 31), pre_total=3182, pre_first=D(2026, 10, 31), pre_last=D(2027, 3, 31), fx=400,
              bg=0.0187 + 0.0175, rate=0.12, share_low=0.6, share_high=0.5, threshold=90, psh_land=150, psh_devex=15,
              ret=dict(spv=0, trans=0, dep=1, dsa=1, ew=1, pre=0, fee=0), reimb=dict(pre=1, ew=1, dep=1),

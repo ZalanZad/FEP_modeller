@@ -91,8 +91,8 @@ placeholder (Bana wind terms or a default). "Rec." = Fable's recommendation wher
 ### 1.7 Opex (real 2025, indexed with Aurora's euro index)
 | # | Assumption | Value | Source | Status | Rec. |
 |---|---|---|---|---|---|
-| 57 | O&M and fixed opex | 14.96 k€/MWp/yr | v3 Control D59 | v3 | ok (incl. insurance, management?) – confirm scope |
-| 58 | MV cable O&M | 5 k€/MWp/yr (315 k€/yr) | v3 Control D62 | v3 | high for a cable; 1–2 k€/MWp |
+| 57 | O&M, all-in | **10 k€/MWp/yr** (PV, BoP, MV cable, insurance, management), real 2025 × euro index | user 05-Nov-2026 (v3 Control D59: 14.96) | U | fix round v2.3; confirm with an O&M quote |
+| 58 | MV cable O&M | 0 – inside the all-in 10 k€/MWp/yr (row kept) | user 05-Nov-2026 (v3 Control D62: 5) | U | – |
 | 59 | Balancing | 5 €/MWh (merchant only after the fix #42) | v3 Control D60 | v3 | ok |
 | 60 | Land lease | 96 k€/yr from COD | v3 Control D61 | v3 | ok |
 | 61 | HIPA + innovation contribution | 2.0 % + 0.3 % of revenue | Bana | P | confirm Nyirád's rate; base is revenue less materials/subcontracting |

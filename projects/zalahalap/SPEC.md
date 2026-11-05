@@ -318,6 +318,9 @@ Report: sheet/row counts; the Base results per case and strategy; the Low/High s
     `$J<row>`, and every XIRR carries a start guess MIN(10 %, MOIC − 1) because Excel's XIRR returns ~0 (2.98E-09)
     instead of an error when Newton fails from 10 % (the COD routes in v2.1). Lint: `x-text` (text inside
     XIRR/XNPV/IRR/NPV/SUMPRODUCT ranges), `e-column` (references beyond a sheet's last column), `e-whole`, `e-xlfn`.
+16. **v2.3 (user 05-Nov-2026).** O&M 10 k€/MWp/yr all-in (MV cable O&M inside it, row kept at 0); debt stays 60 %.
+    Formulas simplified with outputs proven unchanged (flag rows, cumulative-month rows, direct case links, helper
+    rows); the audit warns on formulas over 80 characters (only the accrual factors and the Checks remain).
 
 ## 12. v2.1 – timeline rebase and the levered case (user, 04-Nov-2026)
 User, verbatim: "now it is the end of 2026 so make the model based on that the costs will arrive in 2027 and
