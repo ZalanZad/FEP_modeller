@@ -80,3 +80,16 @@ def test_gearing_zero_reproduces_the_unlevered_case():
         for lev, unl in (("hold_irr_l", "hold_irr"), ("cod_irr_l", "cod_irr"), ("buyer_rtb_l", "buyer_rtb"),
                          ("buyer_cod_l", "buyer_cod"), ("cod_profit_l", "cod_profit")):
             assert r[lev] == pytest.approx(r[unl], abs=1e-12), (case, lev)
+
+
+def test_excel_xirr_converges_from_the_workbook_guess():
+    """Excel's XIRR (Newton) returns ~0 when it fails: from the workbook's start guess MIN(10 %, MOIC − 1) every IRR
+    of the shadow converges to the exact root (Base, Low, High; all cases and routes)."""
+    shadow = _load("zalahalap_shadow", PROJECT / "shadow.py")
+    for case in shadow.CASES:
+        for sens in ("Base", "Low", "High"):
+            for key, (flows, dates) in shadow.run(case, sens)["irr_flows"].items():
+                exact = shadow.xirr(flows, dates)
+                assert exact is not None, (case, sens, key)
+                got = shadow.xirr_excel(flows, dates, shadow.guess(flows))
+                assert got == pytest.approx(exact, abs=1e-7), (case, sens, key)

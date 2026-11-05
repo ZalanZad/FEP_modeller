@@ -1,10 +1,11 @@
-"""Zalahaláp – 63 MWp PV, with or without a 50 MW BESS: investment model, SPEC v2 (wind-model format).
+"""Zalahaláp – 63 MWp PV, with or without a 50 MW BESS: investment model, SPEC v2.2 (wind-model format).
 
-One workbook, `out/Zalahalap_Model.xlsx` (no macros): Dashboard · Inputs · Revenue · Calc · Checks, annual 2025–2064,
-three cases as columns (E PV only, F PV + 2 h BESS, G PV + 4 h BESS), unlevered. PV sells under a 5-year PPA at the
-lever price on all output, then at Aurora's merchant prices; the BESS earns Aurora's block uplift × the PV-only
-factor (or the MET tolling fee). Base / Low / High through `Dash_Case`. The pre-COD cash is dated on the Dashboard
-(RtB route, XIRR) and mapped to the annual grid by year for the hold and COD routes.
+One workbook, `out/Zalahalap_Model.xlsx` (no macros): Dashboard · Inputs · Revenue · Calc · Checks, annual "to 2026",
+2027 … 2064, three cases as columns (E PV only, F PV + 2 h BESS, G PV + 4 h BESS), unlevered and levered. PV sells
+under a PPA at the lever price on all output (80 €/MWh for 8 years from COD), then at Aurora's merchant prices; the
+BESS earns Aurora's block uplift × the PV-only factor (or the MET tolling fee). Base / Low / High through `Dash_Case`.
+The pre-COD cash is dated on the Dashboard (RtB route, XIRR) and mapped to the annual grid for the hold and COD routes.
+Every XIRR carries a start guess (MIN(10 %, MOIC − 1)): Excel's XIRR returns ~0 instead of an error when it fails.
 """
 from __future__ import annotations
 
@@ -94,10 +95,10 @@ def dashboard_top(book):
     d.row("pblock", "Aurora block for the PV prices (PV only: 2 h proxy)", "text",
           cases="=IF({c}$11=1,{c}$15,PV_Only_Block)", fmt="general")
     book.define("Price_Block", d.ref("pblock", "cases"))
-    lv("PPA_Price", "PPA price, nominal as offered", "EUR/MWh", [45, 45, 45],
-       source="MVM 5-y offer (Revenue: Offer_PPA_MVM)", fmt="money2")
+    lv("PPA_Price", "PPA price, nominal", "EUR/MWh", [80, 80, 80],
+       source="User instruction 05-Nov-2026 (offers: Revenue)", fmt="money2")
     lv("PPA_Index", "PPA indexation", "%/yr", [0, 0, 0], source="MVM: none stated")
-    lv("PPA_Years", "PPA tenor from COD", "years", [5, 5, 5], source="User 03-Nov-2026: 5-year PPA")
+    lv("PPA_Years", "PPA tenor from COD, then merchant", "years", [8, 8, 8], source="User instruction 05-Nov-2026")
     lv("Basis", "BESS revenue basis (Merchant or Tolling)", "text", ["Merchant"] * 3,
        source="Aurora merchant or MET tolling", options="Merchant,Tolling")
     lv("RtB_Price", "RtB price, premium (0 = implied)", "EUR k/MWp", [90, 90, 90],
@@ -222,6 +223,7 @@ def inputs(book):
     a("BG_Base", "Bank guarantee fee: 1M EURIBOR", "%", 0.0187, "ZHLP v3 Dyn_Inp G50:Y50", fmt="0.00%")
     a("BG_Margin", "Bank guarantee fee: margin", "%", 0.0175, "ZHLP v3 Stat_inp E110", fmt="0.00%")
     a("Draw_Timing", "Debt drawn mid-year: share of a year's IDC on draws", "%", 0.5, "Pro rata with capex in 2027")
+    a("XIRR_Guess", "XIRR start guess (MOIC − 1 when lower)", "%", 0.1, "Excel returns ~0 when XIRR fails to converge")
     a("Loan_Rate", "FEP return on loans and costs (act/365, 31-Dec)", "%", 0.12, "JV sheet G30; v3 Stat_inp E69")
     a("Share_Low", "FEP share of the distributable, price ≤ threshold", "%", 0.6, "User 22-Oct-26")
     a("Share_High", "FEP share of the distributable, price > threshold", "%", 0.5, "User 22-Oct-26")
@@ -617,30 +619,33 @@ def calc(book):
               t="={bx}-{tax}+{taxl}+{draw}-{dserv}-{bxp.E}*N({year}=First_Year)")
         c.row("bcl", "Buyer at COD, levered (equity in the first column)", "EUR k",
               t="=({ebitda}+{taxl}+{aug})*N({yrs}>=0)-{dserv}-({bcp.E}-{cbc.E})*N({year}=First_Year)")
-        c.sub("Returns (E: after tax, F: before tax)")
+        c.sub("Returns (E: after tax, F: before tax, G: XIRR start guess)")
         dates = "$J$5:$" + last + "$5"
-        x = lambda k: f"=XIRR({{{k}.all}},{dates})"          # noqa: E731
-        c.row("r_proj", "Project IRR, unlevered", "%", e=x("pcft"), f=x("pcf"), bold=True)
-        c.row("r_hold", "FEP IRR, hold", "%", e=x("hold"), f=x("holdp"), bold=True)
+        x = lambda k: f"=XIRR({{{k}.all}},{dates},{{self.G}})"          # noqa: E731
+        gs = lambda k: f'=MIN(XIRR_Guess,SUMIF({{{k}.all}},">0")/-SUMIF({{{k}.all}},"<0")-1)'  # noqa: E731
+        c.row("r_proj", "Project IRR, unlevered", "%", e=x("pcft"), f=x("pcf"), g=gs("pcft"), bold=True)
+        c.row("r_hold", "FEP IRR, hold", "%", e=x("hold"), f=x("holdp"), g=gs("hold"), bold=True)
         v = lambda k: f"=XNPV(Discount_Rate,{{{k}.all}},{dates})*$E${c.row_of('dfa')}"   # noqa: E731
         c.row("v_hold", "FEP NPV at the discount rate, hold (at acquisition)", "EUR k", e=v("hold"),
               f=v("holdp"))
-        c.row("r_cod", "FEP IRR, sale at COD", "%", e=x("codt"), f=x("codr"), bold=True)
+        c.row("r_cod", "FEP IRR, sale at COD", "%", e=x("codt"), f=x("codr"), g=gs("codt"), bold=True)
         c.row("v_cod", "FEP NPV at the discount rate, COD sale (at acquisition)", "EUR k", e=v("codt"),
               f=v("codr"))
         bxd = f"$J${c.row_of('bxd')}:${last}${c.row_of('bxd')}"
-        c.row("r_bx", "Buyer IRR at RtB at our all-in price", "%", e=f"=XIRR({{bxp.all}},{bxd})",
-              f=f"=XIRR({{bxpp.all}},{bxd})")
+        c.row("r_bx", "Buyer IRR at RtB at our all-in price", "%", e=f"=XIRR({{bxp.all}},{bxd},{{self.G}})",
+              f=f"=XIRR({{bxpp.all}},{bxd},{{self.G}})", g=gs("bxp"))
         cc = f"$E${c.row_of('codcol')}"
         rc, rp = c.row_of("bcp"), c.row_of("bcpp")
-        xc = lambda r: f"=XIRR(INDEX($J${r}:${last}${r},{cc}):${last}${r},INDEX({dates},{cc}):${last}$5)"  # noqa: E731
-        c.row("r_bc", "Buyer IRR at COD at our price", "%", e=xc(rc), f=xc(rp))
-        c.row("r_holdl", "FEP IRR, hold, levered", "%", e=x("holdl"), f=x("holdlp"), bold=True)
-        c.row("r_codl", "FEP IRR, sale at COD, levered", "%", e=x("codtl"), f=x("codrl"))
-        c.row("r_bl", "Buyer IRR at RtB, levered, after tax", "%", e=f"=XIRR({{bxl.all}},{bxd})")
+        xc = lambda r: (f"=XIRR(INDEX($J${r}:${last}${r},{cc}):${last}${r},INDEX({dates},{cc}):${last}$5,"  # noqa
+                        "{self.G})")
+        c.row("r_bc", "Buyer IRR at COD at our price", "%", e=xc(rc), f=xc(rp), g=gs("bcp"))
+        c.row("r_holdl", "FEP IRR, hold, levered", "%", e=x("holdl"), f=x("holdlp"), g=gs("holdl"), bold=True)
+        c.row("r_codl", "FEP IRR, sale at COD, levered", "%", e=x("codtl"), f=x("codrl"), g=gs("codtl"))
+        c.row("r_bl", "Buyer IRR at RtB, levered, after tax", "%", e=f"=XIRR({{bxl.all}},{bxd},{{self.G}})",
+              g=gs("bxl"))
         bcd = f"$J${c.row_of('bcd')}:${last}${c.row_of('bcd')}"
         c.row("r_bcl", "Buyer IRR at COD, levered (n/a: price below debt)", "%",
-              e=f'=IFERROR(XIRR({{bcl.all}},{bcd}),"n/a")')
+              e=f'=IFERROR(XIRR({{bcl.all}},{bcd},{{self.G}}),"n/a")', g="=XIRR_Guess")
 
     blocks = Block(c, 3).build(lambda i: f"Case {i}: annual calculation (EUR k)", rows)
     for i, blk in enumerate(blocks, 1):
@@ -856,7 +861,7 @@ def dashboard(book, d, R):
         d.row(f"a{i}_opex", "Opex", "EUR k", h=tot, t=f"=Calc!{{c}}${b['opex']}")
         d.row(f"a{i}_ebitda", "EBITDA", "EUR k", h=tot, t=f"=Calc!{{c}}${b['ebitda']}")
         d.row(f"a{i}_net", "Net cash flow after tax (project)", "EUR k", h=tot, t=f"=Calc!{{c}}${b['pcft']}", bold=True)
-        d.row(f"a{i}_cum", "Cumulative net cash flow", "EUR k", t=f"=SUM($J{{a{i}_net}}:{{a{i}_net}})")
+        d.row(f"a{i}_cum", "Cumulative net cash flow", "EUR k", t=f"=SUM($J{{a{i}_net.row}}:{{a{i}_net}})")
 
     d.blank()
     d.bar("Detailed calculations – expand the group", e=cl)
@@ -909,7 +914,6 @@ def dashboard(book, d, R):
     a, z = d.row_of("l_spv"), d.row_of("l_fee_last")
     book.define("Dated_Amounts", f"Dashboard!$E${a}:$G${z}")
     book.define("Dated_Dates", f"Dashboard!$J${a}:$J${z}")
-    d.sub("Receipts at the exit and FEP tax (per case)", extra={"J": "Date"})
     d.row("l_rec", "FEP receipts at the exit (JV split total)", "EUR k", cases=f"={{c}}{r('jv_fep')}",
           extra={"J": "=Exit_Date"}, fmts={"J": "date"})
     d.row("l_tax", "FEP tax: CIT on the 12 % return (and gain if taxed)", "EUR k",
@@ -919,8 +923,9 @@ def dashboard(book, d, R):
     d.row("dl_pre", "FEP profit, pre-tax", "EUR k", cases=f"=SUM({{c}}{a}:{{c}}{rec})", bold=True, top=True)
     d.row("dl_post", "FEP profit, post-tax", "EUR k", cases=f"={{dl_pre}}+{{c}}{tx}", bold=True)
     d.row("dl_moic", "MOIC, pre-tax", "x", cases=f'=SUMIF({{c}}{a}:{{c}}{rec},">0")/-SUMIF({{c}}{a}:{{c}}{rec},"<0")')
-    d.row("dl_irr_pre", "IRR, pre-tax", "%", cases=f"=XIRR({{c}}{a}:{{c}}{rec},$J{a}:$J{rec})")
-    d.row("dl_irr", "IRR, post-tax", "%", cases=f"=XIRR({{c}}{a}:{{c}}{tx},$J{a}:$J{tx})", bold=True)
+    g = "MIN(XIRR_Guess,{dl_moic}-1)"                    # start guess: Excel's XIRR returns ~0 when it fails
+    d.row("dl_irr_pre", "IRR, pre-tax", "%", cases=f"=XIRR({{c}}{a}:{{c}}{rec},$J{a}:$J{rec},{g})")
+    d.row("dl_irr", "IRR, post-tax", "%", cases=f"=XIRR({{c}}{a}:{{c}}{tx},$J{a}:$J{tx},{g})", bold=True)
     d.row("dl_npv", "NPV at the discount rate, post-tax (at acquisition)", "EUR k",
           cases=f"=XNPV(Discount_Rate,{{c}}{a}:{{c}}{tx},$J{a}:$J{tx})")
     d.sub("Totals and claims due (per case)")

@@ -14,7 +14,7 @@ placeholder (Bana wind terms or a default). "Rec." = Fable's recommendation wher
 | 2 | Ready to build = model date | 31-Dec-2026 | date | Teaser p6 "RTB Dec-2026"; user 04-Nov-2026 (v2.1) | U | spend before it is "spent to date": dated in the RtB block, one grid column "to 2026" |
 | 3 | RtB sale closing (exit) | 31-Mar-2027 | date | placeholder (teaser transaction timeline shows "Closing Aug-26", inconsistent with RTB Dec-26) | P | confirm; drives the 12 % accrual and the FEP IRR |
 | 4 | NTP; construction capex | 01-Jan-2027; all construction capex in 2027 (`Capex_Year`) | date | user 04-Nov-2026: "costs will arrive in 2027" | U | the NTP→COD spread is gone; E48/E49 at NTP (Jan-2027) |
-| 5 | COD, PV and BESS together | 01-Mar-2028 (production from March: 10/12 of 2028); PPA Mar-2028 → Feb-2033 | date | user 04-Nov-2026: "production starts 2028 march" | U | Low: COD +12 months (Mar-2029), capex still in 2027 |
+| 5 | COD, PV and BESS together | 01-Mar-2028 (production from March: 10/12 of 2028); PPA Mar-2028 → Feb-2036 (8 years, v2.2) | date | user 04-Nov-2026: "production starts 2028 march" | U | Low: COD +12 months (Mar-2029), capex still in 2027 |
 | 6 | Operating life | 35 | years | v3 Control D30 | v3 | long for PV (30 typical); BESS retires/repowers 2048 anyway |
 | 7 | Pre-RtB development cost window | Oct-2026 → Mar-2027 | dates | v3 Control D116:D117 | v3 | ok |
 | 8 | v3 case dates (column E only) | acq 30-Nov-25, RtB 31-Jul-26, exit 31-Oct-26, NTP 31-Mar-27, COD 31-Mar-28 | | v3 Control D19:D31 | v3 | reconciliation only |
@@ -65,6 +65,7 @@ placeholder (Bana wind terms or a default). "Rec." = Fable's recommendation wher
 ### 1.5 Offers (detail in §2)
 | # | Assumption | Value | Source | Status | Rec. |
 |---|---|---|---|---|---|
+| 40a | PV PPA in the model (all three cases) | **80 €/MWh nominal flat, 8 years from COD (Mar-2028 → Feb-2036), then Aurora merchant**; pay-as-produced on all PV output, no balancing in the PPA years | Dashboard levers PPA price / tenor | U | user instruction 05-Nov-2026; replaces 45 €/MWh × 5 y (MVM). Above every offer received (43.96–45 fixed) – needs a counterparty |
 | 40 | Case C pairing today | MET fixed 43.96 (3 y) + MET tolling 49.7 on a **4 h** battery | Inputs F67:F68 | P | replace by one column per offeror, 2 h for E.ON/MET (SPEC_v2 §2.3) |
 | 41 | Offer start / tenor | E.ON: COD + 3 y; MET: 01-Jan-2028, 3 y (4 y option not selectable); MVM: 01-Jan-2028, 5 y | Curves rows 155–156, 168–169 | O | add the 4 y lever |
 | 42 | Balancing cost under an offer | 5 €/MWh still charged | Calc opex_bal | bug | **double count** – the fees include balancing; charge it only outside the tenor |

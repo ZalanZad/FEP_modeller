@@ -28,7 +28,7 @@ BLOCK = {2: "2027 solar DC 1.0cy 2h", 4: "2027 solar DC 1.0cy 4h"}
 
 
 def params(**over):
-    p = dict(mwp=63, mva=49.9, yld=1265, ppa_price=45, ppa_index=0.0, ppa_years=5, basis="Merchant", rtb_price=90,
+    p = dict(mwp=63, mva=49.9, yld=1265, ppa_price=80, ppa_index=0.0, ppa_years=8, basis="Merchant", rtb_price=90,
              cod_price=0, acq=D(2025, 11, 30), rtb=D(2026, 12, 31), exit=D(2027, 3, 31), ntp=D(2027, 1, 1),
              cod=D(2028, 3, 1), life=35, capex_year=2027, gearing=0.6, debt_rate=0.05, tenor=20, draw_timing=0.5, avail=0.995, deg=0.003, clip=None, goo=1.75, pv_only_hours=2, rte=0.86,
              haircut=0.0, afrr=0.0, bess_capex=110, repower=1, opex_mw=18.70, opex_mwh=6.07, balancing=5.0, toll_start=D(2028, 1, 1),
@@ -89,6 +89,34 @@ def xirr(flows, dates, lo=-0.99, hi=10.0):
         if hi - lo < 1e-15:
             break
     return (lo + hi) / 2
+
+
+def xirr_excel(flows, dates, guess=0.1, it=100):
+    """Excel's XIRR: Newton from `guess`, 100 iterations, 1e-8 accuracy; None when it does not converge (Excel then
+    returns ~0 – 2.98e-09 – instead of an error, which is why the workbook passes a start guess)."""
+    t0, r = dates[0], guess
+    for _ in range(it):
+        if r <= -1:
+            return None
+        ts = [(t - t0).days / 365.0 for t in dates]
+        try:
+            f = sum(c / (1 + r) ** x for c, x in zip(flows, ts))
+            d = sum(-x * c / (1 + r) ** (x + 1) for c, x in zip(flows, ts))
+        except (OverflowError, ZeroDivisionError):
+            return None
+        if d == 0:
+            return None
+        nr = r - f / d
+        if abs(nr - r) < 1e-8:
+            return nr
+        r = nr
+    return None
+
+
+def guess(flows, cap=0.1):
+    """The workbook's start guess: MIN(10 %, MOIC − 1)."""
+    pos, neg = sum(x for x in flows if x > 0), -sum(x for x in flows if x < 0)
+    return min(cap, pos / neg - 1) if neg else cap
 
 
 def aurora():
@@ -391,6 +419,11 @@ def run(case="PV + 4h BESS", sens="Base", **over):
         cod_moic_l=sum(x for x in codrl if x > 0) / -sum(x for x in codrl if x < 0),
         psh_cod_l=cl_pl + (p["dsa"] - p["psh_devex"]) * mwp - p["psh_land"],
         buyer_rtb_l=xirr(bxl, bxd), buyer_cod_l=xirr(bcl[codcol:], YE[codcol:]),
+        irr_flows={"proj": (pcft, YE), "proj_pre": (pcf, YE), "hold": (hold, YE), "hold_pre": (holdp, YE),
+                   "cod": (codt, YE), "cod_pre": (codr, YE), "hold_l": (holdl, YE), "hold_lp": (holdlp, YE),
+                   "cod_l": (codtl, YE), "cod_lp": (codrl, YE), "buyer_rtb": (bxp, bxd), "buyer_rtb_l": (bxl, bxd),
+                   "buyer_cod": (bcp[codcol:], YE[codcol:]), "rtb_pre": (dl, dd),
+                   "rtb": (dl + [rtb_tax], dd + [p["exit"]])},
         rows=R, pcft=pcft, hold=hold)
 
 

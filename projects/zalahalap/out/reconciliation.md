@@ -10,7 +10,7 @@ Three independent calculations: the v3 shadow `data/old_engine/old_zhlp.py`, the
 
 ## 2. Bridge: v3 → PV + 4 h column, Base, merchant BESS basis
 
-Rows 1–2 are values; each further row switches one change on (cumulative) and shows its effect. Rows 2–10 run on the v1 quarterly shadow (unlevered: gearing 0 throughout), rows 11–14 on the frozen v2.0 annual shadow (`data/shadow_v20.py`), rows 15–16 on the v2.1 shadow; the hold IRR is levered from row 16 on; the last row is the workbook's PV + 4 h column (Base). The implied premium is shown before the 0 floor; the workbook floors it at 0.
+Rows 1–2 are values; each further row switches one change on (cumulative) and shows its effect. Rows 2–10 run on the v1 quarterly shadow (unlevered: gearing 0 throughout), rows 11–14 on the frozen v2.0 annual shadow (`data/shadow_v20.py`), rows 15–17 on the v2.1 shadow; the hold IRR is levered in row 17 and the last row; the last row is the workbook's PV + 4 h column (Base). The implied premium is shown before the 0 floor; the workbook floors it at 0.
 
 | Step | SPEC | FEP hold IRR | Project IRR | RtB profit (k€) | RtB XIRR | Implied RtB premium before the 0 floor (k€/MWp) |
 |---|---|---:|---:|---:|---:|---:|
@@ -29,8 +29,9 @@ Rows 1–2 are values; each further row switches one change on (cumulative) and 
 | + HIPA 2 % and innovation contribution 0.3 % on revenue | v2 §3.2 | -0.49 pp | -0.50 pp | +0.0 | +0.00 pp | -39.3 |
 | + PPA 5 years at 45 €/MWh on all PV output = v2.0 base (fe5a4fe) | v2 §5.2 | -0.29 pp | -0.30 pp | +0.0 | +0.00 pp | -27.4 |
 | + Timeline rebase: spend to 31-Dec-26 in one column, all capex in 2027, COD 01-Mar-28 (unlevered) | v2.1 §12.1 | -0.06 pp | -0.06 pp | +0.0 | +0.00 pp | -14.0 |
-| + Levered case: 60 % gearing, 5 %, 20-year annuity (hold IRR levered; base) | v2.1 §12.2 | +0.60 pp | +0.00 pp | +0.0 | +0.00 pp | +0.0 |
-| **PV + 4 h, Base: the workbook (implied premium floored at 0)** | | 6.29 % | 5.91 % | 2,365.0 | 55.63 % | 0.0 |
+| + PPA 80 €/MWh for 8 years from COD, then merchant (user 05-Nov-2026; unlevered) | v2.2 | +2.36 pp | +2.44 pp | +0.0 | +0.00 pp | +204.2 |
+| + Levered case: 60 % gearing, 5 %, 20-year annuity (hold IRR levered; base) | v2.1 §12.2 | +3.26 pp | +0.00 pp | +0.0 | +0.00 pp | +0.0 |
+| **PV + 4 h, Base: the workbook (implied premium floored at 0)** | | 11.31 % | 8.35 % | 2,365.0 | 55.63 % | 54.1 |
 
 Notes on the steps:
 
@@ -41,6 +42,7 @@ Notes on the steps:
 - BESS opex step (fix round M2): v3's 30.8 k€/MW is Aurora's 2 h figure (Control!D96 note). Aurora's own table (Inputs rows 37–39, 2028 entry) gives 2 h 30.83 and 4 h 42.96 €/kW, i.e. 18.70 k€/MW + 6.07 k€/MWh; the 4 h battery now carries 42.96 instead of 30.8.
 - Timeline rebase (v2.1 §12.1): spend to 31-Dec-2026 in one column at its year end, all construction capex in 2027 (was spread NTP 30-Jun-27 → COD 31-Mar-28), COD 01-Mar-2028 (10 months of production in 2028), tolling from the later of 01-Jan-28 and COD.
 - Levered row: 60 % of the capex to COD drawn in 2027, IDC on mid-year draws capitalised, 20 level annuities from 31-Dec-2028, interest deductible; the hold IRR is the levered FEP IRR.
+- PPA 80/8 step (v2.2): 80 €/MWh nominal flat on all PV output from COD (Mar-2028) to Feb-2036, then Aurora merchant; no balancing in the PPA years.
 - PPA step: 45 €/MWh nominal on all PV output for 5 years (Aurora's direct price is 98–108 €/MWh nominal in 2028–29 for the 4 h block), no balancing in those years.
 
 ## 3. The v2 shadow ties to the workbook
@@ -49,24 +51,24 @@ Workbook recalculated in LibreOffice with `Dash_Case` = Base, Low, High; every D
 
 | Sensitivity | Master check | Results compared | Largest absolute difference | Largest relative difference |
 |---|---:|---:|---:|---:|
-| Base | 0 | 174 | 5.82e-11 | 7.51e-15 |
-| Low | 0 | 171 | 5.09e-11 | 3.32e-13 |
-| High | 0 | 174 | 5.82e-11 | 1.06e-14 |
+| Base | 0 | 174 | 2.91e-11 | 5.01e-14 |
+| Low | 0 | 174 | 5.82e-11 | 4.44e-14 |
+| High | 0 | 174 | 5.82e-11 | 4.34e-15 |
 
 Base results (workbook):
 
 | Result | PV only | PV + 2h BESS | PV + 4h BESS |
 |---|---:|---:|---:|
 | PV generation (GWh) | 77.7 | 79.3 | 79.3 |
-| Revenue | 3,644.3 | 7,282.0 | 9,729.2 |
-| EBITDA | 2,094.6 | 3,978.6 | 5,712.2 |
-| Revenue | 198,957.5 | 310,275.7 | 401,771.5 |
-| EBITDA | 104,799.1 | 131,038.5 | 188,087.2 |
-| Lifetime corporate income tax, hold route (SPV) | 5,837.1 | 5,646.0 | 8,227.7 |
+| Revenue | 6,364.1 | 10,057.4 | 12,504.6 |
+| EBITDA | 4,751.9 | 6,690.2 | 8,423.7 |
+| Revenue | 215,646.2 | 329,556.8 | 421,853.9 |
+| EBITDA | 122,481.7 | 151,281.9 | 209,113.5 |
+| Lifetime corporate income tax, hold route (SPV) | 7,428.6 | 7,467.9 | 10,120.1 |
 | Total uses to COD (= equity, unlevered) | 36,595.0 | 47,595.0 | 58,595.0 |
-| Sale at RtB: Implied premium at the buyer target IRR (floored at 0) | 0.0 | 0.0 | 0.0 |
-| Sale at RtB: Buyer IRR at our price, unlevered after tax | 4.57 % | 4.27 % | 5.34 % |
-| Sale at RtB: Buyer IRR at our price, unlevered before tax | 4.94 % | 4.65 % | 5.79 % |
+| Sale at RtB: Implied premium at the buyer target IRR (floored at 0) | 16.8 | 2.1 | 54.1 |
+| Sale at RtB: Buyer IRR at our price, unlevered after tax | 6.86 % | 6.71 % | 7.56 % |
+| Sale at RtB: Buyer IRR at our price, unlevered before tax | 7.49 % | 7.39 % | 8.27 % |
 | Sale at RtB: FEP profit, pre-tax | 2,392.6 | 2,392.6 | 2,392.6 |
 | Sale at RtB: FEP profit, post-tax | 2,365.0 | 2,365.0 | 2,365.0 |
 | Sale at RtB: MOIC, pre-tax | 1.320x | 1.320x | 1.320x |
@@ -74,47 +76,47 @@ Base results (workbook):
 | Sale at RtB: IRR, post-tax | 55.63 % | 55.63 % | 55.63 % |
 | Sale at RtB: NPV at the discount rate, post-tax (at acquisition) | 1,835.1 | 1,835.1 | 1,835.1 |
 | Sale at RtB: PSH profit | 1,397.6 | 1,397.6 | 1,397.6 |
-| Sale at COD: Implied COD price at the buyer target IRR (floored at 0) | 517.8 | 665.6 | 906.6 |
-| Sale at COD: Enterprise value used | 32,621.7 | 41,931.9 | 57,117.9 |
+| Sale at COD: Implied COD price at the buyer target IRR (floored at 0) | 720.5 | 892.3 | 1,140.4 |
+| Sale at COD: Enterprise value used | 45,394.0 | 56,215.8 | 71,845.4 |
 | Sale at COD: Buyer IRR at our price, unlevered after tax | 8.00 % | 8.00 % | 8.00 % |
-| Sale at COD: Buyer IRR at our price, unlevered before tax | 8.48 % | 8.55 % | 8.60 % |
+| Sale at COD: Buyer IRR at our price, unlevered before tax | 8.79 % | 8.87 % | 8.85 % |
 | Sale at COD: FEP contributions to COD | 42,318.8 | 53,318.8 | 64,318.8 |
-| Sale at COD: FEP proceeds at COD | 32,621.7 | 41,931.9 | 57,117.9 |
-| Sale at COD: FEP profit, pre-tax | -9,697.0 | -11,386.9 | -7,200.8 |
-| Sale at COD: FEP profit, post-tax | -9,697.0 | -11,386.9 | -7,200.8 |
-| Sale at COD: MOIC, pre-tax | 0.774x | 0.789x | 0.889x |
-| Sale at COD: IRR, pre-tax | -20.80 % | -19.73 % | -10.41 % |
-| Sale at COD: IRR, post-tax | -20.80 % | -19.73 % | -10.41 % |
-| Sale at COD: NPV at the discount rate, post-tax (at acquisition) | -10,672.9 | -12,701.2 | -10,096.3 |
-| Sale at COD: PSH profit | -150.0 | -150.0 | -150.0 |
+| Sale at COD: FEP proceeds at COD | 44,400.7 | 55,293.8 | 69,071.5 |
+| Sale at COD: FEP profit, pre-tax | 2,081.9 | 1,975.0 | 4,752.8 |
+| Sale at COD: FEP profit, post-tax | 2,028.7 | 1,921.7 | 4,699.5 |
+| Sale at COD: MOIC, pre-tax | 1.049x | 1.037x | 1.073x |
+| Sale at COD: IRR, pre-tax | 4.35 % | 3.36 % | 6.79 % |
+| Sale at COD: IRR, post-tax | 4.24 % | 3.27 % | 6.71 % |
+| Sale at COD: NPV at the discount rate, post-tax (at acquisition) | -1,427.2 | -2,207.4 | -713.0 |
+| Sale at COD: PSH profit | 843.3 | 772.0 | 2,623.9 |
 | Hold: FEP equity invested (incl. the 2048 repower) | 44,401.9 | 68,577.2 | 96,614.6 |
-| Hold: FEP distributions | 99,497.5 | 121,740.3 | 175,881.6 |
-| Hold: FEP profit, pre-tax | 60,932.8 | 58,809.1 | 87,494.8 |
-| Hold: FEP profit, post-tax | 55,095.6 | 53,163.1 | 79,267.0 |
-| Hold: IRR, after tax | 4.97 % | 4.64 % | 5.69 % |
-| Hold: IRR, before tax | 5.34 % | 5.03 % | 6.14 % |
-| Hold: NPV at the discount rate, after tax (at acquisition) | -11,991.1 | -14,019.3 | -11,414.5 |
-| Hold: Memo: project IRR, unlevered after tax (no buy-out) | 5.22 % | 4.88 % | 5.91 % |
-| Hold: Memo: project IRR, unlevered before tax | 5.60 % | 5.28 % | 6.37 % |
+| Hold: FEP distributions | 115,588.6 | 140,161.7 | 195,015.5 |
+| Hold: FEP profit, pre-tax | 78,615.3 | 79,052.5 | 108,521.1 |
+| Hold: FEP profit, post-tax | 71,186.7 | 71,584.6 | 98,401.0 |
+| Hold: IRR, after tax | 7.44 % | 7.25 % | 8.04 % |
+| Hold: IRR, before tax | 8.11 % | 7.96 % | 8.78 % |
+| Hold: NPV at the discount rate, after tax (at acquisition) | -1,920.2 | -2,756.6 | 198.0 |
+| Hold: Memo: project IRR, unlevered after tax (no buy-out) | 7.82 % | 7.60 % | 8.35 % |
+| Hold: Memo: project IRR, unlevered before tax | 8.50 % | 8.32 % | 9.10 % |
 | Debt drawn in the capex year (gearing × total uses) | 21,957.0 | 28,557.0 | 35,157.0 |
 | Interest during construction, capitalised | 548.9 | 713.9 | 878.9 |
 | Debt at COD | 22,505.9 | 29,270.9 | 36,035.9 |
 | Annual debt service (level annuity) | 1,805.9 | 2,348.8 | 2,891.6 |
-| Minimum DSCR (information) | 1.0 | 1.4 | 1.6 |
-| Average DSCR (information) | 1.5 | 1.5 | 1.7 |
-| Lifetime corporate income tax, levered | 4,772.6 | 4,062.3 | 6,266.0 |
-| Sale at RtB: Buyer IRR at our price, levered after tax (raises debt) | 4.43 % | 3.97 % | 5.66 % |
-| Sale at COD: Buyer IRR at our price, levered after tax (takes debt) | 10.31 % | 12.22 % | 11.56 % |
-| Sale at COD: Levered: FEP profit, post-tax (debt repaid from price) | -10,246.0 | -12,100.8 | -8,079.8 |
-| Sale at COD: Levered: MOIC, pre-tax | 0.510x | 0.522x | 0.728x |
-| Sale at COD: Levered: IRR, pre-tax | -43.50 % | -43.26 % | -24.28 % |
-| Sale at COD: Levered: IRR, post-tax | -43.50 % | -43.26 % | -24.28 % |
-| Sale at COD: Levered: PSH profit | -150.0 | -150.0 | -150.0 |
+| Minimum DSCR (information) | 1.6 | 1.4 | 1.6 |
+| Average DSCR (information) | 2.0 | 1.9 | 2.1 |
+| Lifetime corporate income tax, levered | 6,203.4 | 5,874.5 | 8,158.4 |
+| Sale at RtB: Buyer IRR at our price, levered after tax (raises debt) | 8.03 % | 8.24 % | 10.02 % |
+| Sale at COD: Buyer IRR at our price, levered after tax (takes debt) | 9.96 % | 11.02 % | 10.77 % |
+| Sale at COD: Levered: FEP profit, post-tax (debt repaid from price) | 1,699.3 | 1,493.4 | 4,172.1 |
+| Sale at COD: Levered: MOIC, pre-tax | 1.084x | 1.061x | 1.142x |
+| Sale at COD: Levered: IRR, pre-tax | 6.76 % | 5.11 % | 12.08 % |
+| Sale at COD: Levered: IRR, post-tax | 6.56 % | 4.94 % | 11.93 % |
+| Sale at COD: Levered: PSH profit | 623.7 | 486.4 | 2,272.3 |
 | Hold: Levered: FEP equity invested (uses less debt) | 22,444.9 | 40,020.2 | 61,457.6 |
-| Hold: Levered: FEP profit, post-tax | 41,998.5 | 36,328.4 | 58,553.4 |
-| Hold: Levered: IRR, after tax | 4.99 % | 4.52 % | 6.29 % |
-| Hold: Levered: IRR, before tax | 5.36 % | 4.88 % | 6.74 % |
-| Hold: Levered: MOIC, after tax | 2.871x | 1.908x | 1.953x |
+| Hold: Levered: FEP profit, post-tax | 58,250.2 | 54,759.5 | 77,687.3 |
+| Hold: Levered: IRR, after tax | 9.15 % | 9.49 % | 11.31 % |
+| Hold: Levered: IRR, before tax | 9.98 % | 10.48 % | 12.37 % |
+| Hold: Levered: MOIC, after tax | 3.595x | 2.368x | 2.264x |
 
 ## 4. Each §13 change inside the v3 structure (v3 shadow, cumulative; appendix)
 

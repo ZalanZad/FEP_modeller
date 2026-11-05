@@ -312,6 +312,12 @@ Report: sheet/row counts; the Base results per case and strategy; the Low/High s
     (small). The levered buyer IRR at COD is n/a when the price is below the debt at COD (Low: all cases). The COD
     sale is shown unlevered and levered (FEP repays the debt from the price before the split). Open: a term sheet
     (DSCR sizing, fees, DSRA); PV only has a minimum DSCR below 1 in Base.
+15. **v2.2 (user 05-Nov-2026).** PPA 80 €/MWh nominal for 8 years from COD in all cases, then merchant (lever
+    defaults; the offers on Revenue stay as reference – no offer above 45 €/MWh has been received). Excel fixes: the
+    dated RtB flows form one contiguous range (no sub-header text inside XIRR/XNPV), the cumulative rows read
+    `$J<row>`, and every XIRR carries a start guess MIN(10 %, MOIC − 1) because Excel's XIRR returns ~0 (2.98E-09)
+    instead of an error when Newton fails from 10 % (the COD routes in v2.1). Lint: `x-text` (text inside
+    XIRR/XNPV/IRR/NPV/SUMPRODUCT ranges), `e-column` (references beyond a sheet's last column), `e-whole`, `e-xlfn`.
 
 ## 12. v2.1 – timeline rebase and the levered case (user, 04-Nov-2026)
 User, verbatim: "now it is the end of 2026 so make the model based on that the costs will arrive in 2027 and

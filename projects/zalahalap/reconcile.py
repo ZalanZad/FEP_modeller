@@ -454,7 +454,8 @@ V2_STEPS = [  # label, SPEC reference, shadow overrides (v2.0 shadow; the v2.1 s
 ]
 V21_STEPS = [  # label, SPEC reference, shadow.py overrides (v2.1)
     ("Timeline rebase: spend to 31-Dec-26 in one column, all capex in 2027, COD 01-Mar-28 (unlevered)", "v2.1 §12.1",
-     dict(gearing=0)),
+     dict(gearing=0, ppa_price=45, ppa_years=5)),
+    ("PPA 80 €/MWh for 8 years from COD, then merchant (user 05-Nov-2026; unlevered)", "v2.2", dict(gearing=0)),
     ("Levered case: 60 % gearing, 5 %, 20-year annuity (hold IRR levered; base)", "v2.1 §12.2", {}),
 ]
 BRIDGE = [("hold_irr", "FEP hold IRR", "%"), ("proj_irr", "Project IRR", "%"), ("rtb_profit", "RtB profit (k€)", "k"),
@@ -595,8 +596,8 @@ def report(tie):
          "(HTM targets from the copy with Aurora_Curve!C8 = 0, SPEC v1 §3.2).", "",
          "## 2. Bridge: v3 → PV + 4 h column, Base, merchant BESS basis", "",
          "Rows 1–2 are values; each further row switches one change on (cumulative) and shows its effect. Rows 2–10 run on the v1 quarterly shadow (unlevered: gearing 0 "
-         "throughout), rows 11–14 on the frozen v2.0 annual shadow (`data/shadow_v20.py`), rows 15–16 on the v2.1 shadow; "
-         "the hold IRR is levered from row 16 on; the last row is the workbook's PV + 4 h column (Base). The "
+         "throughout), rows 11–14 on the frozen v2.0 annual shadow (`data/shadow_v20.py`), rows 15–17 on the v2.1 shadow; "
+         "the hold IRR is levered in row 17 and the last row; the last row is the workbook's PV + 4 h column (Base). The "
          "implied premium is shown before the 0 floor; the workbook floors it at 0.", "",
          "| Step | SPEC | " + " | ".join(lbl for _, lbl, _ in BRIDGE) + " |", "|---|---|" + "---:|" * len(BRIDGE)]
     prev = None
@@ -629,6 +630,8 @@ def report(tie):
           "tolling from the later of 01-Jan-28 and COD.",
           "- Levered row: 60 % of the capex to COD drawn in 2027, IDC on mid-year draws capitalised, 20 level "
           "annuities from 31-Dec-2028, interest deductible; the hold IRR is the levered FEP IRR.",
+          "- PPA 80/8 step (v2.2): 80 €/MWh nominal flat on all PV output from COD (Mar-2028) to Feb-2036, then "
+          "Aurora merchant; no balancing in the PPA years.",
           "- PPA step: 45 €/MWh nominal on all PV output for 5 years (Aurora's direct price is 98–108 €/MWh nominal in "
           "2028–29 for the 4 h block), no balancing in those years.", "",
           "## 3. The v2 shadow ties to the workbook", "",
