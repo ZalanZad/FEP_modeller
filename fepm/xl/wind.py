@@ -23,6 +23,7 @@ Templates (`=` formulas with tokens), rendered once per cell:
     {key.all}      the row's timeline                               $J15:$AW15
     {key.prev}     previous column                                  I15
     {key.cases}    the row's case columns                           $E15:$G15
+    {key.row}      the row number                                   15  (e.g. "=SUM($J{net.row}:{net})")
     {year} {yend}  the timeline header (row 4 year, row 5 year end) J$4, J$5 ({year.all} = $J$4:$AW$4)
     {c} {p}        the current / previous column letter             J, I (cross-sheet "Revenue!{c}$23"; a row below
                    for a corkscrew opening "{p}42")
@@ -52,7 +53,7 @@ CASES = (5, 6, 7)                        # E, F, G
 H = 8
 YEAR_ROW, YEND_ROW = 4, 5
 WIDTHS = {"A": 2, "B": 3, "C": 56, "D": 10, "E": 13, "F": 13, "G": 13, "H": 15, "I": 2}
-_TOK = re.compile(r"\{(\w+)(?:\.(E|F|G|H|all|prev|cases))?\}")
+_TOK = re.compile(r"\{(\w+)(?:\.(E|F|G|H|all|prev|cases|row))?\}")
 _LINK = re.compile(r"^=(?:[A-Za-z_][\w.]*|'?[\w ]+'?!\$?[A-Z]{1,3}\$?\d+)$")
 UNIT_FMT = {"EUR k": "money", "EUR m": "money1", "%": "pct", "x": "mult", "date": "date", "flag": "flag",
             "MW": "money1", "MWp": "money1", "MVA": "money1", "MWh": "money", "GWh": "money1", "EUR/MWh": "money1",
@@ -189,6 +190,8 @@ class Sheet:
                 return f"$J{r}:${last}{r}"
             if mod == "cases":
                 return f"$E{r}:$G{r}"
+            if mod == "row":
+                return str(r)
             if mod == "prev":
                 return f"{L(col - 1)}{r}"
             return f"{L(col)}{r}"

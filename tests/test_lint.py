@@ -110,3 +110,24 @@ def test_g_note(tiny):
     f = _plant(path, lambda wb: wb["Inputs"].cell(20, 4, "This input is the price we think the market will pay "
                                                           "in the base case, see the memo"))
     assert [(x.rule, x.where) for x in f] == [("g-note", "Inputs!D20")]
+
+
+def test_e_column_reference_beyond_the_last_column(tiny):
+    path, m = tiny
+    r = m.calc.rows["vol"].r
+    f = _plant(path, lambda wb: wb["Summary"].cell(30, 3, f"=SUM(Calc!$JJ{r}:J{r})"))   # a rendered "$J" + "J15"
+    assert ("e-column", "Summary!C30") in {(x.rule, x.where) for x in f}
+
+
+def test_x_text_in_a_cash_flow_range(tmp_path):
+    import datetime as dt
+    from fepm.audit.lint import lint_values
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    for i, (v, d) in enumerate([(-100, dt.date(2026, 1, 1)), ("Receipts", "Date"), (120, dt.date(2027, 1, 1))], 1):
+        ws.cell(i, 1, v)
+        ws.cell(i, 2, d)
+    ws["C1"] = "=XIRR(A1:A3,B1:B3)"
+    path = tmp_path / "x.xlsx"
+    wb.save(path)
+    assert ("x-text", "Sheet!C1") in {(x.rule, x.where) for x in lint_values(path)}

@@ -115,6 +115,38 @@ def _name_targets(wb):
     return out
 
 
+_RANGE = re.compile(r"^(?:'?([^'!]+)'?!)?(\$?[A-Z]{1,3}\$?\d+)(?::(\$?[A-Z]{1,3}\$?\d+))?$")
+_WHOLE = re.compile(r"^(?:'?[^'!]+'?!)?(\$?[A-Z]{1,3}:\$?[A-Z]{1,3}|\$?\d+:\$?\d+)$")
+CASHFLOW_FUNCS = {"XIRR", "XNPV", "IRR", "NPV", "SUMPRODUCT"}   # Excel: #VALUE! on text in these ranges
+STRICT = {"XIRR", "XNPV", "IRR", "NPV"}                            # SUMPRODUCT: text allowed inside a comparison
+COMPARE = {"=", "<>", "<", ">", "<=", ">="}
+
+
+def _columns(wb, ws, formula, where) -> list[Finding]:
+    """e-column: a reference beyond the target sheet's last used column (e.g. a rendered `$JJ188`);
+    e-whole: whole-column or whole-row references; e-xlfn: `_xlfn.` functions (newer than the Excel baseline)."""
+    out = []
+    if "_xlfn." in formula:
+        out.append(Finding("e-xlfn", where, f"_xlfn function in {formula}"))
+    for op in _operands(formula):
+        if _WHOLE.match(op):
+            out.append(Finding("e-whole", where, f"whole-column or whole-row reference {op}"))
+            continue
+        m = _RANGE.match(op)
+        if not m:
+            continue
+        sheet = m.group(1) or ws.title
+        if sheet not in wb.sheetnames:
+            continue
+        last = wb[sheet].max_column
+        for a in (m.group(2), m.group(3)):
+            if a and col_idx(re.sub(r"[\d$]", "", a)) > last:
+                out.append(Finding("e-column", where, f"{op} goes beyond {sheet}'s last column "
+                                                      f"{openpyxl.utils.get_column_letter(last)}"))
+                break
+    return out
+
+
 def lint(path) -> list[Finding]:
     wb = openpyxl.load_workbook(path)
     f: list[Finding] = []
@@ -158,6 +190,7 @@ def lint(path) -> list[Finding]:
                     if t.type == Token.OPERAND and t.subtype == Token.RANGE and "[" in t.value:
                         f.append(Finding("e-external", where, f"external reference {t.value}"))
                 f += _long(where, v, toks)
+                f += _columns(wb, ws, v, where)
                 f += _chain(wb, ws, cell, v, toks, names)
                 if ws.title != "Inputs":
                     for op in _operands(v):
@@ -340,6 +373,7 @@ def lint_values(recalculated) -> list[Finding]:
                 if m and not wb[ws.title][m.group(1).replace("$", "")].value:
                     f.append(Finding("x-xirr0", f"{ws.title}!{cell.coordinate}",
                                      f"XIRR range starts at {m.group(1)} = 0: Excel returns ~0 (start at the first flow)"))
+    f += _cashflow_ranges(forms, wb)
     if "Master_Check" not in wb.defined_names:
         f.append(Finding("f-master", "workbook", "no Master_Check name"))
     else:
@@ -348,6 +382,48 @@ def lint_values(recalculated) -> list[Finding]:
         if v != 0:
             f.append(Finding("f-master", f"{sheet}!{ref}", f"Master_Check = {v}"))
     return f
+
+
+def _cashflow_ranges(forms, values) -> list[Finding]:
+    """x-text: every range inside XIRR / XNPV / IRR / NPV / SUMPRODUCT holds numbers or blanks once recalculated. Excel
+    returns #VALUE! for a text cell there (LibreOffice skips it)."""
+    out = []
+    names = _name_targets(forms)
+    for ws in forms.worksheets:
+        for row in ws.iter_rows():
+            for cell in row:
+                v = cell.value
+                if not (isinstance(v, str) and v.startswith("=") and any(fn + "(" in v.upper() for fn in CASHFLOW_FUNCS)):
+                    continue
+                stack, bad = [], set()
+                toks = [t for t in Tokenizer(v).items if t.type != Token.WSPACE]
+                for k, t in enumerate(toks):
+                    if t.type == Token.FUNC and t.subtype == Token.OPEN:
+                        stack.append(t.value[:-1].upper())
+                    elif t.type == Token.FUNC and t.subtype == Token.CLOSE:
+                        stack.pop()
+                    elif t.type == Token.OPERAND and t.subtype == Token.RANGE and CASHFLOW_FUNCS & set(stack):
+                        near = {x.value for x in toks[max(0, k - 1):k + 2] if x.type == Token.OP_IN}
+                        if not (STRICT & set(stack)) and near & COMPARE:
+                            continue                     # SUMPRODUCT((names=name)*…): a text comparison is fine
+                        op = t.value
+                        if op in names:
+                            sheet, op = names[op]
+                            op = f"{sheet}!{op}"
+                        m = _RANGE.match(op)
+                        if not m:
+                            continue
+                        sh = values[m.group(1) or ws.title]
+                        rng = m.group(2).replace("$", "") + (":" + m.group(3).replace("$", "") if m.group(3) else "")
+                        cells = sh[rng] if ":" in rng else ((sh[rng],),)
+                        for rr in cells:
+                            for c in rr:
+                                if isinstance(c.value, str):
+                                    bad.add(f"{sh.title}!{c.coordinate}")
+                if bad:
+                    out.append(Finding("x-text", f"{ws.title}!{cell.coordinate}",
+                                       f"text in a cash-flow range ({', '.join(sorted(bad)[:3])}): Excel returns #VALUE!"))
+    return out
 
 
 def report(findings: list[Finding], limit=50) -> str:
