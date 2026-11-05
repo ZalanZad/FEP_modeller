@@ -364,3 +364,49 @@ production strats 2028 march" and "also make a levered case with 60% gearing 5% 
 3. Audit as §8/§10.5 plus: gearing 0 reproduces the unlevered figures exactly; the Base/Low/High and lever flips.
 4. reconcile.py / shadow.py: add the debt rows to the shadow; refresh out/reconciliation.md (timeline step).
 5. ASSUMPTIONS.md: dates and financing rows updated; SPEC §11 open items. Commit and push.
+
+## 13. v2.4 – commercial structures (user, 06-Nov-2026)
+User's edited file (`Zalahalap_Model_3.xlsx`, diffed cell by cell): one new Dashboard lever "BESS value counted
+(1 = yes; 0 = PPA uplift only, no charging, no BESS revenue)" set to 0 in all cases, PPA prices 55 / 80 / 85 €/MWh
+(PV only / 2 h / 4 h), the merchant-tail PV block = the PV-only proxy when the BESS is not valued; BESS capex and opex
+stay. User's words for the second structure: "give the pv a fixed €/MWh revenue for 8 years for example 45 eur and for
+the bess make fix 1 cycle with 70 eur/mwh for the 2h solution and 55 eur/mwh for the 4 hour one and make 1 cycle/day
+above that take the aurora central and make a 70-30 profit share to us 70".
+
+### 13.1 Design: a "Revenue structure" selector per case (same mechanism as Base/Low/High)
+- Dashboard lever row "Revenue structure" per case, list: `PPA uplift` | `Fixed + share` | `Merchant`.
+  Default **Fixed + share** (the latest instruction); the user's PPA-uplift values are one cell away.
+- `Revenue` gets a small blue table "Commercial structures" (columns = the three structures, rows = the levers
+  per case): PPA price PV only / 2 h / 4 h; PPA tenor; BESS basis; BESS fixed price 2 h / 4 h; fixed cycles per day;
+  our share above the fixed cycles; BESS fixed tenor. Values:
+  | | PPA uplift | Fixed + share | Merchant |
+  |---|---|---|---|
+  | PPA price PV only / 2 h / 4 h (€/MWh) | 55 / 80 / 85 | 45 / 45 / 45 | 80 / 80 / 80 |
+  | PPA tenor (years from COD) | 8 | 8 | 8 |
+  | BESS basis | None | Fixed + share | Merchant (Aurora) |
+  | BESS fixed price 2 h / 4 h (€/MWh discharged) | – | 70 / 55 | – |
+  | Fixed cycles per day | – | 1 | – |
+  | Our share of the revenue above the fixed cycles | – | 70 % | – |
+  | BESS fixed tenor (years from COD) | – | 8 (= PPA tenor, user did not say) | – |
+  The existing per-case levers (PPA price, BESS basis, …) become links `=INDEX(table, MATCH(structure))`, black;
+  the Tolling (E2) basis stays available by typing it into the table's BESS-basis row.
+- BESS basis `None`: charging capacity 0 (all PV exported at the PPA price, then at the PV-only proxy in the merchant
+  tail, as the user's row 16 does); BESS revenue 0; BESS capex, augmentation and opex unchanged (the battery is built
+  and paid for through the PPA uplift). Dashboard note on the lever row.
+- BESS basis `Fixed + share` (Calc rows, one idea each):
+  "Fixed-cycle discharge cap" `= fixed cycles/day × MWh × 365 × operating share × in service`;
+  "Discharge at the fixed price" `= MIN(discharge, cap)`; "Discharge above the fixed cycles" `= discharge − that`;
+  "Aurora realised price, €/MWh discharged" on Revenue `= merchant BESS revenue per MW ÷ discharge per MW`;
+  "BESS revenue, fixed" `= fixed price × discharge at fixed × fixed-tenor share`;
+  "BESS revenue, shared" `= our share × realised price × discharge above × fixed-tenor share`;
+  "BESS revenue, merchant tail" `= merchant revenue × (1 − fixed-tenor share)`; BESS revenue = the sum.
+  Fixed-tenor share of the year: the same month logic as the PPA share (reuse the rows; tenor from the table).
+- Fact to show on the Dashboard: with no grid charging the battery reaches ≈ 0.6 cycles/day, so "Discharge above
+  the fixed cycles" is 0 in Base and the 70 % share earns nothing; the row stays so a grid-charging or higher-cycle
+  case would use it. State this in the lever's note.
+- Checks: discharge at fixed + above = discharge; structure selector valid; table complete.
+- Reconciliation: steps "PPA uplift (user values)" and "Fixed + share" from the Merchant 80 base.
+### 13.2 Opus tasks
+Build the table and selector; the per-case levers as links; the `None` and `Fixed + share` logic; audit (master
+check 0 in Base/Low/High × the three structures × tolling; gearing 0 = unlevered); shadow with the new rows;
+reconciliation; ASSUMPTIONS.md; commit and push. Report the Base table for each of the three structures.
