@@ -52,8 +52,8 @@ Workbook recalculated in LibreOffice with `Dash_Case` = Base, Low, High; every D
 | Sensitivity | Master check | Results compared | Largest absolute difference | Largest relative difference |
 |---|---:|---:|---:|---:|
 | Base | 0 | 174 | 2.91e-11 | 5.01e-14 |
-| Low | 0 | 174 | 5.82e-11 | 4.44e-14 |
-| High | 0 | 174 | 5.82e-11 | 4.34e-15 |
+| Low | 0 | 174 | 5.82e-11 | 4.21e-14 |
+| High | 0 | 174 | 5.82e-11 | 3.06e-15 |
 
 Base results (workbook):
 
