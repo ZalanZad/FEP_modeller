@@ -10,7 +10,7 @@ import importlib.util
 import sys
 from pathlib import Path
 
-from .audit.lint import lint, lint_values, report
+from .audit.lint import lint, lint_values, lint_warnings, report
 from .recalc import name_value, recalc, values
 
 
@@ -43,6 +43,8 @@ def audit(project: Path) -> int:
     findings = lint(model) + lint_values(rc)
     print(f"model:  {model}\nrecalc: {rc} (LibreOffice)")
     print(report(findings))
+    warn = lint_warnings(model)
+    print(f"warnings: {len(warn)} formula rows over 80 characters" + "".join(f"\n  {w}" for w in warn[:10]))
     wb = values(rc)
     print("headline outputs (live case):")
     outs = [(next(wb.defined_names[n].destinations), n) for n in wb.defined_names if n.startswith("Out_")]

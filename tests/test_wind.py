@@ -42,7 +42,7 @@ def _book(tmp_path):
         c.row("irr", "IRR (E)", "%", e="=XIRR({cf.all},$J$5:$" + b.last_col + "$5)")
     blocks = Block(c, 3).build(lambda n: f"Case {n}", rows)
     c.end()
-    db = DatedBlock(d, "Rate")
+    db = DatedBlock(d, "Rate", returns={"x": "O"})
     d.blank()
     db.header("Dated flows")
     db.end("x", "Exit", "=Exit_Date", "L")

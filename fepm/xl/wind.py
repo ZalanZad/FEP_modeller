@@ -408,9 +408,12 @@ class DatedBlock:
 
     DATE, DAYS, FLAG = "J", "K", "N"
 
-    def __init__(self, sheet: Sheet, rate: str, days="Days_In_Year"):
+    def __init__(self, sheet: Sheet, rate: str, days="Days_In_Year", returns=None):
+        """`returns` = {end key: column}: per-line return to that end, −amount (E) × (factor − 1) × flag, so the
+        claim is a plain SUM of the column (the cases share the dated outlays; a check should confirm it)."""
         self.sh, self.rate, self.days = sheet, rate, days
         self.ends: dict[str, tuple[int, str]] = {}          # name -> (row, factor column)
+        self.returns = returns or {}
         self.lines: list[int] = []
 
     def header(self, title, ends=("exit", "COD")):
@@ -418,6 +421,8 @@ class DatedBlock:
         for col, e in zip("LM", ends):
             extra[col] = f"Factor to {e}"
         extra["N"] = "Earns return"
+        for key, col in self.returns.items():
+            extra[col] = f"Return to {dict(zip(('x', 'c'), ends)).get(key, key)}"
         return self.sh.bar(title, e="cases", extra=extra)
 
     def end(self, key, label, date, col):
@@ -442,15 +447,17 @@ class DatedBlock:
                  f"*${col}${e_row}")
             sh._cell(r, _col(col), f, False, FMT["accrual"], False, False)
         sh._cell(r, 14, earns, False, FMT["flag"], False, False)
+        for key, col in self.returns.items():
+            fcol = self.ends[key][1]
+            sh._cell(r, _col(col), f"=-$E{r}*(${fcol}{r}-1)*$N{r}", False, FMT["money1"], False, False)
         self.lines.append(r)
         return r
 
     def claim(self, key, label, end_key, first=None, last=None):
-        """Return due at an end date per case: SUMPRODUCT(−amount × (factor − 1) × flag) over the lines."""
+        """Return due at an end date: the SUM of the per-line return column (same for every case)."""
         a, b = first or self.lines[0], last or self.lines[-1]
-        col = self.ends[end_key][1]
-        t = f"=SUMPRODUCT(-{{c}}{a}:{{c}}{b}*(${col}${a}:${col}${b}-1)*$N${a}:$N${b})"
-        return self.sh.row(key, label, "EUR k", cases=t)
+        col = self.returns[end_key]
+        return self.sh.row(key, label, "EUR k", cases=f"=SUM(${col}${a}:${col}${b})")
 
     def check_before_end(self, end_key, first=None, last=None):
         """Formula (no `=`): number of lines earning the return paid in or after the end year (wind check 349)."""

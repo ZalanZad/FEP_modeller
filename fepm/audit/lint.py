@@ -426,6 +426,23 @@ def _cashflow_ranges(forms, values) -> list[Finding]:
     return out
 
 
+WARN_LEN = 80                                                      # house target ("man-made" formulas)
+
+
+def lint_warnings(path, limit=WARN_LEN) -> list[Finding]:
+    """w-long (warning, not a failure): formulas over `limit` characters, one finding per row and sheet."""
+    wb = openpyxl.load_workbook(path)
+    out, seen = [], set()
+    for ws in wb.worksheets:
+        for row in ws.iter_rows():
+            for cell in row:
+                v = cell.value
+                if isinstance(v, str) and v.startswith("=") and len(v) > limit and (ws.title, cell.row) not in seen:
+                    seen.add((ws.title, cell.row))
+                    out.append(Finding("w-long", f"{ws.title}!{cell.coordinate}", f"{len(v)} characters: {v}"))
+    return out
+
+
 def report(findings: list[Finding], limit=50) -> str:
     if not findings:
         return "lint: clean"
