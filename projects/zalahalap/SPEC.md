@@ -410,3 +410,30 @@ above that take the aurora central and make a 70-30 profit share to us 70".
 Build the table and selector; the per-case levers as links; the `None` and `Fixed + share` logic; audit (master
 check 0 in Base/Low/High × the three structures × tolling; gearing 0 = unlevered); shadow with the new rows;
 reconciliation; ASSUMPTIONS.md; commit and push. Report the Base table for each of the three structures.
+
+## 14. v2.5 – streamline the revenue levers (user, 06-Nov-2026)
+User, verbatim: "this is not streamlined now for now dont mix in the met e2 and the offtake offers just show what i
+have sent you for the revenues for the no bess 2h and 4h and it can be modified the bess revenue the eur/mwh and the
+bess the yearly income".
+
+Replaces §13. Remove: the Revenue-structure selector and its table, the BESS-basis lever (Merchant / Tolling /
+None / Fixed + share), the share-above-the-fixed-cycles tier (worth 0 with PV-only charging), the offers table on
+`Revenue` (the offer terms stay in ASSUMPTIONS.md only), and every reference to E.ON / MET / MVM in the workbook.
+
+Per-case Dashboard levers (blue), in this order, and nothing else for revenue:
+| Lever | PV only | PV + 2 h | PV + 4 h | Note |
+|---|---|---|---|---|
+| PV fixed price (€/MWh, nominal, on all PV output) | 45 | 45 | 45 | user 06-Nov-2026 |
+| Fixed term from COD (years; PV and BESS) | 8 | 8 | 8 | |
+| BESS fixed price (€/MWh discharged; 0 = no BESS revenue) | – | 70 | 55 | user 06-Nov-2026 |
+| BESS yearly income override (EUR k/yr, first full year; 0 = from the €/MWh) | – | 0 | 0 | |
+Result rows directly under the levers (black): "BESS discharge, first full year (GWh)", "BESS cycles per day",
+"BESS yearly income at the fixed price (EUR k, first full year)" = price × discharge, or the override.
+After the fixed term both PV and BESS are merchant on Aurora central (direct and transfer PV prices; BESS stack ×
+PV-only factor), as before; Low/High unchanged. Physical model unchanged: PV charges the BESS whatever the price.
+Override mechanics: when the override > 0, BESS revenue in the fixed term = override × operating share × in
+service × (discharge / first-full-year discharge) (so degradation and the COD-year fraction still apply); state it.
+
+`Revenue` keeps: the Aurora curves used (one block), the per-case prices by year (fixed years then merchant) and
+the PV-only factor rows. `Calc`: the BESS revenue rows become "at the fixed price", "merchant tail", sum.
+Row count must go down versus v2.4; report it. Reconciliation: one step "fixed 45 / 70 / 55" from Merchant 80.
