@@ -1,11 +1,12 @@
-"""Zalahaláp – 63 MWp PV, with or without a 50 MW BESS: investment model, SPEC v2.5 (wind-model format).
+"""Zalahaláp – 63 MWp PV, with or without a 50 MW BESS: investment model, SPEC v2.6 (wind-model format).
 
 One workbook, `out/Zalahalap_Model.xlsx` (no macros): Dashboard · Inputs · Revenue · Calc · Checks, annual "to 2026",
 2027 … 2064, three cases as columns (E PV only, F PV + 2 h BESS, G PV + 4 h BESS), unlevered and levered. In the fixed
-term from COD the PV sells at a fixed €/MWh on all output and the BESS at a fixed €/MWh discharged (or a yearly income
-override); after it both are merchant on Aurora central (BESS: block uplift × the PV-only factor). Base / Low / High
-through `Dash_Case`. The pre-COD cash is dated on the Dashboard (RtB route, XIRR) and mapped to the annual grid for the
-hold and COD routes. Every XIRR carries a start guess (Calc column H): Excel's XIRR returns ~0 when it fails.
+term from COD the PV sells at a fixed €/MWh on all output and the BESS earns a fixed daily spread on its nameplate
+energy (price × MWh × cycles × 365, or a yearly income override); after it both are merchant on Aurora central (BESS:
+block uplift × the PV-only factor). Base / Low / High through `Dash_Case`. The pre-COD cash is dated on the Dashboard
+(RtB route, XIRR) and mapped to the annual grid for the hold and COD routes. Every XIRR carries a start guess (Calc
+column H): Excel's XIRR returns ~0 when it fails.
 """
 from __future__ import annotations
 
@@ -95,14 +96,18 @@ def dashboard_top(book):
     usr = "User 06-Nov-2026"
     lv("PV_Price", "PV fixed price, nominal, on all PV output", "EUR/MWh", [45, 45, 45], source=usr, fmt="money2")
     lv("Fix_Years", "Fixed term from COD, PV and BESS (then merchant)", "years", [8, 8, 8], source=usr)
-    lv("BESS_Price", "BESS fixed price per MWh discharged (0 = none)", "EUR/MWh", [0, 70, 55], source=usr,
+    lv("BESS_Price", "BESS fixed price, €/MWh of nameplate energy (0 = none)", "EUR/MWh", [0, 70, 55], source=usr,
        fmt="money2")
+    lv("Fix_Cycles", "Fixed cycles per day (fixed BESS income)", "#", [0, 1, 1],
+       source=usr + ": price × MWh × cycles × 365 days (user wrote 360 loosely)", fmt="money1")
     lv("BESS_Income", "BESS yearly income override (0 = from the €/MWh)", "EUR k/yr", [0, 0, 0],
-       source="First full year; scaled by discharge in other years")
-    for key, label, unit in (("o_dis", "BESS discharge, first full year", "GWh"),
-                             ("o_cyc", "BESS cycles per day, first full year", "#"),
-                             ("o_inc", "BESS yearly income at the fixed price, first full year", "EUR k")):
-        d.row(key, label, unit, cases="=0", fmt="money2" if key == "o_cyc" else None)   # links: dashboard()
+       source="Full-year income; × operating share × in service")
+    note = "Information: fixed income is contractual on nameplate energy; dispatch risk is the counterparty's"
+    for key, label, unit, src in (("o_inc", "BESS yearly income at the fixed price, first full year", "EUR k", None),
+                                  ("o_dis", "BESS discharge, first full year", "GWh", note),
+                                  ("o_cyc", "BESS cycles per day, first full year", "#", note)):
+        d.row(key, label, unit, cases="=0", fmt="money2" if key == "o_cyc" else None, source=src,
+              src_col="J")                                                          # links: dashboard()
     lv("RtB_Price", "RtB price, premium (0 = implied)", "EUR k/MWp", [90, 90, 90],
        source="ZHLP v3 Stat_inp E24; " + PH)
     lv("COD_Price", "COD price (0 = implied)", "EUR k/MWp", [0, 0, 0], source="Implied at the buyer target IRR")
@@ -466,16 +471,17 @@ def calc(book, R):
         c.row("dcap", "BESS discharge capacity", "MWh", t=f"={ref('dmw')}*{{bess.E}}*{{oshare}}*{{live}}")
         c.row("dis", "BESS discharge (≤ PV charged × RTE, no grid charging)", "MWh", e=ffy, h=tot,
               t="=MIN({dcap},{sent}*BESS_RTE)")
-        c.row("drel", "BESS discharge relative to the first full year", "factor",
-              t="=IF({dis.E}=0,0,{dis}/{dis.E})")
         c.sub("Revenue")
         c.row("rpvd", "PV revenue, direct export", "EUR k", e=ffy, h=tot, t=f"={{direct}}*{ref('pxd')}/Thousand")
         c.row("rpvs", "PV revenue, energy sent to the BESS", "EUR k", e=ffy, h=tot, t=f"={{sent}}*{ref('pxs')}/Thousand")
         c.row("rgoo", "Guarantees of origin", "EUR k", e=ffy, h=tot, t=f"={{gen}}*GoO_Price*{idx}/Thousand")
-        c.row("bpx", "BESS fixed price (E), yearly income override (F)", "EUR/MWh", e=f"={lever('BESS_Price')}",
-              f=f"={lever('BESS_Income')}", fmts={"E": "money1", "F": "money"})
+        c.row("bpx", "BESS fixed price (E), cycles per day (F), override (G)", "EUR/MWh",
+              e=f"={lever('BESS_Price')}", f=f"={lever('Fix_Cycles')}", g=f"={lever('BESS_Income')}",
+              fmts={"E": "money1", "F": "money1", "G": "money"})
+        c.row("bfull", "BESS fixed income, full year (E: override if set)", "EUR k",
+              e="=IF({bpx.G}>0,{bpx.G},{bpx.E}*{bess.F}*{bpx.F}*Days_In_Year/Thousand)")
         c.row("bfy", "BESS income at the fixed price (E: first full year)", "EUR k", e=ffy,
-              t="=IF({bpx.F}>0,{bpx.F}*{drel},{bpx.E}*{dis}/Thousand)")
+              t="={bfull.E}*{oshare}*{live}")
         c.row("rbfix", "BESS revenue at the fixed price (fixed term)", "EUR k", e=ffy, h=tot,
               t=f"={{bfy}}*{ref('fts')}")
         c.row("rbm", "BESS revenue, merchant tail (after the fixed term)", "EUR k", e=ffy, h=tot,
@@ -1026,8 +1032,6 @@ def checks(book):
     ck("Energy: discharge ≤ PV charged × RTE, every year",
        lambda i, b, C: f"=SUMPRODUCT(--(Calc!J{b['dis']}:{last}{b['dis']}>Calc!J{b['sent']}:{last}{b['sent']}"
                        f"*BESS_RTE+Tolerance))")
-    ck("BESS: override = first-full-year income (needs a BESS)",
-       lambda i, b, C: f"=N(Calc!$F${b['bpx']}>0)*N(ABS(Calc!$E${b['bfy']}-Calc!$F${b['bpx']})>Tolerance)")
     ck("Grid: direct export ≤ MVA × 8,760 h × operating share",
        lambda i, b, C: f"=SUMPRODUCT(--(Calc!J{b['direct']}:{last}{b['direct']}>Dashboard!{C}${LR['MVA']}*Hours_In_Year"
                        f"*Calc!J{b['oshare']}:{last}{b['oshare']}))")

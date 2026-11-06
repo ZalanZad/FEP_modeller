@@ -1,4 +1,4 @@
-"""Independent Python shadow of the Zalahaláp workbook (SPEC v2.5): one case, one sensitivity case; grid "to 2026",
+"""Independent Python shadow of the Zalahaláp workbook (SPEC v2.6): one case, one sensitivity case; grid "to 2026",
 2027 … 2064, unlevered and levered.
 
 Coded from the SPEC (§4–§6) and the input values, not from the workbook's formulas; reconcile.py compares it with the
@@ -28,7 +28,7 @@ BLOCK = {2: "2027 solar DC 1.0cy 2h", 4: "2027 solar DC 1.0cy 4h"}
 
 
 def params(**over):
-    p = dict(mwp=63, mva=49.9, yld=1265, pv_price=45, fix_years=8, bess_price=None, bess_income=0,
+    p = dict(mwp=63, mva=49.9, yld=1265, pv_price=45, fix_years=8, bess_price=None, fix_cycles=None, bess_income=0,
              bess_merchant_term=0, rtb_price=90,
              cod_price=0, acq=D(2025, 11, 30), rtb=D(2026, 12, 31), exit=D(2027, 3, 31), ntp=D(2027, 1, 1),
              cod=D(2028, 3, 1), life=35, capex_year=2027, gearing=0.6, debt_rate=0.05, tenor=20, draw_timing=0.5, avail=0.995, deg=0.003, clip=None, goo=1.75, pv_only_hours=2, rte=0.86,
@@ -162,7 +162,8 @@ def factor(d, end, r):
 
 
 # ------------------------------------------------------------------------------------------- model
-BESS_PRICE = (0, 70, 55)     # Dashboard lever "BESS fixed price" per case (v2.5, user 06-Nov-2026)
+BESS_PRICE = (0, 70, 55)     # Dashboard lever "BESS fixed price" per case, €/MWh of nameplate energy (user 06-Nov-2026)
+FIX_CYCLES = (0, 1, 1)       # Dashboard lever "Fixed cycles per day" (v2.6)
 
 
 def run(case="PV + 4h BESS", sens="Base", **over):
@@ -170,10 +171,13 @@ def run(case="PV + 4h BESS", sens="Base", **over):
     c, s = CASES[case], SENS[sens]
     k = list(CASES).index(case)
     bess_price = BESS_PRICE[k] if p["bess_price"] is None else p["bess_price"]
+    cycles = FIX_CYCLES[k] if p["fix_cycles"] is None else p["fix_cycles"]
     clip = c["clip"] if p["clip"] is None else p["clip"]
     built, mw = c["built"], c["mw"] * c["built"]
     hours = c["hours"]
     mwh = built * c["mw"] * hours
+    # fixed BESS income, full year: a contractual daily spread on the nameplate energy (or the override)
+    bfull = p["bess_income"] if p["bess_income"] > 0 else bess_price * mwh * cycles * 365 / 1000
     mwp = p["mwp"]
     codl = edate(p["cod"], s["delay"])
     blk = BLOCK[hours] if built else BLOCK[p["pv_only_hours"]]
@@ -195,7 +199,6 @@ def run(case="PV + 4h BESS", sens="Base", **over):
         gen = mwp * p["yld"] * (1 + s["cy"]) * (1 - clip) * p["avail"] * (1 - p["deg"]) ** max(yrs - 1, 0) * osh
         sent = min(gen, chg[y] * mw * osh * live)
         ph.append((yrs, omon, osh, live, gen, sent, gen - sent, min(dmw[y] * mw * osh * live, sent * p["rte"])))
-    dis_ffy = ph[YEARS.index(first_full)][7]
     for y, (yrs, omon, osh, live, gen, sent, direct, dis) in zip(YEARS, ph):
         cshare = 1.0 * (y == p["capex_year"])                 # all construction capex in one year
         repf = p["repower"] * (y == rep_year)
@@ -210,10 +213,7 @@ def run(case="PV + 4h BESS", sens="Base", **over):
         upl = built * (1 - p["haircut"]) * (1 + s["cb"]) * st[y] * (pvo[y] + dcs[y] * p["afrr"]) * idx
         rpv = (direct * pxd + sent * pxs) / 1000
         rgoo = gen * p["goo"] * idx / 1000
-        if p["bess_income"] > 0:                              # override: first-full-year income, scaled by discharge
-            bfy = p["bess_income"] * (dis / dis_ffy if dis_ffy else 0.0)
-        else:
-            bfy = bess_price * dis / 1000
+        bfy = bfull * osh * live
         bterm = fts * (1 - p["bess_merchant_term"])           # bridge only: BESS merchant inside the term too
         rbfix = bfy * bterm
         rbess = rbfix + mw * upl * osh * live * (1 - bterm)

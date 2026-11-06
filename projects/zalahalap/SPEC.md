@@ -324,9 +324,9 @@ Report: sheet/row counts; the Base results per case and strategy; the Low/High s
 17. **v2.5 (§14), as built.** Removed: the structure selector and table, the BESS-basis lever and options (incl.
     tolling and "None"), the share-above-cycles tier, the offers table, the PPA indexation lever and the MV cable O&M
     row (0, inside the all-in O&M). Open: (a) one fixed term (8 years) for PV and BESS – the user gave 8 years for the
-    PV only; (b) the override applies as override × discharge ÷ first-full-year discharge: the discharge already carries
-    the operating share and the in-service flag, so §14's extra "× operating share × in service" would count the
-    COD-year fraction twice and is not applied; (c) the override needs a BESS (Checks flags an override on PV only);
+    PV only; (b) v2.5 applied the override as override × discharge ÷ first-full-year discharge – superseded by the
+    v2.6 note in §14 (override × operating share × in service); (c) the override needs a BESS (Checks flags BESS
+    revenue on PV only);
     (d) Low/High do not move the fixed prices (only the merchant years and the merchant BESS stack), as before;
     (e) IRRs with no root show n/a (allowed only when MOIC < 1); the buyer-at-RtB XIRR starts at
     MIN(target, MOIC − 1).
@@ -446,3 +446,12 @@ service × (discharge / first-full-year discharge) (so degradation and the COD-y
 `Revenue` keeps: the Aurora curves used (one block), the per-case prices by year (fixed years then merchant) and
 the PV-only factor rows. `Calc`: the BESS revenue rows become "at the fixed price", "merchant tail", sum.
 Row count must go down versus v2.4; report it. Reconciliation: one step "fixed 45 / 70 / 55" from Merchant 80.
+
+**v2.6 note (user, 06-Nov-2026): the BESS fixed price is a fixed daily one-cycle spread on the nameplate energy**, not
+a price on the modelled discharge – "for example if its 100 MWh 1 cycle a day 70*100*360 number of days in a year is
+the revenue for this". As built: BESS revenue in the fixed term = fixed price × nameplate MWh × fixed cycles per day
+(new blue lever, 1; – for PV only) × 365 × operating share × in service ÷ 1,000 (k€); full year 2,555 k€ (2 h:
+70 × 100 × 365) and 4,015 k€ (4 h: 55 × 200 × 365). 365 days, the user's 360 read as loose. The override replaces the
+full-year income and is scaled by operating share × in service only. The discharge and cycles-per-day rows stay as
+information: fixed income is contractual on nameplate energy; dispatch risk is the counterparty's. Merchant tail
+after the term unchanged.

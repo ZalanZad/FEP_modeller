@@ -459,7 +459,8 @@ V21_STEPS = [  # label, SPEC reference, shadow.py overrides (v2.1+; bess_merchan
      dict(gearing=0, pv_price=80, bess_merchant_term=1, om=14.96, cable_om=5)),
     ("O&M 10 k€/MWp/yr all-in, MV cable O&M inside it (user 05-Nov-2026; unlevered) = Merchant 80", "v2.3",
      dict(gearing=0, pv_price=80, bess_merchant_term=1)),
-    ("Fixed 45 / 70 / 55: PV 45 €/MWh, BESS 70 (2 h) / 55 (4 h) €/MWh discharged, 8 years (unlevered)", "v2.5 §14",
+    ("Fixed 45 / 70 / 55: PV 45 €/MWh; BESS 70 (2 h) / 55 (4 h) €/MWh × nameplate MWh × 1 cycle × 365; 8 years "
+     "(unlevered)", "v2.5–2.6 §14",
      dict(gearing=0)),
     ("Levered case: 60 % gearing, 5 %, 20-year annuity (hold IRR levered; base)", "v2.1 §12.2", {}),
 ]
@@ -526,12 +527,12 @@ TIE = [  # shadow key, Dashboard label, occurrence, scale (workbook = shadow / s
     ("dis_ffy", "BESS discharge, first full year", 0, 1000), ("cycles_day", "BESS cycles per day, first full year", 0, 1),
     ("bfy_ffy", "BESS yearly income at the fixed price, first full year", 0, 1),
     ("rbess_ffy", "BESS revenue", 0, 1), ("rbfix_ffy", "of which at the fixed price", 0, 1)]
-LEVERS = {"bess_price": "BESS fixed price per MWh", "bess_income": "BESS yearly income override",
-          "fix_years": "Fixed term from COD", "gearing": "Gearing"}      # shadow key -> Dashboard label prefix
+LEVERS = {"bess_price": "BESS fixed price,", "bess_income": "BESS yearly income override",
+          "fix_years": "Fixed term from COD", "gearing": "Gearing", "fix_cycles": "Fixed cycles per day"}      # shadow key -> Dashboard label prefix
 RUNS = [("Base", {}), ("Low", {}), ("High", {}), ("Base, BESS price 0", dict(bess_price=0)),
         ("Base, BESS income override 3,000", dict(bess_income=3000)), ("Low, BESS income override 3,000",
                                                                        dict(bess_income=3000)),
-        ("Base, fixed term 0", dict(fix_years=0)), ("Base, gearing 0", dict(gearing=0))]
+        ("Base, fixed term 0", dict(fix_years=0)), ("Base, fixed cycles 2", dict(fix_cycles=2)), ("Base, gearing 0", dict(gearing=0))]
 CASES = ["PV only", "PV + 2h BESS", "PV + 4h BESS"]
 
 
@@ -607,7 +608,7 @@ def report(tie):
     ties3 = sum(1 for k, t in tg.items() if rows3.get(k) is not None and abs(rows3[k] - t) <= 1e-6 * max(1, abs(t)))
     L = ["# Zalahaláp – reconciliation (SPEC v2 §9)", "",
          "Original: `reference/zalahalap/Zalahalap_model_10112025_v3.xlsb` (Negotiated case). New: "
-         "`out/Zalahalap_Model.xlsx` (SPEC v2.5: PV only | PV + 2 h | PV + 4 h; fixed PV and BESS prices for 8 years, then "
+         "`out/Zalahalap_Model.xlsx` (SPEC v2.6: PV only | PV + 2 h | PV + 4 h; fixed PV and BESS prices for 8 years, then "
          "merchant; unlevered and levered). Written by "
          "`reconcile.py`.", "",
          "Three independent calculations: the v3 shadow `data/old_engine/old_zhlp.py`, the v1-structure shadow in "
@@ -654,13 +655,14 @@ def report(tie):
           "- PPA 80/8 step (v2.2): 80 €/MWh nominal flat on all PV output from COD (Mar-2028) to Feb-2036, then "
           "Aurora merchant; no balancing in the PPA years.",
           "- O&M 10 step (v2.3): O&M 10 k€/MWp/yr all-in, real 2025 × the euro index (v3: 14.96 + MV cable 5).",
-          "- Fixed 45 / 70 / 55 step (v2.5 §14): PV 45 €/MWh on all output and the BESS 55 €/MWh discharged (4 h) "
-          "for 8 years from COD, then both merchant; with PV-only charging the 4 h battery cycles ≈ 0.6 a day.",
+          "- Fixed 45 / 70 / 55 step (v2.5–2.6 §14): PV 45 €/MWh on all output and the 4 h BESS a contractual 55 €/MWh "
+          "× 200 MWh × 1 cycle × 365 days (4,015 k€ a full year) for 8 years from COD, then both merchant; the income "
+          "is on nameplate energy (PV-only charging dispatches ≈ 0.6 cycles a day: the counterparty's risk).",
           "- PPA step: 45 €/MWh nominal on all PV output for 5 years (Aurora's direct price is 98–108 €/MWh nominal in "
           "2028–29 for the 4 h block), no balancing in those years.", "",
           "## 3. The v2 shadow ties to the workbook", "",
           "Workbook recalculated in LibreOffice: Base, Low, High and lever flips (BESS price 0, income override, fixed "
-          "term 0, gearing 0); every Dashboard result below compared with `shadow.py`.", "",
+          "term 0, fixed cycles 2, gearing 0); every Dashboard result below compared with `shadow.py`.", "",
           "| Run | Master check | Results compared | Largest absolute difference | Largest relative difference |",
           "|---|---:|---:|---:|---:|"]
     for sens in sorted({k[0] for k in tie}, key=lambda x: (len(x), x)):
