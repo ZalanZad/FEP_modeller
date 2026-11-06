@@ -452,15 +452,15 @@ V2_STEPS = [  # label, SPEC reference, shadow overrides (v2.0 shadow; the v2.1 s
     ("HIPA 2 % and innovation contribution 0.3 % on revenue", "v2 §3.2", dict(ppa_years=0)),
     ("PPA 5 years at 45 €/MWh on all PV output = v2.0 base (fe5a4fe)", "v2 §5.2", {}),
 ]
-V21_STEPS = [  # label, SPEC reference, shadow.py overrides (v2.1)
+V21_STEPS = [  # label, SPEC reference, shadow.py overrides (v2.1+; bess_merchant_term=1: the v2.1–v2.3 BESS basis)
     ("Timeline rebase: spend to 31-Dec-26 in one column, all capex in 2027, COD 01-Mar-28 (unlevered)", "v2.1 §12.1",
-     dict(gearing=0, structure="Merchant", ppa_price=45, ppa_years=5, om=14.96, cable_om=5)),
+     dict(gearing=0, pv_price=45, fix_years=5, bess_merchant_term=1, om=14.96, cable_om=5)),
     ("PPA 80 €/MWh for 8 years from COD, then merchant (user 05-Nov-2026; unlevered)", "v2.2",
-     dict(gearing=0, structure="Merchant", om=14.96, cable_om=5)),
-    ("O&M 10 k€/MWp/yr all-in, MV cable O&M inside it (user 05-Nov-2026; unlevered)", "v2.3",
-     dict(gearing=0, structure="Merchant")),
-    ("Side row: PPA uplift (55/80/85, no BESS value; vs Merchant 80)", "v2.4 §13", dict(gearing=0, structure="PPA uplift")),
-    ("Fixed + share (PV 45, BESS 70/55 on 1 cycle, 70 % above; vs Merchant 80)", "v2.4 §13", dict(gearing=0)),
+     dict(gearing=0, pv_price=80, bess_merchant_term=1, om=14.96, cable_om=5)),
+    ("O&M 10 k€/MWp/yr all-in, MV cable O&M inside it (user 05-Nov-2026; unlevered) = Merchant 80", "v2.3",
+     dict(gearing=0, pv_price=80, bess_merchant_term=1)),
+    ("Fixed 45 / 70 / 55: PV 45 €/MWh, BESS 70 (2 h) / 55 (4 h) €/MWh discharged, 8 years (unlevered)", "v2.5 §14",
+     dict(gearing=0)),
     ("Levered case: 60 % gearing, 5 %, 20-year annuity (hold IRR levered; base)", "v2.1 §12.2", {}),
 ]
 BRIDGE = [("hold_irr", "FEP hold IRR", "%"), ("proj_irr", "Project IRR", "%"), ("rtb_profit", "RtB profit (k€)", "k"),
@@ -484,9 +484,6 @@ def bridge():
         r = V2.run("PV + 4h BESS", "Base", **kw)
         rows.append((label, ref, dict(r, hold_irr=r["hold_irr_l"]) if not kw else r))
     return rows
-
-
-SIDE = "Side row"      # a side row shows its effect against the row before it; the next row starts from there too
 
 
 # =========================================================================================== tie-out
@@ -526,10 +523,15 @@ TIE = [  # shadow key, Dashboard label, occurrence, scale (workbook = shadow / s
     ("hold_equity_l", "Levered: FEP equity invested (uses less debt)", 0, 1),
     ("hold_profit_l", "Levered: FEP profit, post-tax", 0, 1), ("hold_irr_l", "Levered: IRR, after tax", 0, 1),
     ("hold_irr_lp", "Levered: IRR, before tax", 0, 1), ("hold_moic_l", "Levered: MOIC, after tax", 0, 1),
-    ("cycles_day", "BESS cycles per day", 0, 1), ("dabove_ffy", "BESS discharge above the fixed cycles", 0, 1000),
-    ("rbess_ffy", "BESS revenue", 0, 1), ("rbfix_ffy", "of which fixed price on the fixed cycles", 0, 1)]
-RUNS = [("Base", "Fixed + share"), ("Low", "Fixed + share"), ("High", "Fixed + share"), ("Base", "PPA uplift"),
-        ("Base", "Merchant")]
+    ("dis_ffy", "BESS discharge, first full year", 0, 1000), ("cycles_day", "BESS cycles per day, first full year", 0, 1),
+    ("bfy_ffy", "BESS yearly income at the fixed price, first full year", 0, 1),
+    ("rbess_ffy", "BESS revenue", 0, 1), ("rbfix_ffy", "of which at the fixed price", 0, 1)]
+LEVERS = {"bess_price": "BESS fixed price per MWh", "bess_income": "BESS yearly income override",
+          "fix_years": "Fixed term from COD", "gearing": "Gearing"}      # shadow key -> Dashboard label prefix
+RUNS = [("Base", {}), ("Low", {}), ("High", {}), ("Base, BESS price 0", dict(bess_price=0)),
+        ("Base, BESS income override 3,000", dict(bess_income=3000)), ("Low, BESS income override 3,000",
+                                                                       dict(bess_income=3000)),
+        ("Base, fixed term 0", dict(fix_years=0)), ("Base, gearing 0", dict(gearing=0))]
 CASES = ["PV only", "PV + 2h BESS", "PV + 4h BESS"]
 
 
@@ -548,27 +550,28 @@ def dashboard_cells():
 
 
 def tie_out(runs=RUNS):
-    """Workbook (LibreOffice) vs shadow for every case, per (sensitivity, structure): {(run, case, key): (wb, sh)}."""
+    """Workbook (LibreOffice) vs shadow for every case, per run (sensitivity, lever flips): {(run, case, key): (wb, sh)}."""
     from fepm.recalc import Office
     import openpyxl
     cells = dashboard_cells()
     ws = openpyxl.load_workbook(XLSX)["Dashboard"]
-    srow = next(r for r in range(1, 40) if str(ws.cell(r, 3).value).startswith("Revenue structure"))
+    lever = {k: next(r for r in range(1, 40) if str(ws.cell(r, 3).value).startswith(lab)) for k, lab in LEVERS.items()}
     res = {}
-    with Office(XLSX) as lo:
-        for sens, struct in runs:
-            lo.set("Dash_Case", sens)
-            for col in "EFG":
-                lo.set(f"Dashboard!{col}{srow}", struct)
+    for run, over in runs:
+        with Office(XLSX) as lo:
+            lo.set("Dash_Case", run.split(",")[0])
+            for k, v in over.items():                       # BESS levers on the BESS cases only (PV only: "–")
+                for col in "FG" if k.startswith("bess") else "EFG":
+                    lo.set(f"Dashboard!{col}{lever[k]}", v)
             lo.calculate()
             mc = lo.get("Master_Check")
-            run = sens if struct == "Fixed + share" else f"{sens}, {struct}"
             for i, case in enumerate(CASES):
-                sh = V2.run(case, sens, structure=struct)
+                kw = {k: v for k, v in over.items() if i or not k.startswith("bess")}
+                sh = V2.run(case, run.split(",")[0], **kw)
                 for key, (r, scale) in cells.items():
                     w = lo.get(f"Dashboard!{'EFG'[i]}{r}")
                     if sh[key] is None:                      # IRR undefined (no sign change): workbook shows n/a
-                        assert w == "n/a", (sens, case, key, w)
+                        assert w == "n/a", (run, case, key, w)
                         continue
                     res[(run, case, key)] = (w, sh[key] / scale)
             res[(run, "master", "check")] = (mc, 0)
@@ -604,7 +607,8 @@ def report(tie):
     ties3 = sum(1 for k, t in tg.items() if rows3.get(k) is not None and abs(rows3[k] - t) <= 1e-6 * max(1, abs(t)))
     L = ["# Zalahaláp – reconciliation (SPEC v2 §9)", "",
          "Original: `reference/zalahalap/Zalahalap_model_10112025_v3.xlsb` (Negotiated case). New: "
-         "`out/Zalahalap_Model.xlsx` (SPEC v2: PV only | PV + 2 h | PV + 4 h, unlevered, 5-year PV PPA). Written by "
+         "`out/Zalahalap_Model.xlsx` (SPEC v2.5: PV only | PV + 2 h | PV + 4 h; fixed PV and BESS prices for 8 years, then "
+         "merchant; unlevered and levered). Written by "
          "`reconcile.py`.", "",
          "Three independent calculations: the v3 shadow `data/old_engine/old_zhlp.py`, the v1-structure shadow in "
          "`reconcile.py` (quarterly, SPEC v1, with a switch per §13 fix) and the v2 shadow `shadow.py` (annual, coded "
@@ -612,10 +616,10 @@ def report(tie):
          "## 1. The v3 shadow ties to the original", "",
          f"`old_zhlp.py` reproduces {ties3} of {len(tg)} targets of `data/old_engine/old_targets.csv` to 1e-6 "
          "(HTM targets from the copy with Aurora_Curve!C8 = 0, SPEC v1 §3.2).", "",
-         "## 2. Bridge: v3 → PV + 4 h column, Base, merchant BESS basis", "",
+         "## 2. Bridge: v3 → PV + 4 h column, Base", "",
          "Rows 1–2 are values; each further row switches one change on (cumulative) and shows its effect. Rows 2–10 run on the v1 quarterly shadow (unlevered: gearing 0 "
-         "throughout), rows 11–14 on the frozen v2.0 annual shadow (`data/shadow_v20.py`), rows 15–20 on the v2.1+ shadow (the PPA uplift row is a side "
-         "row against Merchant 80); the hold IRR is levered in the levered row and the last row; the last row is the workbook's PV + 4 h column (Base). The "
+         "throughout), rows 11–14 on the frozen v2.0 annual shadow (`data/shadow_v20.py`), rows 15–19 on the v2.1+ shadow (rows 15–17: BESS merchant "
+         "throughout, the v2.1–v2.3 basis; row 17 = Merchant 80); the hold IRR is levered in the levered row and the last row; the last row is the workbook's PV + 4 h column (Base). The "
          "implied premium is shown before the 0 floor; the workbook floors it at 0.", "",
          "| Step | SPEC | " + " | ".join(lbl for _, lbl, _ in BRIDGE) + " |", "|---|---|" + "---:|" * len(BRIDGE)]
     prev = None
@@ -625,8 +629,7 @@ def report(tie):
         else:
             L.append(f"| + {label} | {ref} | " + " | ".join(delta(prev.get(x), vals.get(x), u) for x, _, u in BRIDGE)
                      + " |")
-        if not label.startswith(SIDE):                     # a side row does not move the base of the next step
-            prev = vals
+        prev = vals
     key = {"implied_raw": "implied_rtb", "hold_irr": "hold_irr_l"}
     wb = {x: tie[("Base", "PV + 4h BESS", key.get(x, x))][0] for x, _, _ in BRIDGE}
     L.append("| **PV + 4 h, Base: the workbook (implied premium floored at 0)** | | "
@@ -645,19 +648,20 @@ def report(tie):
           "table (Inputs rows 37–39, 2028 entry) gives 2 h 30.83 and 4 h 42.96 €/kW, i.e. 18.70 k€/MW + 6.07 k€/MWh; "
           "the 4 h battery now carries 42.96 instead of 30.8.",
           "- Timeline rebase (v2.1 §12.1): spend to 31-Dec-2026 in one column at its year end, all construction capex "
-          "in 2027 (was spread NTP 30-Jun-27 → COD 31-Mar-28), COD 01-Mar-2028 (10 months of production in 2028), "
-          "tolling from the later of 01-Jan-28 and COD.",
+          "in 2027 (was spread NTP 30-Jun-27 → COD 31-Mar-28), COD 01-Mar-2028 (10 months of production in 2028).",
           "- Levered row: 60 % of the capex to COD drawn in 2027, IDC on mid-year draws capitalised, 20 level "
           "annuities from 31-Dec-2028, interest deductible; the hold IRR is the levered FEP IRR.",
           "- PPA 80/8 step (v2.2): 80 €/MWh nominal flat on all PV output from COD (Mar-2028) to Feb-2036, then "
           "Aurora merchant; no balancing in the PPA years.",
           "- O&M 10 step (v2.3): O&M 10 k€/MWp/yr all-in, real 2025 × the euro index (v3: 14.96 + MV cable 5).",
+          "- Fixed 45 / 70 / 55 step (v2.5 §14): PV 45 €/MWh on all output and the BESS 55 €/MWh discharged (4 h) "
+          "for 8 years from COD, then both merchant; with PV-only charging the 4 h battery cycles ≈ 0.6 a day.",
           "- PPA step: 45 €/MWh nominal on all PV output for 5 years (Aurora's direct price is 98–108 €/MWh nominal in "
           "2028–29 for the 4 h block), no balancing in those years.", "",
           "## 3. The v2 shadow ties to the workbook", "",
-          "Workbook recalculated in LibreOffice: Base, Low, High on the default structure (Fixed + share) and Base on "
-          "the PPA-uplift and Merchant structures; every Dashboard result below compared with `shadow.py`.", "",
-          "| Sensitivity | Master check | Results compared | Largest absolute difference | Largest relative difference |",
+          "Workbook recalculated in LibreOffice: Base, Low, High and lever flips (BESS price 0, income override, fixed "
+          "term 0, gearing 0); every Dashboard result below compared with `shadow.py`.", "",
+          "| Run | Master check | Results compared | Largest absolute difference | Largest relative difference |",
           "|---|---:|---:|---:|---:|"]
     for sens in sorted({k[0] for k in tie}, key=lambda x: (len(x), x)):
         diffs = [(abs(w - s), abs(w - s) / max(1e-9, abs(s))) for (se, c, k), (w, s) in tie.items()

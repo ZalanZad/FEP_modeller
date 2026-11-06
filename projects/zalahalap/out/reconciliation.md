@@ -1,6 +1,6 @@
 # Zalahaláp – reconciliation (SPEC v2 §9)
 
-Original: `reference/zalahalap/Zalahalap_model_10112025_v3.xlsb` (Negotiated case). New: `out/Zalahalap_Model.xlsx` (SPEC v2: PV only | PV + 2 h | PV + 4 h, unlevered, 5-year PV PPA). Written by `reconcile.py`.
+Original: `reference/zalahalap/Zalahalap_model_10112025_v3.xlsb` (Negotiated case). New: `out/Zalahalap_Model.xlsx` (SPEC v2.5: PV only | PV + 2 h | PV + 4 h; fixed PV and BESS prices for 8 years, then merchant; unlevered and levered). Written by `reconcile.py`.
 
 Three independent calculations: the v3 shadow `data/old_engine/old_zhlp.py`, the v1-structure shadow in `reconcile.py` (quarterly, SPEC v1, with a switch per §13 fix) and the v2 shadow `shadow.py` (annual, coded from SPEC v2). The workbook is recalculated in LibreOffice.
 
@@ -8,9 +8,9 @@ Three independent calculations: the v3 shadow `data/old_engine/old_zhlp.py`, the
 
 `old_zhlp.py` reproduces 31 of 31 targets of `data/old_engine/old_targets.csv` to 1e-6 (HTM targets from the copy with Aurora_Curve!C8 = 0, SPEC v1 §3.2).
 
-## 2. Bridge: v3 → PV + 4 h column, Base, merchant BESS basis
+## 2. Bridge: v3 → PV + 4 h column, Base
 
-Rows 1–2 are values; each further row switches one change on (cumulative) and shows its effect. Rows 2–10 run on the v1 quarterly shadow (unlevered: gearing 0 throughout), rows 11–14 on the frozen v2.0 annual shadow (`data/shadow_v20.py`), rows 15–20 on the v2.1+ shadow (the PPA uplift row is a side row against Merchant 80); the hold IRR is levered in the levered row and the last row; the last row is the workbook's PV + 4 h column (Base). The implied premium is shown before the 0 floor; the workbook floors it at 0.
+Rows 1–2 are values; each further row switches one change on (cumulative) and shows its effect. Rows 2–10 run on the v1 quarterly shadow (unlevered: gearing 0 throughout), rows 11–14 on the frozen v2.0 annual shadow (`data/shadow_v20.py`), rows 15–19 on the v2.1+ shadow (rows 15–17: BESS merchant throughout, the v2.1–v2.3 basis; row 17 = Merchant 80); the hold IRR is levered in the levered row and the last row; the last row is the workbook's PV + 4 h column (Base). The implied premium is shown before the 0 floor; the workbook floors it at 0.
 
 | Step | SPEC | FEP hold IRR | Project IRR | RtB profit (k€) | RtB XIRR | Implied RtB premium before the 0 floor (k€/MWp) |
 |---|---|---:|---:|---:|---:|---:|
@@ -30,9 +30,8 @@ Rows 1–2 are values; each further row switches one change on (cumulative) and 
 | + PPA 5 years at 45 €/MWh on all PV output = v2.0 base (fe5a4fe) | v2 §5.2 | -0.29 pp | -0.30 pp | +0.0 | +0.00 pp | -27.4 |
 | + Timeline rebase: spend to 31-Dec-26 in one column, all capex in 2027, COD 01-Mar-28 (unlevered) | v2.1 §12.1 | -0.06 pp | -0.06 pp | +0.0 | -0.00 pp | -14.0 |
 | + PPA 80 €/MWh for 8 years from COD, then merchant (user 05-Nov-2026; unlevered) | v2.2 | +2.36 pp | +2.44 pp | +0.0 | +0.00 pp | +204.2 |
-| + O&M 10 k€/MWp/yr all-in, MV cable O&M inside it (user 05-Nov-2026; unlevered) | v2.3 | +1.56 pp | +1.58 pp | +0.0 | +0.00 pp | +129.6 |
-| + Side row: PPA uplift (55/80/85, no BESS value; vs Merchant 80) | v2.4 §13 | -28.17 pp | -28.49 pp | +0.0 | +0.00 pp | -852.4 |
-| + Fixed + share (PV 45, BESS 70/55 on 1 cycle, 70 % above; vs Merchant 80) | v2.4 §13 | -5.01 pp | -5.18 pp | +0.0 | +0.00 pp | -495.7 |
+| + O&M 10 k€/MWp/yr all-in, MV cable O&M inside it (user 05-Nov-2026; unlevered) = Merchant 80 | v2.3 | +1.56 pp | +1.58 pp | +0.0 | +0.00 pp | +129.6 |
+| + Fixed 45 / 70 / 55: PV 45 €/MWh, BESS 70 (2 h) / 55 (4 h) €/MWh discharged, 8 years (unlevered) | v2.5 §14 | -5.01 pp | -5.18 pp | +0.0 | +0.00 pp | -495.7 |
 | + Levered case: 60 % gearing, 5 %, 20-year annuity (hold IRR levered; base) | v2.1 §12.2 | -0.21 pp | +0.00 pp | +0.0 | +0.00 pp | +0.0 |
 | **PV + 4 h, Base: the workbook (implied premium floored at 0)** | | 4.38 % | 4.75 % | 2,365.0 | 55.63 % | 0.0 |
 
@@ -43,23 +42,27 @@ Notes on the steps:
 - The v2 dates move the exit five months later and the RtB XIRR falls accordingly; the SPV price 549 (to FEP before the split, no return) and the DSA loan lower the RtB profit through the split.
 - Annual timeline step: year-end dates on the grid, construction by calendar month share, the pre-COD cash dated (RtB route) and mapped by year, the buyer reimbursements inside the JV split, guarantee fees paid at release, deposits returned at COD on the hold route, no debt, one SPV tax.
 - BESS opex step (fix round M2): v3's 30.8 k€/MW is Aurora's 2 h figure (Control!D96 note). Aurora's own table (Inputs rows 37–39, 2028 entry) gives 2 h 30.83 and 4 h 42.96 €/kW, i.e. 18.70 k€/MW + 6.07 k€/MWh; the 4 h battery now carries 42.96 instead of 30.8.
-- Timeline rebase (v2.1 §12.1): spend to 31-Dec-2026 in one column at its year end, all construction capex in 2027 (was spread NTP 30-Jun-27 → COD 31-Mar-28), COD 01-Mar-2028 (10 months of production in 2028), tolling from the later of 01-Jan-28 and COD.
+- Timeline rebase (v2.1 §12.1): spend to 31-Dec-2026 in one column at its year end, all construction capex in 2027 (was spread NTP 30-Jun-27 → COD 31-Mar-28), COD 01-Mar-2028 (10 months of production in 2028).
 - Levered row: 60 % of the capex to COD drawn in 2027, IDC on mid-year draws capitalised, 20 level annuities from 31-Dec-2028, interest deductible; the hold IRR is the levered FEP IRR.
 - PPA 80/8 step (v2.2): 80 €/MWh nominal flat on all PV output from COD (Mar-2028) to Feb-2036, then Aurora merchant; no balancing in the PPA years.
 - O&M 10 step (v2.3): O&M 10 k€/MWp/yr all-in, real 2025 × the euro index (v3: 14.96 + MV cable 5).
+- Fixed 45 / 70 / 55 step (v2.5 §14): PV 45 €/MWh on all output and the BESS 55 €/MWh discharged (4 h) for 8 years from COD, then both merchant; with PV-only charging the 4 h battery cycles ≈ 0.6 a day.
 - PPA step: 45 €/MWh nominal on all PV output for 5 years (Aurora's direct price is 98–108 €/MWh nominal in 2028–29 for the 4 h block), no balancing in those years.
 
 ## 3. The v2 shadow ties to the workbook
 
-Workbook recalculated in LibreOffice: Base, Low, High on the default structure (Fixed + share) and Base on the PPA-uplift and Merchant structures; every Dashboard result below compared with `shadow.py`.
+Workbook recalculated in LibreOffice: Base, Low, High and lever flips (BESS price 0, income override, fixed term 0, gearing 0); every Dashboard result below compared with `shadow.py`.
 
-| Sensitivity | Master check | Results compared | Largest absolute difference | Largest relative difference |
+| Run | Master check | Results compared | Largest absolute difference | Largest relative difference |
 |---|---:|---:|---:|---:|
-| Low | 0 | 184 | 5.82e-11 | 9.29e-14 |
-| Base | 0 | 186 | 2.91e-11 | 1.10e-14 |
-| High | 0 | 186 | 2.91e-11 | 8.17e-15 |
-| Base, Merchant | 0 | 186 | 2.91e-11 | 5.06e-15 |
-| Base, PPA uplift | 0 | 185 | 1.64e-11 | 1.78e-13 |
+| Low | 0 | 187 | 5.82e-11 | 9.29e-14 |
+| Base | 0 | 189 | 2.91e-11 | 1.10e-14 |
+| High | 0 | 189 | 2.91e-11 | 8.17e-15 |
+| Base, gearing 0 | 0 | 189 | 2.91e-11 | 9.75e-15 |
+| Base, BESS price 0 | 0 | 189 | 5.82e-11 | 1.78e-14 |
+| Base, fixed term 0 | 0 | 189 | 2.91e-11 | 1.03e-13 |
+| Low, BESS income override 3,000 | 0 | 187 | 5.82e-11 | 1.30e-13 |
+| Base, BESS income override 3,000 | 0 | 189 | 2.91e-11 | 1.05e-14 |
 
 Base results (workbook):
 
@@ -123,10 +126,11 @@ Base results (workbook):
 | Hold: Levered: IRR, after tax | 7.31 % | 4.56 % | 4.38 % |
 | Hold: Levered: IRR, before tax | 7.77 % | 4.92 % | 4.75 % |
 | Hold: Levered: MOIC, after tax | 4.096x | 2.281x | 1.973x |
-| BESS cycles per day | 0.0 | 0.6 | 0.6 |
-| BESS discharge above the fixed cycles (GWh) | 0.0 | 0.0 | 0.0 |
+| BESS discharge, first full year (GWh) | 0.0 | 21.3 | 43.5 |
+| BESS cycles per day, first full year | 0.0 | 0.6 | 0.6 |
+| BESS yearly income at the fixed price, first full year | 0.0 | 1,487.5 | 2,394.9 |
 | BESS revenue | 0.0 | 1,487.5 | 2,394.9 |
-| of which fixed price on the fixed cycles | 0.0 | 1,487.5 | 2,394.9 |
+| of which at the fixed price | 0.0 | 1,487.5 | 2,394.9 |
 
 ## 4. Each §13 change inside the v3 structure (v3 shadow, cumulative; appendix)
 

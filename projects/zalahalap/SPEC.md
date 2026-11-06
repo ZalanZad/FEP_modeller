@@ -285,8 +285,8 @@ machine precision. No v3 column in the workbook (§0).
 Report: sheet/row counts; the Base results per case and strategy; the Low/High spread; the bridge; anything infeasible.
 
 ## 11. Open items (placeholders stay flagged; answers refine the defaults)
-1. PPA price basis: 45 €/MWh nominal flat (MVM) is the default; E.ON indexed or MET 43.96 can be typed into the lever.
-   Confirm the MVM scope (PV meter vs POD; BESS inside the 45?).
+1. PV price basis: since v2.5 (§14) a fixed 45 €/MWh nominal on all PV output for 8 years (user), no offer in the
+   workbook; the offer terms (E.ON, MET/E2, MVM) stay in ASSUMPTIONS.md §2 for the counterparty discussion.
 2. PV-only capture: Aurora standalone-solar row if it exists, else the 2 h block's direct price as a flagged proxy.
 3. BESS capex 110 k€/MWh (2026 quote for 2 h and 4 h); repower 2048.
 4. aFRR-down/FCR share deliverable from PV state of charge (0; worth 12–17 % of the stack).
@@ -296,7 +296,7 @@ Report: sheet/row counts; the Base results per case and strategy; the Low/High s
 8. Tax: Robin Hood, depreciation lives, participation exemption, HIPA rate.
 9. JV: SPV price 549, DSA 945, the unmodelled 562.5 k€ loan, 120 vs 90 k€/MWp basis, COD-sale and hold treatment of PSH.
 10. Early works treatment as a whole (user: to be revisited).
-11. Financing: out of scope for now; a term sheet brings it back (SPEC_v1 §8 debt design, Bana method).
+11. Financing: the §12.2 levered case (60 %, 5 %, 20-year annuity) until a term sheet (DSCR sizing, fees, DSRA).
 12. Sale costs 0 %, route-to-market fee 0 %, GoO 1.75 (Fable recommends 1.5 %, 2 %, 1.0).
 13. **Fix round (review of a4d876f).** Clipping is a per-case Dashboard lever: PV only 2 % (v3, fix 5; 63 MWp on
     49.9 MVA with no battery to absorb it), BESS cases 0 % (DC-coupled) – placeholder. BESS fixed opex is split into
@@ -321,6 +321,15 @@ Report: sheet/row counts; the Base results per case and strategy; the Low/High s
 16. **v2.3 (user 05-Nov-2026).** O&M 10 k€/MWp/yr all-in (MV cable O&M inside it, row kept at 0); debt stays 60 %.
     Formulas simplified with outputs proven unchanged (flag rows, cumulative-month rows, direct case links, helper
     rows); the audit warns on formulas over 80 characters (only the accrual factors and the Checks remain).
+17. **v2.5 (§14), as built.** Removed: the structure selector and table, the BESS-basis lever and options (incl.
+    tolling and "None"), the share-above-cycles tier, the offers table, the PPA indexation lever and the MV cable O&M
+    row (0, inside the all-in O&M). Open: (a) one fixed term (8 years) for PV and BESS – the user gave 8 years for the
+    PV only; (b) the override applies as override × discharge ÷ first-full-year discharge: the discharge already carries
+    the operating share and the in-service flag, so §14's extra "× operating share × in service" would count the
+    COD-year fraction twice and is not applied; (c) the override needs a BESS (Checks flags an override on PV only);
+    (d) Low/High do not move the fixed prices (only the merchant years and the merchant BESS stack), as before;
+    (e) IRRs with no root show n/a (allowed only when MOIC < 1); the buyer-at-RtB XIRR starts at
+    MIN(target, MOIC − 1).
 
 ## 12. v2.1 – timeline rebase and the levered case (user, 04-Nov-2026)
 User, verbatim: "now it is the end of 2026 so make the model based on that the costs will arrive in 2027 and

@@ -1,11 +1,11 @@
-"""Independent Python shadow of the Zalahaláp workbook (SPEC v2.1): one case, one sensitivity case; grid "to 2026",
+"""Independent Python shadow of the Zalahaláp workbook (SPEC v2.5): one case, one sensitivity case; grid "to 2026",
 2027 … 2064, unlevered and levered.
 
 Coded from the SPEC (§4–§6) and the input values, not from the workbook's formulas; reconcile.py compares it with the
 recalculated workbook (machine precision) and uses its switches for the last steps of the v3 → v2 bridge.
 
     run("PV + 4h BESS", "Base")                  → dict of headline results
-    run("PV + 4h BESS", "Base", ppa_years=0)     → overrides (any key of params())
+    run("PV + 4h BESS", "Base", fix_years=0)     → overrides (any key of params())
 Stdlib only.
 """
 from __future__ import annotations
@@ -28,12 +28,12 @@ BLOCK = {2: "2027 solar DC 1.0cy 2h", 4: "2027 solar DC 1.0cy 4h"}
 
 
 def params(**over):
-    p = dict(mwp=63, mva=49.9, yld=1265, structure="Fixed + share", ppa_price=None, ppa_index=0.0, ppa_years=None,
-             basis=None, fix_price=None, fix_cycles=None, fix_share=None, fix_years=None, rtb_price=90,
+    p = dict(mwp=63, mva=49.9, yld=1265, pv_price=45, fix_years=8, bess_price=None, bess_income=0,
+             bess_merchant_term=0, rtb_price=90,
              cod_price=0, acq=D(2025, 11, 30), rtb=D(2026, 12, 31), exit=D(2027, 3, 31), ntp=D(2027, 1, 1),
              cod=D(2028, 3, 1), life=35, capex_year=2027, gearing=0.6, debt_rate=0.05, tenor=20, draw_timing=0.5, avail=0.995, deg=0.003, clip=None, goo=1.75, pv_only_hours=2, rte=0.86,
-             haircut=0.0, afrr=0.0, bess_capex=110, repower=1, opex_mw=18.70, opex_mwh=6.07, balancing=5.0, toll_start=D(2028, 1, 1),
-             toll_years=3, toll_fee=49.7, pv_capex=350, cable=3700, subst=9500, grid_fee=0, land=620, ew_ntp=725,
+             haircut=0.0, afrr=0.0, bess_capex=110, repower=1, opex_mw=18.70, opex_mwh=6.07, balancing=5.0,
+             pv_capex=350, cable=3700, subst=9500, grid_fee=0, land=620, ew_ntp=725,
              om=10, cable_om=0, lease=96, hipa=0.02, innov=0.003, spv=549, trans=200, dsa=15,
              dsa_first=D(2025, 12, 31), pre_total=3182, pre_first=D(2026, 10, 31), pre_last=D(2027, 3, 31), fx=400,
              bg=0.0187 + 0.0175, rate=0.12, share_low=0.6, share_high=0.5, threshold=90, psh_land=150, psh_devex=15,
@@ -162,32 +162,21 @@ def factor(d, end, r):
 
 
 # ------------------------------------------------------------------------------------------- model
-STRUCT = {  # Revenue sheet "Commercial structures" (v2.4): per case PPA price and BESS fixed price
-    "PPA uplift": dict(ppa=(55, 80, 85), ppa_years=8, basis="None", fixed=(0, 0, 0), cycles=0, share=0, fix_years=0),
-    "Fixed + share": dict(ppa=(45, 45, 45), ppa_years=8, basis="Fixed + share", fixed=(0, 70, 55), cycles=1,
-                          share=0.7, fix_years=8),
-    "Merchant": dict(ppa=(80, 80, 80), ppa_years=8, basis="Merchant", fixed=(0, 0, 0), cycles=0, share=0, fix_years=0)}
+BESS_PRICE = (0, 70, 55)     # Dashboard lever "BESS fixed price" per case (v2.5, user 06-Nov-2026)
 
 
 def run(case="PV + 4h BESS", sens="Base", **over):
     p = params(**over)
     c, s = CASES[case], SENS[sens]
     k = list(CASES).index(case)
-    t = STRUCT[p["structure"]]
-    for key, val in (("ppa_price", t["ppa"][k]), ("ppa_years", t["ppa_years"]), ("basis", t["basis"]),
-                     ("fix_price", t["fixed"][k]), ("fix_cycles", t["cycles"]), ("fix_share", t["share"]),
-                     ("fix_years", t["fix_years"])):
-        if p[key] is None:
-            p[key] = val
-    valued = p["basis"] != "None"
-    fixed_on = p["basis"] == "Fixed + share"
+    bess_price = BESS_PRICE[k] if p["bess_price"] is None else p["bess_price"]
     clip = c["clip"] if p["clip"] is None else p["clip"]
     built, mw = c["built"], c["mw"] * c["built"]
     hours = c["hours"]
     mwh = built * c["mw"] * hours
     mwp = p["mwp"]
     codl = edate(p["cod"], s["delay"])
-    blk = BLOCK[hours] if built and valued else BLOCK[p["pv_only_hours"]]
+    blk = BLOCK[hours] if built else BLOCK[p["pv_only_hours"]]
     rep_cnt = AU[("repower_count", blk)]
     rep_year = next(y for y in range(2026, 2061) if rep_cnt[y] >= 1)
     pxd_m, pxs_m = series("direct_price", blk), series("transfer_price", blk)
@@ -197,50 +186,45 @@ def run(case="PV + 4h BESS", sens="Base", **over):
     R = {k: [] for k in ("gen", "sent", "direct", "dis", "rev", "rpv", "rbess", "rgoo", "opex", "ebitda", "capt",
                          "capex", "ewntp", "aug", "tax", "lapse", "oshare", "yrs", "ppa", "pxd", "bal")}
     first_full = codl.year + 1
+    ph = []                                                   # physical year by year (the price does not drive it)
     for y in YEARS:
         yrs = y - codl.year
-        cshare = 1.0 * (y == p["capex_year"])                 # all construction capex in one year
         omon = (y + 1 - codl.year) * 12 - codl.month + 1      # COD = first day of production
         osh = max(0, min(omon, L12) - max(omon - 12, 0)) / 12
-        degf = (1 - p["deg"]) ** max(yrs - 1, 0)
         live = 1 - (1 - p["repower"]) * (y >= rep_year)
+        gen = mwp * p["yld"] * (1 + s["cy"]) * (1 - clip) * p["avail"] * (1 - p["deg"]) ** max(yrs - 1, 0) * osh
+        sent = min(gen, chg[y] * mw * osh * live)
+        ph.append((yrs, omon, osh, live, gen, sent, gen - sent, min(dmw[y] * mw * osh * live, sent * p["rte"])))
+    dis_ffy = ph[YEARS.index(first_full)][7]
+    for y, (yrs, omon, osh, live, gen, sent, direct, dis) in zip(YEARS, ph):
+        cshare = 1.0 * (y == p["capex_year"])                 # all construction capex in one year
         repf = p["repower"] * (y == rep_year)
         idx = IDX[y]
-        gen = mwp * p["yld"] * (1 + s["cy"]) * (1 - clip) * p["avail"] * degf * osh
-        sent = min(gen, chg[y] * mw * osh * live * valued)
-        direct = gen - sent
-        dis = min(dmw[y] * mw * osh * live, sent * p["rte"])
-        # prices (Revenue bar 3)
+        # prices (Revenue bar 3): fixed term from COD, then Aurora merchant
         m0 = (y - codl.year) * 12 - codl.month + 1
         opm = max(0, min(12, L12 - m0) - max(0, -m0))
-        ts = max(p["toll_start"], codl)
-        t0 = (y - ts.year) * 12 - ts.month + 1
         md = pxd_m[y] * idx * (1 + s["cpv"])
         ms = pxs_m[y] * idx * (1 + s["cpv"])
-        ppa = max(0, min(12, p["ppa_years"] * 12 - m0) - max(0, -m0)) / max(1, opm)
-        ppx = p["ppa_price"] * (1 + p["ppa_index"]) ** (y - codl.year)
-        pxd, pxs = md + ppa * (ppx - md), ms + ppa * (ppx - ms)
-        upl = built * valued * (1 - p["haircut"]) * (1 + s["cb"]) * st[y] * (pvo[y] + dcs[y] * p["afrr"]) * idx
-        tol = (p["basis"] == "Tolling") * max(0, min(12, p["toll_years"] * 12 - t0) - max(0, -t0)) / max(1, opm)
-        bess_px = upl + tol * (p["toll_fee"] - upl)
+        fts = max(0, min(12, p["fix_years"] * 12 - m0) - max(0, -m0)) / opm if opm else 0.0
+        pxd, pxs = md + fts * (p["pv_price"] - md), ms + fts * (p["pv_price"] - ms)
+        upl = built * (1 - p["haircut"]) * (1 + s["cb"]) * st[y] * (pvo[y] + dcs[y] * p["afrr"]) * idx
         rpv = (direct * pxd + sent * pxs) / 1000
         rgoo = gen * p["goo"] * idx / 1000
-        fm = max(0, min(12, p["fix_years"] * 12 - m0) - max(0, -m0))
-        fts = fixed_on * fm / opm if opm else 0.0
-        real = upl * 1000 / dmw[y] if dmw[y] else 0.0
-        dfix = min(dis, p["fix_cycles"] * mwh * 365 * osh * live)
-        dabove = dis - dfix
-        rbfix = p["fix_price"] * dfix * fts / 1000
-        rbsh = p["fix_share"] * real * dabove * fts / 1000
-        rbess = rbfix + rbsh + mw * bess_px * osh * live * (1 - fts)
+        if p["bess_income"] > 0:                              # override: first-full-year income, scaled by discharge
+            bfy = p["bess_income"] * (dis / dis_ffy if dis_ffy else 0.0)
+        else:
+            bfy = bess_price * dis / 1000
+        bterm = fts * (1 - p["bess_merchant_term"])           # bridge only: BESS merchant inside the term too
+        rbfix = bfy * bterm
+        rbess = rbfix + mw * upl * osh * live * (1 - bterm)
         R.setdefault("rbfix", []).append(rbfix)
-        R.setdefault("dabove", []).append(dabove)
+        R.setdefault("bfy", []).append(bfy)
         rev = rpv + rgoo + rbess
-        opex = (-(p["om"] + p["cable_om"]) * mwp * idx * osh - gen * p["balancing"] * idx * (1 - ppa) / 1000
+        opex = (-(p["om"] + p["cable_om"]) * mwp * idx * osh - gen * p["balancing"] * idx * (1 - fts) / 1000
                 - p["lease"] * idx * osh - (p["opex_mw"] * mw + p["opex_mwh"] * mwh) * idx * osh * live - rev * (p["hipa"] + p["innov"]))
         for k, v in (("gen", gen), ("sent", sent), ("direct", direct), ("dis", dis), ("rev", rev), ("rpv", rpv),
                      ("rbess", rbess), ("rgoo", rgoo), ("opex", opex), ("ebitda", rev + opex), ("oshare", osh),
-                     ("yrs", yrs), ("ppa", ppa), ("pxd", pxd)):
+                     ("yrs", yrs), ("ppa", fts), ("pxd", pxd)):
             R[k].append(v)
         R.setdefault("cshare", []).append(cshare)
         R.setdefault("omon", []).append(omon)
@@ -430,7 +414,7 @@ def run(case="PV + 4h BESS", sens="Base", **over):
     return dict(
         case=case, sens=sens,
         gen_ffy=R["gen"][i_ffy], rbess_ffy=R["rbess"][i_ffy], rbfix_ffy=R["rbfix"][i_ffy],
-        dabove_ffy=R["dabove"][i_ffy], cycles_day=R["dis"][i_ffy] / mwh / 365 if mwh else 0.0, sent_ffy=R["sent"][i_ffy], dis_ffy=R["dis"][i_ffy], rev_ffy=R["rev"][i_ffy],
+        bfy_ffy=R["bfy"][i_ffy], cycles_day=R["dis"][i_ffy] / mwh / 365 if mwh else 0.0, sent_ffy=R["sent"][i_ffy], dis_ffy=R["dis"][i_ffy], rev_ffy=R["rev"][i_ffy],
         ebitda_ffy=R["ebitda"][i_ffy], rev_life=sum(R["rev"]), ebitda_life=sum(R["ebitda"]), tax_life=sum(R["tax"]),
         capex_total=k_tot, cash_to_rtb=-sum(a for a, _, _ in lines), buyer_reimb=buyer_reimb,
         implied_rtb=implied, implied_raw=(ev_x - buyer_reimb) / mwp, rtb_price=price, allin=allin, buyer_rtb=buyer_rtb, buyer_rtb_pre=buyer_rtb_pre,

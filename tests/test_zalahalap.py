@@ -86,12 +86,12 @@ def test_excel_xirr_converges_from_the_workbook_guess():
     """Excel's XIRR (Newton) returns ~0 when it fails: from the workbook's start guess (MIN(10 %, MOIC − 1); buyer at
     RtB: MIN(target, MOIC − 1); buyer at COD: the target) every IRR of the shadow converges to the exact root, and
     where no root exists (the workbook shows n/a) the money multiple is below 1 (Base, Low, High; all cases, routes
-    and revenue structures)."""
+    and lever flips)."""
     shadow = _load("zalahalap_shadow", PROJECT / "shadow.py")
-    for st in shadow.STRUCT:
+    for st in ({}, dict(bess_price=0), dict(bess_income=3000), dict(fix_years=0)):
         for case in shadow.CASES:
             for sens in ("Base", "Low", "High"):
-                res = shadow.run(case, sens, structure=st)
+                res = shadow.run(case, sens, **st)
                 for key, (flows, dates) in res["irr_flows"].items():
                     cap = res["buyer_start"] if key.startswith("buyer_rtb") else 0.1
                     start = res["buyer_start"] if key == "buyer_cod" else shadow.guess(flows, cap=cap)

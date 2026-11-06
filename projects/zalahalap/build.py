@@ -1,11 +1,11 @@
-"""Zalahaláp – 63 MWp PV, with or without a 50 MW BESS: investment model, SPEC v2.2 (wind-model format).
+"""Zalahaláp – 63 MWp PV, with or without a 50 MW BESS: investment model, SPEC v2.5 (wind-model format).
 
 One workbook, `out/Zalahalap_Model.xlsx` (no macros): Dashboard · Inputs · Revenue · Calc · Checks, annual "to 2026",
-2027 … 2064, three cases as columns (E PV only, F PV + 2 h BESS, G PV + 4 h BESS), unlevered and levered. PV sells
-under a PPA at the lever price on all output (80 €/MWh for 8 years from COD), then at Aurora's merchant prices; the
-BESS earns Aurora's block uplift × the PV-only factor (or the MET tolling fee). Base / Low / High through `Dash_Case`.
-The pre-COD cash is dated on the Dashboard (RtB route, XIRR) and mapped to the annual grid for the hold and COD routes.
-Every XIRR carries a start guess (MIN(10 %, MOIC − 1)): Excel's XIRR returns ~0 instead of an error when it fails.
+2027 … 2064, three cases as columns (E PV only, F PV + 2 h BESS, G PV + 4 h BESS), unlevered and levered. In the fixed
+term from COD the PV sells at a fixed €/MWh on all output and the BESS at a fixed €/MWh discharged (or a yearly income
+override); after it both are merchant on Aurora central (BESS: block uplift × the PV-only factor). Base / Low / High
+through `Dash_Case`. The pre-COD cash is dated on the Dashboard (RtB route, XIRR) and mapped to the annual grid for the
+hold and COD routes. Every XIRR carries a start guess (Calc column H): Excel's XIRR returns ~0 when it fails.
 """
 from __future__ import annotations
 
@@ -81,7 +81,7 @@ def dashboard_top(book):
     lv("Name", "Case", "text", CASES, source="User 03-Nov-2026: PV only, 2 h, 4 h")
     lv("MWp", "PV capacity", "MWp", [63, 63, 63], source="Teaser p1")
     lv("MVA", "Grid export capacity", "MVA", [49.9, 49.9, 49.9], source="Teaser p1")
-    lv("Yield", "Specific yield", "MWh/MWp", [1265, 1265, 1265], source="Teaser p1 (79.7 GWh); offerors 1,199–1,245")
+    lv("Yield", "Specific yield", "MWh/MWp", [1265, 1265, 1265], source="Teaser p1 (79.7 GWh)")
     lv("Clipping", "Clipping and curtailment (63 MWp on 49.9 MVA)", "%", [0.02, 0, 0],
        source="ZHLP v3 fix 5 (2 %); DC-coupled BESS 0; " + PH)
     lv("BESS_On", "BESS built (1 = yes)", "flag", [0, 1, 1], source="User 03-Nov-2026", options=[0, 1])
@@ -89,39 +89,23 @@ def dashboard_top(book):
     lv("Hours", "BESS duration (2 or 4 hours)", "h", [0, 2, 4], source="User 03-Nov-2026", options=[0, 2, 4])
     d.row("MWh", "BESS energy", "MWh", cases="={BESS_On}*{BESS_MW}*{Hours}")
     book.define("BESS_MWh", d.ref("MWh", "cases"))
-    d.row("block", "Aurora block (BESS revenue and volumes)", "text",
-          cases='=IF({BESS_On}=1,"DC "&{Hours}&"h","–")', fmt="general")
+    d.row("block", "Aurora block (PV prices, BESS volumes; PV only: 2 h)", "text",
+          cases='=IF({BESS_On}=1,"DC "&{Hours}&"h",PV_Only_Block)', fmt="general")
     book.define("Block_Code", d.ref("block", "cases"))
-    lv("Structure", "Revenue structure (PPA uplift, Fixed + share, Merchant)", "text", ["Fixed + share"] * 3,
-       source="Terms: Revenue table; PV-only charging ≈ 0.6 cycles/day", options="Structures")
-    pick = lambda name, per_case: {c: f"=INDEX({name}{'_' + str(i + 1) if per_case else ''},MATCH({{Structure}},Structures,0))"
-                                   for i, c in enumerate("efg")}
-    d.row("Basis", "BESS revenue basis (from the structure)", "text", **pick("Str_Basis", False), fmt="general",
-          source="None = PPA uplift only: no charging, no BESS revenue", src_col="J")
-    book.define("Dash_Basis", d.ref("Basis", "cases"))
-    d.row("pblock", "Aurora block for the PV prices (2 h proxy if no BESS)", "text",
-          cases='=IF(AND({BESS_On}=1,{Basis}<>"None"),{block},PV_Only_Block)', fmt="general")
-    book.define("Price_Block", d.ref("pblock", "cases"))
-    d.row("PPA_Price", "PPA price, nominal (from the structure)", "EUR/MWh", **pick("Str_PPA", True), fmt="money2",
-          source="User 05/06-Nov-2026 (offers: Revenue)", src_col="J")
-    book.define("Dash_PPA_Price", d.ref("PPA_Price", "cases"))
-    lv("PPA_Index", "PPA indexation", "%/yr", [0, 0, 0], source="MVM: none stated")
-    d.row("PPA_Years", "PPA tenor from COD, then merchant (from the structure)", "years",
-          **pick("Str_PPA_Years", False), source="User instruction 05-Nov-2026", src_col="J")
-    book.define("Dash_PPA_Years", d.ref("PPA_Years", "cases"))
-    d.row("Fix_Price", "BESS fixed price, €/MWh discharged (Fixed + share)", "EUR/MWh", **pick("Str_Fixed", True),
-          fmt="money1", source="User 06-Nov-2026: 70 (2 h) / 55 (4 h)", src_col="J")
-    d.row("Fix_Cycles", "BESS fixed cycles per day (Fixed + share)", "#", **pick("Str_Cycles", False), fmt="money1",
-          source="User 06-Nov-2026: 1 cycle/day", src_col="J")
-    d.row("Fix_Share", "Our share of BESS revenue above the fixed cycles", "%", **pick("Str_Share", False),
-          source="User 06-Nov-2026: 70/30 to us", src_col="J")
-    d.row("Fix_Years", "BESS fixed tenor from COD (Fixed + share)", "years", **pick("Str_Fixed_Years", False),
-          source="Equal to the PPA tenor (user did not say)", src_col="J")
+    usr = "User 06-Nov-2026"
+    lv("PV_Price", "PV fixed price, nominal, on all PV output", "EUR/MWh", [45, 45, 45], source=usr, fmt="money2")
+    lv("Fix_Years", "Fixed term from COD, PV and BESS (then merchant)", "years", [8, 8, 8], source=usr)
+    lv("BESS_Price", "BESS fixed price per MWh discharged (0 = none)", "EUR/MWh", [0, 70, 55], source=usr,
+       fmt="money2")
+    lv("BESS_Income", "BESS yearly income override (0 = from the €/MWh)", "EUR k/yr", [0, 0, 0],
+       source="First full year; scaled by discharge in other years")
+    for key, label, unit in (("o_dis", "BESS discharge, first full year", "GWh"),
+                             ("o_cyc", "BESS cycles per day, first full year", "#"),
+                             ("o_inc", "BESS yearly income at the fixed price, first full year", "EUR k")):
+        d.row(key, label, unit, cases="=0", fmt="money2" if key == "o_cyc" else None)   # links: dashboard()
     lv("RtB_Price", "RtB price, premium (0 = implied)", "EUR k/MWp", [90, 90, 90],
        source="ZHLP v3 Stat_inp E24; " + PH)
     lv("COD_Price", "COD price (0 = implied)", "EUR k/MWp", [0, 0, 0], source="Implied at the buyer target IRR")
-    d.row("toll_cfg", "Tolling offer ≠ built battery (1 = fee not scaled)", "flag",
-          cases='=N(AND({Basis}="Tolling",{MWh}<>Offer_MET_MWh))', source="MET offer: 50 MW / 90 MWh", src_col="J")
     fin = "User instruction 04-Nov-2026, not a bank term"
     lv("Gearing", "Gearing: debt share of capex to COD (0 = unlevered)", "%", [0.6, 0.6, 0.6], source=fin)
     lv("Debt_Rate", "Debt rate, all-in", "%", [0.05, 0.05, 0.05], source=fin)
@@ -202,19 +186,8 @@ def inputs(book):
     a("BESS_Opex_MWh", "BESS fixed opex per MWh, real 2025", "EUR k/MWh/yr", 6.07,
       "Aurora Inputs r38-39: (42.96 − 30.83) ÷ 2 h")
 
-    i.sub("BESS revenue basis options (list for the structures table and the checks)")
-    first = i.r
-    for label, v in (("Aurora merchant stack (PV-only factor)", "Merchant"), ("MET full tolling, then merchant", "Tolling"),
-                     ("No BESS revenue: PPA uplift only, no charging", "None"),
-                     ("Fixed €/MWh on the fixed cycles, share above", "Fixed + share")):
-        i.row(None, label, "text", e=v, inputs=("E",), source="SPEC v2.4 §13.1", fmt="general")
-    book.define("Basis_Options", f"Inputs!$E${first}:$E${i.r - 1}")
-    i.sub("Contracts (terms: Revenue structures table and offers)")
+    i.sub("Merchant years (after the fixed term)")
     a("Balancing", "Balancing cost, merchant years only, real 2025", "EUR/MWh", 5, "ZHLP v3 Control D60")
-    a("Toll_Start", "Tolling start (fixed fee, then merchant)", "date", D(2028, 1, 1), "MET offer p5")
-    a("Toll_Years", "Tolling tenor", "years", 3, "MET offer p5 (4-year option 46.4)")
-    i.note("PPA from COD, pay-as-produced on all PV output at the nominal lever price; tolling fee read from "
-           "Revenue (Offer_Tolling_MET_3y).")
 
     i.sub("Capex to COD (2025 prices)")
     a("PV_Capex", "PV equipment and balance of plant", "EUR k/MWp", 350, "ZHLP v3 Control D82:D83 (330 + 20)")
@@ -227,8 +200,6 @@ def inputs(book):
     i.sub("Opex (real 2025, × the Aurora euro index)")
     a("OM_Cost", "O&M, all-in (PV, BoP, MV cable, insurance, management)", "EUR k/MWp/yr", 10,
       "User 05-Nov-2026: 10 k€/MWp/yr all-in (v3: 14.96)")
-    a("Cable_OM", "MV cable O&M (inside the all-in O&M above)", "EUR k/MWp/yr", 0,
-      "Inside the 10 (user 05-Nov-2026; v3: 5)")
     a("Lease", "Land lease from COD", "EUR k", 96, "ZHLP v3 Control D61")
     a("HIPA", "Local business tax (HIPA), on revenue", "%", 0.02, "Bana; " + PH)
     a("Innovation", "Innovation contribution, on revenue", "%", 0.003, "Act LXXVI/2014; " + PH, fmt="0.00%")
@@ -309,17 +280,14 @@ def inputs(book):
     a("Discount_Rate", "FEP discount rate (NPV)", "%", 0.08, "ZHLP v3 Control D9")
     a("Sale_Cost_RtB", "Sale costs at RtB, share of the consideration", "%", 0, PH)
     a("Sale_Cost_COD", "Sale costs at COD, share of the price", "%", 0, PH)
-    i.note("Buyer target IRR: Dashboard sensitivity case (Case_Buyer_IRR, unlevered after tax).")
-
-    i.sub("Financing")
-    i.note("Debt – out of scope for now (user 03-Nov-2026); the model is unlevered.", italic=False)
+    i.note("Buyer target IRR: Dashboard sensitivity case (Case_Buyer_IRR); debt terms: Dashboard levers.")
     i.end()
     return i
 
 
 # =========================================================================================== Revenue
 def revenue(book):
-    rv = book.sheet("Revenue", "Zalahaláp – revenue: Aurora, offers, prices by case", timeline=True, widths={"E": 26, "F": 26, "G": 26, "H": 30})
+    rv = book.sheet("Revenue", "Zalahaláp – revenue: Aurora and prices by case", timeline=True, widths={"E": 26, "F": 26, "G": 26, "H": 30})
     au = aurora()
     rv.bar("Aurora Q2-2026 Hungary, Central, real 2025 € (data/aurora_curves.csv)", e=["Block"], h="Source")
     series = [  # (key, label, unit, Aurora series, block code or None, sign, format)
@@ -362,38 +330,24 @@ def revenue(book):
            f=rep["DC 2h"], inputs=("E", "F"), source="Aurora Degraded batteries s+1 (rows 140, 97)")
     book.define("Aurora_Blocks", f"Revenue!$E${rv.row_of('pvd4')}:$E${rv.row_of('pvd2')}")
     book.define("Repower_Year", f"Revenue!$E${rv.row_of('rep')}:$F${rv.row_of('rep')}")
-    rv.note("Aurora's BESS stack is a fixed dispatch per block: it does not re-optimise when prices or the PPA change. "
+    rv.note("Aurora's BESS stack is a fixed dispatch per block: it does not re-optimise when the fixed prices change. "
             "Rows 2061–2064 repeat 2060 (flat real).")
     rv.note("PV only: no standalone-solar capture in the databook; the DC 2 h block's direct price is the PV-only "
             "capture proxy (flagged). It is below v3's 65 % × baseload from 2031 (56 % on average 2030–60); the HU "
             "solar capture series is requested from Aurora.")
 
     rv.blank()
-    rv.bar("Offtake offers as stated – indicative; E = E.ON, F = MET/E2, G = MVM; H = PDF page",
-           e=["E.ON", "MET / E2", "MVM"], h="Source")
-    offers(book, rv)
-
-    rv.blank()
-    structures(book, rv)
-
-    rv.blank()
-    rv.bar("Resulting prices by case, nominal – PPA in its tenor, then the Aurora merchant tail",
+    rv.bar("Resulting prices by case, nominal – fixed price in the term, then the Aurora merchant tail",
            e=_case_links(book, rv))
     rv.row("yr", "Year", "year", t="={c}$4", fmt="int", bold=True)
-    rv.sub("Contract timing (live case): months counted to each year end, then per year")
-    since = "=({year}+1-YEAR(#))*Months_In_Year-MONTH(#)+1"
-    rv.row("msince", "Months since COD at year end", "months", t=since.replace("#", "COD_Live"), fmt="int")
+    rv.sub("Operating months (live case): counted to each year end, then per year")
+    rv.row("msince", "Months since COD at year end", "months",
+           t="=({year}+1-YEAR(COD_Live))*Months_In_Year-MONTH(COD_Live)+1", fmt="int")
     rv.row("ocum", "Operating months to year end (E: life in months)", "months", e="=Life*Months_In_Year",
            t="=MIN({self.E},MAX(0,{msince}))", fmt="int")
     rv.row("opm", "Operating months in the year", "months", t="={ocum}-{ocum.prev}", fmt="int")
-    rv.row("ts", "Tolling start: later of the offer start and COD", "date", e="=MAX(Toll_Start,COD_Live)")
-    rv.row("tsince", "Months since the tolling start at year end", "months", t=since.replace("#", "{ts.E}"), fmt="int")
-    rv.row("tcum", "Tolling months to year end (E: tenor in months)", "months", e="=Toll_Years*Months_In_Year",
-           t="=MIN({self.E},MAX(0,{tsince}))", fmt="int")
-    rv.row("tolm", "Tolling months in the year", "months", t="={tcum}-{tcum.prev}", fmt="int")
-    rv.row("bfac", "BESS revenue factor: (1 − haircut) × (1 + case)", "factor",
+    rv.row("bfac", "BESS merchant factor: (1 − haircut) × (1 + case)", "factor",
            e="=(1-BESS_Haircut)*(1+Case_BESS)")
-    a, b = rv.row_of("pvd4"), rv.row_of("pvd2")
     idx = f"{{c}}${book.idx}"
     pair = lambda k: f"{{c}}${rv.row_of(k + '4')}:{{c}}${rv.row_of(k + '4') + 1}"      # noqa: E731 (4 h, 2 h rows)
     dl = book.lever_rows
@@ -406,11 +360,8 @@ def revenue(book):
         rv.ws.cell(r, 3, f"=Dashboard!${col}${dl['Name']}")
         rv.ws.cell(r, 5).number_format = '"Case "0'
         rv.scope = f"c{k}_"
-        rv.row("bflag", "BESS basis: valued (E), fixed + share (F) (1/0)", "flag",
-               e=f'=N({dash("Basis")}<>"None")', f=f'=N({dash("Basis")}="Fixed + share")')
         rv.row("pos", "Merchant PV price, direct (E: block, F: BESS factor)", "EUR/MWh",
-               e=f"=MATCH({dash('pblock')},Aurora_Blocks,0)",
-               f=f"={dash('BESS_On')}*{{bflag.E}}*$E${rv.row_of('bfac')}",
+               e=f"=MATCH({dash('block')},Aurora_Blocks,0)", f=f"={dash('BESS_On')}*$E${rv.row_of('bfac')}",
                t=f"=INDEX({pair('pvd')},{{self.E}})*{idx}*(1+Case_PV_Price)", fmts={"E": "int", "F": "factor"})
         rv.row("pvs", "Merchant PV price, stored energy (transfer price)", "EUR/MWh",
                t=f"=INDEX({pair('pvt')},{{pos.E}})*{idx}*(1+Case_PV_Price)")
@@ -418,30 +369,20 @@ def revenue(book):
                t=f"=INDEX({pair('chg')},{{pos.E}})", fmt="money")
         rv.row("dmw", "BESS discharge per MW (Aurora block)", "MWh/MW", t=f"=INDEX({pair('dis')},{{pos.E}})",
                fmt="money")
-        rv.row("pcum", "PPA months to year end (E: tenor in months)", "months",
-               e=f"={dash('PPA_Years')}*Months_In_Year", t="=MIN({self.E},{ocum})", fmt="int")
-        rv.row("ppm", "PPA months in the year", "months", t="={pcum}-{pcum.prev}", fmt="int")
-        rv.row("ppa", "PPA share of the operating months", "factor", t="=IF({opm}=0,0,{ppm}/{opm})")
-        rv.row("merch", "Merchant share of the operating months", "factor", t="=1-{ppa}")
-        rv.row("ppx", "PPA price (E: lever, F: indexation)", "EUR/MWh", e=f"={dash('PPA_Price')}",
-               f=f"={dash('PPA_Index')}", t="={self.E}*(1+{self.F})^({year}-YEAR(COD_Live))", fmts={"F": "pct"})
-        rv.row("pxd", "PV price received, direct export", "EUR/MWh", t="={ppa}*{ppx}+{merch}*{pos}", bold=True)
-        rv.row("pxs", "PV price received, stored energy", "EUR/MWh", t="={ppa}*{ppx}+{merch}*{pvs}", bold=True)
+        rv.row("fcum", "Fixed-term months to year end (E: term in months)", "months",
+               e=f"={dash('Fix_Years')}*Months_In_Year", t="=MIN({self.E},{ocum})", fmt="int")
+        rv.row("fm", "Fixed-term months in the year", "months", t="={fcum}-{fcum.prev}", fmt="int")
+        rv.row("fts", "Fixed-term share of the operating months", "factor", t="=IF({opm}=0,0,{fm}/{opm})")
+        rv.row("merch", "Merchant share of the operating months", "factor", t="=1-{fts}")
+        rv.row("pxd", "PV price received, direct export", "EUR/MWh", t=f"={{fts}}*{dash('PV_Price')}+{{merch}}*{{pos}}",
+               bold=True)
+        rv.row("pxs", "PV price received, stored energy", "EUR/MWh", t=f"={{fts}}*{dash('PV_Price')}+{{merch}}*{{pvs}}",
+               bold=True)
         rv.row("st", "BESS storage total, Aurora block (real)", "EUR k/MW", t=f"=INDEX({pair('st')},{{pos.E}})")
         rv.row("fac", "PV-only factor incl. the aFRR-down share", "factor",
                t=f"=INDEX({pair('pvo')},{{pos.E}})+INDEX({pair('dcs')},{{pos.E}})*AFRR_Share")
-        rv.row("upl", "BESS merchant revenue, nominal (× F above)", "EUR k/MW", t=f"={{st}}*{{fac}}*{idx}*{{pos.F}}")
-        rv.row("tol", "Tolling share of the operating months (E: basis)", "factor",
-               e=f'=N({dash("Basis")}="Tolling")', t="={self.E}*IF({opm}=0,0,{tolm}/{opm})", fmts={"E": "flag"})
-        rv.row("bess", "BESS revenue received", "EUR k/MW", t="={tol}*Offer_Tolling_MET_3y+(1-{tol})*{upl}",
+        rv.row("upl", "BESS merchant revenue, nominal (× F above)", "EUR k/MW", t=f"={{st}}*{{fac}}*{idx}*{{pos.F}}",
                bold=True)
-        rv.row("real", "Aurora realised price per MWh discharged", "EUR/MWh",
-               t="=IF({dmw}=0,0,{upl}*Thousand/{dmw})")
-        rv.row("fcum", "Fixed BESS months to year end (E: tenor in months)", "months",
-               e=f"={dash('Fix_Years')}*Months_In_Year", t="=MIN({self.E},{ocum})", fmt="int")
-        rv.row("fm", "Fixed BESS months in the year", "months", t="={fcum}-{fcum.prev}", fmt="int")
-        rv.row("fts", "Fixed-tenor share of the operating months", "factor",
-               t="={bflag.F}*IF({opm}=0,0,{fm}/{opm})")
         rows.append({k2[len(rv.scope):]: v for k2, v in rv.rows.items() if k2.startswith(rv.scope)})
         rv.scope = ""
         prev = r
@@ -450,86 +391,9 @@ def revenue(book):
     return rv
 
 
-STRUCTURES = ["PPA uplift", "Fixed + share", "Merchant"]
-STRUCT_ROWS = [  # name, label, unit, values (PPA uplift, Fixed + share, Merchant), fmt, source
-    ("Str_PPA_1", "PPA price, case E (PV only)", "EUR/MWh", [55, 45, 80], "money1", "User 06-Nov-2026 / 05-Nov-2026"),
-    ("Str_PPA_2", "PPA price, case F (PV + 2 h)", "EUR/MWh", [80, 45, 80], "money1", "User 06-Nov-2026 / 05-Nov-2026"),
-    ("Str_PPA_3", "PPA price, case G (PV + 4 h)", "EUR/MWh", [85, 45, 80], "money1", "User 06-Nov-2026 / 05-Nov-2026"),
-    ("Str_PPA_Years", "PPA tenor from COD", "years", [8, 8, 8], "int", "User 05/06-Nov-2026"),
-    ("Str_Basis", "BESS revenue basis (Inputs: options)", "text", ["None", "Fixed + share", "Merchant"], "general",
-     "User 06-Nov-2026; Tolling can be typed in"),
-    ("Str_Fixed_1", "BESS fixed price, case E (no BESS)", "EUR/MWh", [None, 0, None], "money1", "No BESS"),
-    ("Str_Fixed_2", "BESS fixed price, case F (2 h), per MWh discharged", "EUR/MWh", [None, 70, None], "money1",
-     "User 06-Nov-2026"),
-    ("Str_Fixed_3", "BESS fixed price, case G (4 h), per MWh discharged", "EUR/MWh", [None, 55, None], "money1",
-     "User 06-Nov-2026"),
-    ("Str_Cycles", "Fixed cycles per day", "#", [None, 1, None], "money1", "User 06-Nov-2026"),
-    ("Str_Share", "Our share of the revenue above the fixed cycles", "%", [None, 0.7, None], "pct", "User 06-Nov-2026"),
-    ("Str_Fixed_Years", "BESS fixed tenor from COD", "years", [None, 8, None], "int", "Equal to the PPA tenor; user did not say"),
-]
-
-
-def structures(book, rv):
-    """Commercial structures: blue terms per structure; the Dashboard picks a column per case (like Base/Low/High)."""
-    r = rv.bar("Commercial structures – the Dashboard's per-case selector picks a column", e=STRUCTURES, h="Source")
-    book.define("Structures", f"Revenue!$E${r}:$G${r}")
-    for name, label, unit, vals, fmt, src in STRUCT_ROWS:
-        cols = tuple(c for c, v in zip("EFG", vals) if v is not None)
-        rr = rv.row(None, label, unit, e=vals[0], f=vals[1], g=vals[2], inputs=cols, fmt=fmt, source=src)
-        book.define(name, f"Revenue!$E${rr}:$G${rr}")
-        if name == "Str_Basis":
-            rv.validate(f"E{rr}:G{rr}", "Basis_Options")
-
-
 def _src(src):
     s = src.replace("Degraded batteries", "Aurora DB").replace("Common Assumptions", "Aurora CA")
     return s if len(s) <= 60 else s[:57] + "…"
-
-
-def offers(book, rv):
-    """Offer terms as stated (ASSUMPTIONS.md §2.1–2.2). Reference only; two named cells feed the model."""
-    T = [  # label, unit, E.ON, MET/E2, MVM, source, fmt
-        ("Offeror and date", "text", "E.ON, 09-Oct-26", "MET / E2, 20-Oct-26", "MVM ONEnergy, 22-Sep-26",
-         "PDF p1; MVM e-mail", None),
-        ("Validity", "text", "to 12-Dec-26", "–", "–", "E.ON p1", None),
-        ("PV product", "text", "spot-indexed PaP", "fixed or DAM-indexed PaP", "fixed PaP", "E.ON p4; MET p3-4", None),
-        ("Fixed price, 3 years (2028–2030)", "EUR/MWh", None, 43.96, None, "MET p3", "money2"),
-        ("Fixed price, 4 years (2028–2031)", "EUR/MWh", None, 40.76, None, "MET p3", "money2"),
-        ("Fixed price, 5 years (2028–2032)", "EUR/MWh", None, None, 45, "MVM e-mail", "money2"),
-        ("Handling fee, share of DAM (indexed)", "%", 0.076, 0.05, None, "E.ON p4 §5.1; MET p4", "pct"),
-        ("Handling fee floor", "EUR/MWh", 5, 5.75, None, "E.ON p4; MET p4", "money2"),
-        ("Handling fee cap", "EUR/MWh", None, 10, None, "MET p4", "money2"),
-        ("Start", "text", "COD (2027 Q4–2028 Q1)", "01-Jan-2028", "01-Jan-2028", "E.ON p1; MET p3; MVM", None),
-        ("Tenor", "text", "max 3 years", "3 or 4 years", "5 years", "E.ON p1; MET p3; MVM", None),
-        ("Volume", "text", "100 % of output", "100 % of output", "generated volume", "E.ON p4; MET p4", None),
-        ("Balancing included (1 = yes)", "flag", 1, 1, 1, "E.ON p4; MET p3; MVM", "flag"),
-        ("Balance-group fee", "EUR/month", 250, None, None, "E.ON p4", "money"),
-        ("Guarantees of origin", "text", "option at 90 % of HUPX GO", "–", "–", "E.ON p4", None),
-        ("Downregulation", "text", "curtailment at ≤ 0 prices", "10 €/MWh; volume 0 if DAM−fee ≤ 0", "–",
-         "E.ON p4; MET p4", None),
-        ("Settlement point (our reading)", "text", "POD", "PV meter", "unclear – ask", "ASSUMPTIONS §2.1", None),
-        ("BESS product", "text", "flexibility agreement", "full tolling or floor + PSA", "none", "E.ON p3-5; MET p5-6",
-         None),
-        ("BESS configuration offered", "text", "50 MW / 100 MWh", "50 MW / 90 MWh", "–", "E.ON p1; MET p5", None),
-        ("BESS energy offered", "MWh", 100, 90, None, "E.ON p1 (p3 prints 10 MWh); MET p5", "money"),
-        ("Tolling fee, 3 years", "EUR k/MW/yr", None, 49.7, None, "MET p5", "money1"),
-        ("Tolling fee, 4 years", "EUR k/MW/yr", None, 46.4, None, "MET p5", "money1"),
-        ("Floor, 3 years (E.ON: 2027 / 2028 band)", "EUR k/MW/yr", "47 / 38", 45.6, None, "E.ON p5; MET p6", "money1"),
-        ("Floor, 4 years", "EUR k/MW/yr", None, 41.9, None, "MET p6", "money1"),
-        ("Share above the floor, to the owner", "text", "tiered fee 10–18 %", "50 %", "–", "E.ON p5; MET p6", None),
-        ("Option B: owner share of the net profit", "%", 0.9, None, None, "E.ON p5", "pct"),
-        ("Offeror's yield assumption", "text", "73,141 MWh on 61 MWp", "78,456 MWh on 63 MWp", "–",
-         "E.ON p3; MET p3", None),
-    ]
-    for label, unit, e, f, g, src, fmt in T:
-        cols = tuple(c for c, v in zip("EFG", (e, f, g)) if v is not None)
-        r = rv.row(None, label, unit, e=e, f=f, g=g, inputs=cols, source=src, fmt=fmt)
-        if label.startswith("Fixed price, 5 years"):
-            book.define("Offer_PPA_MVM", f"Revenue!$G${r}")
-        if label == "BESS energy offered":
-            book.define("Offer_MET_MWh", f"Revenue!$F${r}")
-        if label == "Tolling fee, 3 years":
-            book.define("Offer_Tolling_MET_3y", f"Revenue!$F${r}")
 
 
 # =========================================================================================== Calc
@@ -596,34 +460,30 @@ def calc(book, R):
         tot = "=SUM({self.all})"
         c.row("gen", "PV generation (E: first full year)", "MWh", e=ffy, h=tot,
               t="={cap.E}*{cap.F}*PV_Avail*{deg}*{oshare}")
-        c.row("bval", "BESS valued in revenue (E: 1/0; None = no charging)", "flag", e=f"=Revenue!$E${rr['bflag']}")
-        c.row("chcap", "BESS charging capacity from PV", "MWh",
-              t=f"={ref('chg')}*{{bess.E}}*{{oshare}}*{{live}}*{{bval.E}}")
+        c.row("chcap", "BESS charging capacity from PV", "MWh", t=f"={ref('chg')}*{{bess.E}}*{{oshare}}*{{live}}")
         c.row("sent", "PV energy sent to the BESS", "MWh", e=ffy, h=tot, t="=MIN({gen},{chcap})")
         c.row("direct", "PV energy exported directly", "MWh", e=ffy, h=tot, t="={gen}-{sent}")
         c.row("dcap", "BESS discharge capacity", "MWh", t=f"={ref('dmw')}*{{bess.E}}*{{oshare}}*{{live}}")
         c.row("dis", "BESS discharge (≤ PV charged × RTE, no grid charging)", "MWh", e=ffy, h=tot,
               t="=MIN({dcap},{sent}*BESS_RTE)")
-        c.row("fct", "Fixed + share: cycles/day (E), €/MWh (F), our share (G)", "#", e=f"={lever('Fix_Cycles')}",
-              f=f"={lever('Fix_Price')}", g=f"={lever('Fix_Share')}", fmts={"E": "money1", "F": "money1", "G": "pct"})
-        c.row("fcap", "Fixed-cycle discharge cap", "MWh", t="={fct.E}*{bess.F}*Days_In_Year*{oshare}*{live}")
-        c.row("dfix", "Discharge at the fixed price (up to the cap)", "MWh", e=ffy, h=tot, t="=MIN({dis},{fcap})")
-        c.row("dabove", "Discharge above the fixed cycles", "MWh", e=ffy, h=tot, t="={dis}-{dfix}")
+        c.row("drel", "BESS discharge relative to the first full year", "factor",
+              t="=IF({dis.E}=0,0,{dis}/{dis.E})")
         c.sub("Revenue")
         c.row("rpvd", "PV revenue, direct export", "EUR k", e=ffy, h=tot, t=f"={{direct}}*{ref('pxd')}/Thousand")
         c.row("rpvs", "PV revenue, energy sent to the BESS", "EUR k", e=ffy, h=tot, t=f"={{sent}}*{ref('pxs')}/Thousand")
         c.row("rgoo", "Guarantees of origin", "EUR k", e=ffy, h=tot, t=f"={{gen}}*GoO_Price*{idx}/Thousand")
-        c.row("rbfix", "BESS revenue: fixed price on the fixed cycles", "EUR k", e=ffy, h=tot,
-              t=f"={{fct.F}}*{{dfix}}*{ref('fts')}/Thousand")
-        c.row("rbsh", "BESS revenue: our share above the fixed cycles", "EUR k", e=ffy, h=tot,
-              t=f"={{fct.G}}*{ref('real')}*{{dabove}}*{ref('fts')}/Thousand")
-        c.row("rbm", "BESS revenue: merchant or tolling (after fixed tenor)", "EUR k", e=ffy, h=tot,
-              t=f"={{bess.E}}*{ref('bess')}*{{oshare}}*{{live}}*(1-{ref('fts')})")
-        c.row("rbess", "BESS revenue", "EUR k", e=ffy, h=tot, t="=SUM({rbfix}:{rbm})")
+        c.row("bpx", "BESS fixed price (E), yearly income override (F)", "EUR/MWh", e=f"={lever('BESS_Price')}",
+              f=f"={lever('BESS_Income')}", fmts={"E": "money1", "F": "money"})
+        c.row("bfy", "BESS income at the fixed price (E: first full year)", "EUR k", e=ffy,
+              t="=IF({bpx.F}>0,{bpx.F}*{drel},{bpx.E}*{dis}/Thousand)")
+        c.row("rbfix", "BESS revenue at the fixed price (fixed term)", "EUR k", e=ffy, h=tot,
+              t=f"={{bfy}}*{ref('fts')}")
+        c.row("rbm", "BESS revenue, merchant tail (after the fixed term)", "EUR k", e=ffy, h=tot,
+              t=f"={{bess.E}}*{ref('upl')}*{{oshare}}*{{live}}*{ref('merch')}")
+        c.row("rbess", "BESS revenue", "EUR k", e=ffy, h=tot, t="={rbfix}+{rbm}")
         c.row("rev", "Revenue", "EUR k", e=ffy, h=tot, t="={rpvd}+{rpvs}+{rgoo}+{rbess}", bold=True, top=True)
         c.sub("Opex (real 2025 × the Aurora euro index)")
-        c.row("om", "PV O&M", "EUR k", e=ffy, h=tot, t=f"=-OM_Cost*{{cap.E}}*{idx}*{{oshare}}")
-        c.row("omc", "MV cable O&M", "EUR k", e=ffy, h=tot, t=f"=-Cable_OM*{{cap.E}}*{idx}*{{oshare}}")
+        c.row("om", "O&M, all-in", "EUR k", e=ffy, h=tot, t=f"=-OM_Cost*{{cap.E}}*{idx}*{{oshare}}")
         c.row("bal", "Balancing (merchant share of the year)", "EUR k", e=ffy, h=tot,
               t=f"=-{{gen}}*Balancing*{idx}*{ref('merch')}/Thousand")
         c.row("lease", "Land lease", "EUR k", e=ffy, h=tot, t=f"=-Lease*{idx}*{{oshare}}")
@@ -795,18 +655,19 @@ def dashboard(book, d, R):
     def r(key):
         return R.get(key, 1)
 
+    LR = book.lever_rows
+    for i, b in enumerate(B):
+        C = "EFG"[i]
+        d.ws[f"{C}{LR['o_dis']}"] = f"=Calc!$E${b['dis']}/Thousand"
+        d.ws[f"{C}{LR['o_cyc']}"] = f"=IF({C}{LR['MWh']}=0,0,{C}{LR['o_dis']}*Thousand/{C}{LR['MWh']}/Days_In_Year)"
+        d.ws[f"{C}{LR['o_inc']}"] = f"=Calc!$E${b['bfy']}"
+
     d.blank()
     d.bar("Capacity and energy, first full operating year", e=cl)
     pc("First full operating year", "year", lambda b: f"=Calc!$E${b['yrs']}")
     pc("PV generation", "GWh", lambda b: f"=Calc!$E${b['gen']}/Thousand")
     pc("PV energy sent to the BESS", "GWh", lambda b: f"=Calc!$E${b['sent']}/Thousand")
     pc("PV energy exported directly", "GWh", lambda b: f"=Calc!$E${b['direct']}/Thousand")
-    pc("BESS discharge", "GWh", lambda b: f"=Calc!$E${b['dis']}/Thousand")
-    pc("BESS full cycles", "#", lambda b: f"=IF(Calc!$F${b['bess']}>0,Calc!$E${b['dis']}/Calc!$F${b['bess']},0)",
-       fmt="money1")
-    pc("BESS cycles per day", "#", lambda b: f"=IF(Calc!$F${b['bess']}>0,Calc!$E${b['dis']}/Calc!$F${b['bess']},0)"
-                                          "/Days_In_Year", fmt="money2")
-    pc("BESS discharge above the fixed cycles", "GWh", lambda b: f"=Calc!$E${b['dabove']}/Thousand")
     pc("PV price received, all output (blended)", "EUR/MWh",
        lambda b: f"=(Calc!$E${b['rpvd']}+Calc!$E${b['rpvs']})*Thousand/Calc!$E${b['gen']}")
     pc("BESS revenue per MW", "EUR k/MW", lambda b: f"=IF(Calc!$E${b['bess']}>0,Calc!$E${b['rbess']}/Calc!$E${b['bess']},0)")
@@ -815,10 +676,10 @@ def dashboard(book, d, R):
     d.bar("Revenue and EBITDA (EUR k)", e=cl)
     for col, title in (("E", "First full operating year"), ("H", "Lifetime")):
         d.sub(title)
-        pc("PV revenue (PPA, then merchant)", "EUR k", lambda b: f"=Calc!${col}${b['rpvd']}+Calc!${col}${b['rpvs']}")
+        pc("PV revenue (fixed price, then merchant)", "EUR k",
+           lambda b: f"=Calc!${col}${b['rpvd']}+Calc!${col}${b['rpvs']}")
         pc("BESS revenue", "EUR k", lambda b: f"=Calc!${col}${b['rbess']}")
-        pc("of which fixed price on the fixed cycles", "EUR k", lambda b: f"=Calc!${col}${b['rbfix']}", italic=True)
-        pc("of which our share above the fixed cycles", "EUR k", lambda b: f"=Calc!${col}${b['rbsh']}", italic=True)
+        pc("of which at the fixed price", "EUR k", lambda b: f"=Calc!${col}${b['rbfix']}", italic=True)
         pc("Guarantees of origin", "EUR k", lambda b: f"=Calc!${col}${b['rgoo']}")
         pc("Revenue", "EUR k", lambda b: f"=Calc!${col}${b['rev']}", key=f"rev_{col}", bold=True, top=True)
         pc("Opex", "EUR k", lambda b: f"=Calc!${col}${b['opex']}")
@@ -1154,16 +1015,9 @@ def checks(book):
 
     ck("Lever: BESS duration has an Aurora block (2 h or 4 h)",
        lambda i, b, C: f"=Dashboard!{C}${LR['BESS_On']}*ISNA(MATCH(Dashboard!{C}${LR['block']},Aurora_Blocks,0))")
-    ck("Lever: BESS basis is one of the options (Inputs)",
-       lambda i, b, C: f"=N(COUNTIF(Basis_Options,Dashboard!{C}${LR['Basis']})=0)")
-    ck("Lever: revenue structure is one of the table's columns",
-       lambda i, b, C: f"=--ISNA(MATCH(Dashboard!{C}${LR['Structure']},Structures,0))")
-    ck("Lever: the structure's PPA price is positive",
-       lambda i, b, C: f"=N(Dashboard!{C}${LR['PPA_Price']}<=0)")
-    ck("Lever: Fixed + share terms complete (all above 0)",
-       lambda i, b, C: f'=N(Dashboard!{C}${LR["Basis"]}="Fixed + share")*Dashboard!{C}${LR["BESS_On"]}'
-                       f'*N(MIN(Dashboard!{C}${LR["Fix_Price"]}:{C}${LR["Fix_Years"]})<=0)')
-    ck("Lever: PPA tenor within the operating life", lambda i, b, C: f"=N(Dashboard!{C}${LR['PPA_Years']}>Life)")
+    ck("Lever: revenue levers not negative",
+       lambda i, b, C: f"=N(MIN(Dashboard!{C}${LR['PV_Price']}:{C}${LR['BESS_Income']})<0)")
+    ck("Lever: fixed term within the operating life", lambda i, b, C: f"=N(Dashboard!{C}${LR['Fix_Years']}>Life)")
     ck("Timing: COD year not before Aurora's first year", lambda i, b, C: "=N(YEAR(COD_Live)<Aurora_First)",
        shared=True)
     ck("Timing: operating life inside the timeline", lambda i, b, C: f"=N(ABS(Calc!$H${b['oshare']}-Life)>Tolerance)")
@@ -1172,18 +1026,17 @@ def checks(book):
     ck("Energy: discharge ≤ PV charged × RTE, every year",
        lambda i, b, C: f"=SUMPRODUCT(--(Calc!J{b['dis']}:{last}{b['dis']}>Calc!J{b['sent']}:{last}{b['sent']}"
                        f"*BESS_RTE+Tolerance))")
-    ck("Energy: discharge at the fixed price + above = discharge",
-       lambda i, b, C: f"=N(ABS(Calc!$H${b['dfix']}+Calc!$H${b['dabove']}-Calc!$H${b['dis']})>Tolerance)")
+    ck("BESS: override = first-full-year income (needs a BESS)",
+       lambda i, b, C: f"=N(Calc!$F${b['bpx']}>0)*N(ABS(Calc!$E${b['bfy']}-Calc!$F${b['bpx']})>Tolerance)")
     ck("Grid: direct export ≤ MVA × 8,760 h × operating share",
        lambda i, b, C: f"=SUMPRODUCT(--(Calc!J{b['direct']}:{last}{b['direct']}>Dashboard!{C}${LR['MVA']}*Hours_In_Year"
                        f"*Calc!J{b['oshare']}:{last}{b['oshare']}))")
     ck("BESS rows are zero when no BESS is built",
        lambda i, b, C: f"=(1-Dashboard!{C}${LR['BESS_On']})*N(ABS(Calc!$H${b['sent']})+ABS(Calc!$H${b['dis']})"
                        f"+ABS(Calc!$H${b['rbess']})>Tolerance)")
-    ck("Revenue: PV price received = PPA price inside the tenor",
-       lambda i, b, C: f"=SUMPRODUCT((Revenue!J{rv[i]['ppa']}:{last}{rv[i]['ppa']}=1)"
-                       f"*(ABS(Revenue!J{rv[i]['pxd']}:{last}{rv[i]['pxd']}-Revenue!J{rv[i]['ppx']}:{last}"
-                       f"{rv[i]['ppx']})>Tolerance))")
+    ck("Revenue: PV price received = fixed price inside the term",
+       lambda i, b, C: f"=SUMPRODUCT((Revenue!J{rv[i]['fts']}:{last}{rv[i]['fts']}=1)"
+                       f"*(ABS(Revenue!J{rv[i]['pxd']}:{last}{rv[i]['pxd']}-Dashboard!{C}${LR['PV_Price']})>Tolerance))")
     ck("Capex: construction spread in full (= total uses)",
        lambda i, b, C: f"=N(ABS(Calc!$H${b['capex']}+Calc!$H${b['ewntp']}+Calc!$E${b['capex']})>Tolerance)")
     ck("Dated outlays all mapped to the annual grid",
@@ -1264,8 +1117,6 @@ def checks(book):
     ck("Years with CFADS below debt service (DSCR < 1)",
        lambda i, b, C: f"=SUMPRODUCT(--(Calc!J{b['cfads']}:{last}{b['cfads']}<Calc!J{b['dserv']}:{last}{b['dserv']}"
                        f"-Tolerance))")
-    ck("Tolling fee applied to a battery other than offered",
-       lambda i, b, C: f"=Dashboard!{C}{D_.row_of('toll_cfg')}")
     k.end()
     return k
 

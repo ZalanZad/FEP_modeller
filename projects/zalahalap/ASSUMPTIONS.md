@@ -14,7 +14,7 @@ placeholder (Bana wind terms or a default). "Rec." = Fable's recommendation wher
 | 2 | Ready to build = model date | 31-Dec-2026 | date | Teaser p6 "RTB Dec-2026"; user 04-Nov-2026 (v2.1) | U | spend before it is "spent to date": dated in the RtB block, one grid column "to 2026" |
 | 3 | RtB sale closing (exit) | 31-Mar-2027 | date | placeholder (teaser transaction timeline shows "Closing Aug-26", inconsistent with RTB Dec-26) | P | confirm; drives the 12 % accrual and the FEP IRR |
 | 4 | NTP; construction capex | 01-Jan-2027; all construction capex in 2027 (`Capex_Year`) | date | user 04-Nov-2026: "costs will arrive in 2027" | U | the NTP→COD spread is gone; E48/E49 at NTP (Jan-2027) |
-| 5 | COD, PV and BESS together | 01-Mar-2028 (production from March: 10/12 of 2028); PPA Mar-2028 → Feb-2036 (8 years, v2.2) | date | user 04-Nov-2026: "production starts 2028 march" | U | Low: COD +12 months (Mar-2029), capex still in 2027 |
+| 5 | COD, PV and BESS together | 01-Mar-2028 (production from March: 10/12 of 2028); fixed term Mar-2028 → Feb-2036 (8 years) | date | user 04-Nov-2026: "production starts 2028 march" | U | Low: COD +12 months (Mar-2029), capex still in 2027 |
 | 6 | Operating life | 35 | years | v3 Control D30 | v3 | long for PV (30 typical); BESS retires/repowers 2048 anyway |
 | 7 | Pre-RtB development cost window | Oct-2026 → Mar-2027 | dates | v3 Control D116:D117 | v3 | ok |
 | 8 | v3 case dates (column E only) | acq 30-Nov-25, RtB 31-Jul-26, exit 31-Oct-26, NTP 31-Mar-27, COD 31-Mar-28 | | v3 Control D19:D31 | v3 | reconciliation only |
@@ -62,15 +62,19 @@ placeholder (Bana wind terms or a default). "Rec." = Fable's recommendation wher
 | 38 | PV price change / BESS haircut | 0 / 0 (Low −10 % / 20 %) | % | – | P | ok |
 | 39 | Route-to-market fee (merchant) | 0 % | % | v3 Control D77 | v3 | a merchant PV+BESS needs an aggregator: 1.5–3 % of revenue, or the E.ON/MET fee structure – set 2 % in Base |
 
-### 1.5 Offers (detail in §2)
+### 1.5 Revenue levers (v2.5, SPEC §14; the offers are not in the workbook – terms in §2)
 | # | Assumption | Value | Source | Status | Rec. |
 |---|---|---|---|---|---|
-| 40a | PV PPA in the model | **per revenue structure (v2.4): PPA uplift 55 / 80 / 85 €/MWh (PV only / 2 h / 4 h); Fixed + share 45 (all cases); Merchant 80 (all cases)**; nominal flat, 8 years from COD (Mar-2028 → Feb-2036), then Aurora merchant; pay-as-produced on all PV output, no balancing in the PPA years | Revenue "Commercial structures" table, picked by the Dashboard lever | U | user 06-Nov-2026 (SPEC §13); 80/85 are above every offer received (43.96–45 fixed) – need a counterparty |
-| 40b | Revenue structure (per case lever) | **PPA uplift** (PV PPA carries the battery: BESS basis None) · **Fixed + share** (default) · **Merchant** (BESS on Aurora central); the per-case PPA price, PPA tenor, BESS basis and fixed terms on the Dashboard are black links into the table | Dashboard row "Revenue structure"; Revenue table | U | SPEC §13.1; Tolling stays selectable by typing it into the table's BESS basis row |
-| 40c | BESS basis "None" | no charging (all PV exported, PV priced on the PV-only block), no BESS revenue; the battery is still built, paid for, operated and augmented in 2048 | Inputs "BESS revenue basis options" | U | user 06-Nov-2026; the PPA-uplift 4 h case therefore loses money (hold IRR −18.6 %, Low: no IRR exists, shown n/a) |
-| 40d | Fixed + share terms | BESS fixed 70 €/MWh (2 h) / 55 €/MWh (4 h) on discharge up to 1 cycle/day (cap = cycles × MWh × 365 × operating share × in service); above the cap 70 % of Aurora's realised €/MWh (merchant uplift ÷ Aurora discharge per MW); Aurora merchant after the fixed tenor | Revenue table (blue) | U | user 06-Nov-2026; with PV-only charging the battery cycles ≈ 0.6/day, so the above-cap tier is 0 in Base |
-| 40e | Fixed tenor (BESS) | 8 years from COD, equal to the PPA tenor | Revenue table "Fixed tenor" | P | the user did not give a BESS tenor (SPEC §13.1: 8 unless the user says otherwise) – confirm |
-| 40f | IRR start guess / n/a | Calc column H: MIN(10 %, MOIC − 1); buyer at RtB MIN(target, MOIC − 1); buyer at COD the target; an IRR with no root shows n/a (Checks: allowed only when MOIC < 1) | Calc returns rows | model | Excel's XIRR returns ~0 when Newton fails; the target start picks the 8 % root where the PPA-uplift 4 h buyer flows have three (−18 %, 6.8 %, 8 %) |
+| 40a | PV fixed price | **45 €/MWh nominal flat on all PV output** (all three cases), in the fixed term; then Aurora merchant (direct and transfer prices); no balancing in the fixed term | Dashboard lever "PV fixed price" | U | user 06-Nov-2026 |
+| 40b | Fixed term from COD | **8 years** (Mar-2028 → Feb-2036), one term for PV and BESS | Dashboard lever "Fixed term" | U (PV), P (BESS) | the user gave 8 years for the PV; the BESS uses the same term (SPEC §14) – confirm |
+| 40c | BESS fixed price | **– / 70 / 55 €/MWh discharged** (PV only / 2 h / 4 h); 0 = no BESS revenue in the term. The physical model is unchanged: PV charges the BESS whatever the price; ≈ 0.58 / 0.60 cycles a day → first-full-year income 1,488 / 2,395 k€ | Dashboard lever "BESS fixed price" | U | user 06-Nov-2026; after the term the BESS earns the Aurora stack × PV-only factor |
+| 40d | BESS yearly income override | **0** (= from the €/MWh). When > 0: BESS revenue in the term = override × discharge ÷ first-full-year discharge, so the COD-year fraction, degradation and retirement still apply through the discharge | Dashboard lever "BESS yearly income override" | U | SPEC §14 writes "× operating share × in service × discharge ratio"; the discharge already carries both, so they are not applied twice (see SPEC §11) |
+| 40e | Share above the fixed cycles | removed (v2.5) – worth 0 with PV-only charging (≈ 0.6 cycles/day) | – | U | back only with grid charging |
+| 40f | IRR start guess / n/a | Calc column H: MIN(10 %, MOIC − 1); buyer at RtB MIN(target, MOIC − 1); buyer at COD the target; an IRR with no root shows n/a (Checks: allowed only when MOIC < 1) | Calc returns rows | model | Excel's XIRR returns ~0 when Newton fails; loss-making flows can have several roots (v2.4 PPA-uplift 4 h buyer: −18 %, 6.8 %, 8 %) |
+
+Rows 40–46 below are the offer readings of the v1 model, kept for the offer discussion only; the v2.5 workbook models
+no offer.
+
 | 40 | Case C pairing today | MET fixed 43.96 (3 y) + MET tolling 49.7 on a **4 h** battery | Inputs F67:F68 | P | replace by one column per offeror, 2 h for E.ON/MET (SPEC_v2 §2.3) |
 | 41 | Offer start / tenor | E.ON: COD + 3 y; MET: 01-Jan-2028, 3 y (4 y option not selectable); MVM: 01-Jan-2028, 5 y | Curves rows 155–156, 168–169 | O | add the 4 y lever |
 | 42 | Balancing cost under an offer | 5 €/MWh still charged | Calc opex_bal | bug | **double count** – the fees include balancing; charge it only outside the tenor |
@@ -97,7 +101,7 @@ placeholder (Bana wind terms or a default). "Rec." = Fable's recommendation wher
 | # | Assumption | Value | Source | Status | Rec. |
 |---|---|---|---|---|---|
 | 57 | O&M, all-in | **10 k€/MWp/yr** (PV, BoP, MV cable, insurance, management), real 2025 × euro index | user 05-Nov-2026 (v3 Control D59: 14.96) | U | fix round v2.3; confirm with an O&M quote |
-| 58 | MV cable O&M | 0 – inside the all-in 10 k€/MWp/yr (row kept) | user 05-Nov-2026 (v3 Control D62: 5) | U | – |
+| 58 | MV cable O&M | inside the all-in 10 k€/MWp/yr (row removed in v2.5) | user 05-Nov-2026 (v3 Control D62: 5) | U | – |
 | 59 | Balancing | 5 €/MWh (merchant only after the fix #42) | v3 Control D60 | v3 | ok |
 | 60 | Land lease | 96 k€/yr from COD | v3 Control D61 | v3 | ok |
 | 61 | HIPA + innovation contribution | 2.0 % + 0.3 % of revenue | Bana | P | confirm Nyirád's rate; base is revenue less materials/subcontracting |
@@ -185,7 +189,7 @@ Blended PV value on all output (direct + stored), 2029: 60.4 €/MWh (4 h) / 63.
 ~30 % below Aurora Central; the indexed offers give up the fee only. BESS: the 4 h merchant uplift (120 k€/MW) is not
 comparable with 2 h products (49.7–75); on the 2 h block the gap is 71 vs 50–75.
 
-### 2.4 Discrepancies and simplifications in the current model (to fix in v2)
+### 2.4 Discrepancies and simplifications in the v1 model (history; the v2.5 workbook models no offer)
 1. **4 h battery vs 2 h offers**: MET tolling 49.7 and the E.ON bands are applied to a 200 MWh battery (fee not scaled;
    the extra 110 MWh earn nothing) – the C case is penalised by construction. v2: hours per column.
 2. **Balancing double count**: 5 €/MWh charged on top of fees that include balancing (all three offers).
